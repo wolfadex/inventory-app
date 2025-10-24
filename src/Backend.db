@@ -1,0 +1,688 @@
+database module Backend exposing
+    ( User
+    , UserID
+    , endpoint authenticate
+    , endpoint logout
+    , endpoint getUserSelf
+    --
+    , OrganizationID
+    , Organization
+    , endpoint createOrganization
+    --
+    , Food
+    , endpoint addFood
+    , endpoint getFoods
+    )
+    -- ( endpoint addFood
+    -- , endpoint getFoods
+    -- --
+    -- , endpoint addUser
+    -- , endpoint login
+    -- , endpoint logout
+    -- )
+
+import Cookies exposing (Cookies)
+import Rows exposing (..)
+import Security exposing (Unrestricted(..))
+import Sequence as Seq exposing (Sequence)
+import Table exposing (..)
+import Password
+import Time exposing (Unit(..))
+import Transaction exposing (succeed)
+import Uuid exposing (Uuid)
+
+
+-- FOODS
+
+
+type alias Food =
+    { id : FoodID
+    , name : String
+    , owningOrganization : OrganizationID
+    , createdBy : UserID
+    }
+
+
+type FoodID = FoodID Uuid
+
+
+foods : Table ( OrganizationID, Permission ) Food
+foods :=
+    table
+        { primary = .id
+        , security =
+            Security.policy
+                { access = \( organizationID, permission ) food -> permission.read && food.owningOrganization == organizationID
+                , insert = \( organizationID, permission ) food -> permission.create && food.owningOrganization == organizationID
+                , remove = \( organizationID, permission ) food -> permission.delete && food.owningOrganization == organizationID
+                }
+        }
+
+
+
+-- ADD FOOD
+
+
+addFood : Cookies -> String -> Transaction ()
+addFood cookies name =
+    let
+        ( userID, organizationID ) := requireUserAndOrganization cookies
+
+        role :=
+            requireRole ( userID, organizationID )
+
+        id := Uuid.uuid |> Transaction.map FoodID
+    in
+    insert foods ( organizationID, role.food )
+        { id = id
+        , name = name
+        , createdBy = userID
+        , owningOrganization = organizationID
+        }
+
+
+
+-- GET FOODS
+
+
+getFoods : Cookies -> Transaction (Rows String)
+getFoods cookies =
+    let
+        ( userID, organizationID ) := requireUserAndOrganization cookies
+
+        role :=
+            requireRole ( userID, organizationID )
+    in
+    access foods ( organizationID, role.food )
+        |> map .name
+        |> selectAll
+
+--------------------------------------------------------------------------------
+-- SESSION MANAGEMENT ----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- PERMISSIONS
+
+
+type alias Permission =
+    { create : Bool
+    , read : Bool
+    , update : Bool
+    , delete : Bool
+    }
+
+
+type alias Role =
+    { id : RoleID
+    , food : Permission
+    }
+
+
+type RoleID = RoleID Uuid
+
+
+roles : Table SuperUser Role
+roles :=
+    table
+        { primary = .id
+        , security = superUser
+        }
+
+
+requireRole : ( UserID, OrganizationID ) -> Transaction Role
+requireRole ( userID, organizationID ) =
+    let
+        orgUser :=
+            access organizationUsers SuperUser
+                |> select
+    in
+    access roles SuperUser
+        |> filter (\role -> role.id == orgUser.roleID)
+        |> select
+
+-- ORGANIZATIONS TABLE
+
+
+type alias OrganizationRow =
+    { id : OrganizationID
+    , owner : UserID
+    , name : String
+    }
+
+
+type alias Organization =
+    -- { id : String -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id : Uuid -- Temporary fix for `Uuid`s not being supported in Elm yet
+    , name : String
+    }
+
+
+organizationRowToOrganization : OrganizationRow -> Organization
+organizationRowToOrganization org =
+    let
+        (OrganizationID id) = org.id
+    in
+    -- { id = Uuid.toBase64 id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id = id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    , name = org.name
+    }
+
+
+type OrganizationID = OrganizationID Uuid
+
+
+organizations : Table SuperUser OrganizationRow
+organizations :=
+    table
+        { primary = .id
+        , security = superUser
+        }
+
+
+type alias OrganizationUsers =
+    { organizationID : OrganizationID
+    , userID : UserID
+    , roleID : RoleID
+    }
+
+
+organizationUsers : Table SuperUser OrganizationUsers
+organizationUsers :=
+    table
+        { primary = \orgUser -> ( orgUser.organizationID, orgUser.userID )
+        , security =
+            Security.policy
+                { access = \_ _ -> True
+                , insert = \_ _ -> True
+                , remove = \_ _ -> True
+                }
+        }
+
+
+createOrganization : Cookies -> { name : String } -> Transaction Organization
+createOrganization cookies newOrgData =
+    let
+        userID := requireUser cookies
+
+        id := Uuid.uuid |> Transaction.map OrganizationID
+
+        () :=
+            insert organizations SuperUser
+                { id = id
+                , owner = userID
+                , name = newOrgData.name
+                }
+    in
+    access organizations SuperUser
+        |> filter (\org -> org.id == id)
+        |> map organizationRowToOrganization
+        |> select
+
+
+-- USERS TABLE
+
+
+type alias UserRow =
+    { id : UserID
+    , pw_hash : Password.Hash
+    , created : Time.Posix
+    , primaryEmail : String
+    }
+
+
+type UserID = UserID Uuid
+
+
+users : Table SuperUser UserRow
+users :=
+    table
+        { primary = .id
+        , security = superUser
+        }
+
+type alias User =
+    -- { id : String -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id : Uuid -- Temporary fix for `Uuid`s not being supported in Elm yet
+    , primaryEmail : String
+    }
+
+userToUserRow : UserRow -> User
+userToUserRow user =
+    let
+        (UserID id) = user.id
+    in
+    -- { id = Uuid.toBase64 id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id = id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    , primaryEmail = user.primaryEmail
+    }
+
+
+getUserSelf : Cookies -> Transaction ( User, Maybe  Organization )
+getUserSelf cookies =
+    let
+        userID := requireUser cookies
+
+        user :=
+            access users SuperUser
+                |> filter (\u -> u.id == userID)
+                |> select
+
+        maybeOrgUser :=
+            access organizationUsers SuperUser
+                |> filter (\orgUsers -> orgUsers.userID == user.id)
+                |> limitBy .organizationID 1
+                |> selectMaybe
+    in
+    case maybeOrgUser of
+        Nothing ->
+            succeed ( userToUserRow user, Nothing )
+
+        Just orgUser ->
+            access organizations SuperUser
+                |> filter (\org -> org.id == orgUser.organizationID)
+                |> selectMaybe
+                |> Transaction.map (\organization -> ( userToUserRow user, Maybe.map organizationRowToOrganization organization))
+
+-- SESSIONS TABLE
+
+
+type alias Session =
+    { cookie : Uuid
+    , user : UserID
+    , organization : Maybe OrganizationID
+    , expires : Time.Posix
+    }
+
+
+sessions : Table SuperUser Session
+sessions :=
+    table
+        { primary = .cookie
+        , security = superUser
+        }
+
+
+
+-- SUPER USER POLICY
+
+
+type SuperUser = SuperUser
+
+
+superUser : Security.Policy SuperUser row
+superUser =
+    Security.policy
+        { access = \SuperUser _ -> True
+        , insert = \SuperUser _ -> True
+        , remove = \SuperUser _ -> True
+        }
+
+--------------------------------------------------------------------------------
+-- SESSION ENDPOINTS -----------------------------------------------------------
+--------------------------------------------------------------------------------
+
+
+authenticate : Cookies -> { email : String, password : String} -> Transaction Cookies.Header
+authenticate _ authData =
+    let
+        existingUser :=
+            access users SuperUser
+                |> filter (\u -> u.primaryEmail == authData.email && Password.verify u.pw_hash authData.password)
+                |> selectMaybe
+    in
+    case existingUser of
+        Nothing ->
+            let
+                userID  := Uuid.uuid |> Transaction.map UserID
+                created := Time.now
+                uuid    := Uuid.uuid
+                hash    := Password.bcrypt authData.password
+
+                () :=
+                    insert users SuperUser
+                        { id = userID
+                        , primaryEmail = authData.email
+                        , pw_hash = hash
+                        , created = created
+                        }
+
+                () :=
+                    insert sessions SuperUser
+                        { cookie = uuid
+                        , expires = Time.plus 15 Minutes created
+                        , user = userID
+                        , organization = Nothing
+                        }
+            in
+            succeed (toCookie uuid)
+
+        Just user ->
+            let
+                organization :=
+                    access organizationUsers SuperUser
+                        |> filter (\orgUsers -> orgUsers.userID == user.id)
+                        |> limitBy .organizationID 1
+                        |> selectMaybe
+
+                created := Time.now
+                uuid := Uuid.uuid
+
+                () :=
+                    insert sessions SuperUser
+                        { cookie = uuid
+                        , user = user.id
+                        , expires = Time.plus 15 Minutes created
+                        , organization = Maybe.map .organizationID organization
+                        }
+            in
+            succeed (toCookie uuid)
+
+
+
+-- LOGOUT
+
+
+logout : Cookies -> Transaction Cookies.Header
+logout cookies =
+    case fromCookie cookies of
+        Nothing ->
+            succeed (Cookies.remove "u")
+
+        Just uuid ->
+            let
+                () := remove sessions SuperUser (\s -> s.cookie == uuid)
+            in
+            succeed (Cookies.remove "u")
+
+
+
+-- COOKIES
+
+
+toCookie : Uuid -> Cookies.Header
+toCookie uuid =
+    Cookies.set "u" (Uuid.toBase64 uuid) 15 Minutes
+
+
+fromCookie : Cookies -> Maybe Uuid
+fromCookie cookies =
+    Cookies.get cookies "u" Uuid.fromBase64
+
+
+
+-- TABLE SECURITY
+
+
+requireUserAndOrganization : Cookies -> Transaction ( UserID, OrganizationID )
+requireUserAndOrganization cookies =
+    case fromCookie cookies of
+        Just uuid ->
+            let
+                time := Time.now
+            in
+            access sessions SuperUser
+                |> filter (\s -> s.cookie == uuid && time < s.expires)
+                |> select
+                |> Transaction.andThen
+                    (\session ->
+                        case session.organization of
+                            Just organization ->
+                               succeed ( session.user, organization )
+
+                            Nothing ->
+                                Transaction.fail
+                    )
+
+        Nothing ->
+            Transaction.fail
+
+
+requireUser : Cookies -> Transaction UserID
+requireUser cookies =
+    case fromCookie cookies of
+    Just uuid ->
+        let
+            time := Time.now
+        in
+        access sessions SuperUser
+            |> filter (\s -> s.cookie == uuid && time < s.expires)
+            |> map .user
+            |> select
+
+    Nothing ->
+        Transaction.fail
+
+-- FOODS
+
+
+-- type alias Food =
+--   { id : FoodID
+--   , name : String
+--   , owner : UserID
+--   }
+
+
+-- type FoodID = FoodID UInt64
+
+
+-- foods : Table UserID Food
+-- foods :=
+--   table
+--     { primary = .id
+--     , security =
+--         Security.policy
+--           { access = isOwner
+--           , insert = isOwner
+--           , remove = isOwner
+--           }
+--     }
+
+
+-- foodIDs : Sequence FoodID
+-- foodIDs :=
+--   Seq.uint64 FoodID
+
+
+-- isOwner : UserID -> Food -> Bool
+-- isOwner userID food =
+--   userID == food.owner
+
+
+
+-- -- ADD FOOD
+
+
+-- addFood : Cookies -> String -> Transaction ()
+-- addFood cookies name =
+--   let
+--     userID := requireCookie cookies
+--     foodID := Seq.next foodIDs
+--   in
+--   insert foods userID
+--     { id = foodID
+--     , name = name
+--     , owner = userID
+--     }
+
+
+
+-- -- GET FOODS
+
+
+-- getFoods : Cookies -> Transaction (Rows String)
+-- getFoods cookies =
+--   let
+--     userID := requireCookie cookies
+--   in
+--   access foods userID
+--     |> map .name
+--     |> selectAll
+
+
+
+-- --------------------------------------------------------------------------------
+-- -- SESSION MANAGEMENT ----------------------------------------------------------
+-- --------------------------------------------------------------------------------
+
+
+-- -- USERS TABLE
+
+
+-- type alias User =
+--   { id : UserID
+--   , email : String
+--   , pw_hash : Password.Hash
+--   , created : Time.Posix
+--   }
+
+
+-- type UserID = UserID UInt64
+
+
+-- users : Table Unrestricted User
+-- users :=
+--   table
+--     { primary = .id
+--     , security = Security.unrestricted
+--     }
+
+
+-- userIDs : Sequence UserID
+-- userIDs :=
+--   Seq.uint64 UserID
+
+
+
+-- -- SESSIONS TABLE
+
+
+-- type alias Session =
+--   { cookie : Uuid
+--   , user : UserID
+--   , expires : Time.Posix
+--   }
+
+
+-- sessions : Table Unrestricted Session
+-- sessions :=
+--   table
+--     { primary = .cookie
+--     , security = Security.unrestricted
+--     }
+
+
+
+-- --------------------------------------------------------------------------------
+-- -- SESSION ENDPOINTS -----------------------------------------------------------
+-- --------------------------------------------------------------------------------
+
+
+
+-- -- ADD USER
+-- --
+-- -- Create user, add one transaction, and add default tags.
+
+
+-- addUser : Cookies -> String -> String } -> Transaction Cookies.Header
+-- addUser _ { name, password } =
+--   let
+--     userID  := Seq.next userIDs
+--     created := Time.now
+--     uuid    := Uuid.uuid
+--     hash    := Password.bcrypt password
+
+--     () :=
+--       insert users Unrestricted
+--         { id = userID
+--         , name = name
+--         , pw_hash = hash
+--         , created = created
+--         }
+
+--     () :=
+--       insert sessions Unrestricted
+--         { cookie = uuid
+--         , user = userID
+--         , expires = Time.plus 15 Minutes created
+--         }
+--   in
+--   succeed (toCookie uuid)
+
+
+
+-- -- LOGIN
+-- --
+-- -- TODO get rid of old sessions
+
+
+-- login : Cookies -> String -> String -> Transaction Cookies.Header
+-- login _ name password =
+--   let
+--     user :=
+--       access users Unrestricted
+--         |> filter (\u -> u.name == name && Password.verify u.pw_hash password)
+--         |> select
+
+--     created := Time.now
+--     uuid    := Uuid.uuid
+
+--     () :=
+--       insert sessions Unrestricted
+--         { cookie = uuid
+--         , user = user.id
+--         , expires = Time.plus 15 Minutes created
+--         }
+--   in
+--   succeed (toCookie uuid)
+
+
+
+-- -- LOGOUT
+
+
+-- logout : Cookies -> Transaction Cookies.Header
+-- logout cookies =
+--   case fromCookie cookies of
+--     Nothing ->
+--       succeed (Cookies.remove "u")
+
+--     Just uuid ->
+--       let
+--         () := remove sessions Unrestricted (\s -> s.cookie == uuid)
+--       in
+--       succeed (Cookies.remove "u")
+
+
+
+-- -- COOKIES
+
+
+-- toCookie : Uuid -> Cookies.Header
+-- toCookie uuid =
+--   Cookies.set "u" (Uuid.toBase64 uuid) 15 Minutes
+
+
+-- fromCookie : Cookies -> Maybe Uuid
+-- fromCookie cookies =
+--   Cookies.get cookies "u" Uuid.fromBase64
+
+
+
+-- -- TABLE SECURITY
+
+
+-- requireCookie : Cookies -> Transaction UserID
+-- requireCookie cookies =
+--   case fromCookie cookies of
+--     Just uuid ->
+--       let
+--         time := Time.now
+--       in
+--       access sessions Unrestricted
+--         |> filter (\s -> s.cookie == uuid && time < s.expires)
+--         |> map .user
+--         |> select
+
+--     Nothing ->
+--       Transaction.fail
+
