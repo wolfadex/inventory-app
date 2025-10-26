@@ -58,3 +58,6 @@ onCustomSub customSub =
 
         Subscription.OnDocumentPointerDown toMsg ->
             Interop.onDocumentPointerDown toMsg
+
+        Subscription.OnAuthenticationChanged _ ->
+            Sub.none

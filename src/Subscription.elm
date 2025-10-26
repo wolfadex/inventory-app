@@ -5,6 +5,7 @@ module Subscription exposing
     , map
     , Event(..), onEvent
     , CustomSubscription(..)
+    , onAuthenticationChange
     )
 
 {-|
@@ -16,6 +17,8 @@ module Subscription exposing
 
 @docs Event, onEvent
 @docs CustomSubscription
+
+@docs onAuthenticationChange
 
 -}
 
@@ -75,10 +78,19 @@ onDocumentPointerDown toMsg =
 -- CUSTOM SUBSCRIPTIONS
 
 
+
+{-| Runs whenever the URL changes but a new page is not loaded
+-}
+onAuthenticationChange : msg -> Subscription msg
+onAuthenticationChange msg =
+    ElmLand.Subscription.custom (OnAuthenticationChanged msg)
+
+
 {-| Events that can be sent with `Effect.broadcast`
 -}
 type Event
     = UrlChanged
+    | AuthenticationChanged
 
 
 {-| Describes a custom subscription outside of the
@@ -87,6 +99,7 @@ standard ones provided by the `ElmLand.Subscription` module
 type CustomSubscription msg
     = OnUrlChanged msg
     | OnDocumentPointerDown (Json.Value -> msg)
+    | OnAuthenticationChanged msg
 
 
 
@@ -110,6 +123,9 @@ mapCustom fn sub =
         OnDocumentPointerDown toMsg1 ->
             OnDocumentPointerDown (fn << toMsg1)
 
+        OnAuthenticationChanged msg1 ->
+            OnAuthenticationChanged (fn msg1)
+
 
 
 -- NEEDED BY ELM LAND
@@ -124,4 +140,10 @@ onEvent event sub =
                     [ fn ]
 
                 ( UrlChanged, _ ) ->
+                    []
+
+                ( AuthenticationChanged, OnAuthenticationChanged fn ) ->
+                    [ fn ]
+
+                ( AuthenticationChanged, _ ) ->
                     []

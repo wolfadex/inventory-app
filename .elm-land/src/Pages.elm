@@ -18,7 +18,9 @@ import Browser
 import Effect exposing (Effect)
 import Html
 import Pages.ALL_
+import Pages.Dashboard
 import Pages.HOME_
+import Pages.OrganizationInit
 import Pages.SignIn
 import Route exposing (Route)
 import Route.Path
@@ -39,6 +41,8 @@ type alias Context params =
 
 type Model
     = Model_HOME_ Pages.HOME_.Model
+    | Model_Dashboard Pages.Dashboard.Model
+    | Model_OrganizationInit Pages.OrganizationInit.Model
     | Model_SignIn Pages.SignIn.Model
     | Model_ALL_ Pages.ALL_.Model
 
@@ -54,6 +58,26 @@ init url shared =
                 , params = ()
                 , toModel = Model_HOME_
                 , toMsg = HOME_
+                }
+
+        Route.Path.Dashboard ->
+            handleInitForPage
+                { init = Pages.Dashboard.init
+                , shared = shared
+                , url = url
+                , params = ()
+                , toModel = Model_Dashboard
+                , toMsg = Dashboard
+                }
+
+        Route.Path.OrganizationInit ->
+            handleInitForPage
+                { init = Pages.OrganizationInit.init
+                , shared = shared
+                , url = url
+                , params = ()
+                , toModel = Model_OrganizationInit
+                , toMsg = OrganizationInit
                 }
 
         Route.Path.SignIn ->
@@ -106,6 +130,8 @@ handleInitForPage props =
 
 type Msg
     = HOME_ Pages.HOME_.Msg
+    | Dashboard Pages.Dashboard.Msg
+    | OrganizationInit Pages.OrganizationInit.Msg
     | SignIn Pages.SignIn.Msg
     | ALL_ Pages.ALL_.Msg
 
@@ -125,6 +151,30 @@ update url shared msg model =
                 , shared = shared
                 , toModel = Model_HOME_
                 , toMsg = HOME_
+                , params = ()
+                , pageModel = pageModel
+                , pageMsg = pageMsg
+                }
+
+        ( Route.Path.Dashboard, Dashboard pageMsg, Model_Dashboard pageModel ) ->
+            handleUpdateForPage
+                { update = Pages.Dashboard.update
+                , url = url
+                , shared = shared
+                , toModel = Model_Dashboard
+                , toMsg = Dashboard
+                , params = ()
+                , pageModel = pageModel
+                , pageMsg = pageMsg
+                }
+
+        ( Route.Path.OrganizationInit, OrganizationInit pageMsg, Model_OrganizationInit pageModel ) ->
+            handleUpdateForPage
+                { update = Pages.OrganizationInit.update
+                , url = url
+                , shared = shared
+                , toModel = Model_OrganizationInit
+                , toMsg = OrganizationInit
                 , params = ()
                 , pageModel = pageModel
                 , pageMsg = pageMsg
@@ -207,6 +257,32 @@ subscriptions url shared model =
         ( Model_HOME_ _, _ ) ->
             Subscription.none
 
+        ( Model_Dashboard pageModel, Route.Path.Dashboard ) ->
+            handleSubscriptionsForPage
+                { subscriptions = Pages.Dashboard.subscriptions
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Dashboard
+                , pageModel = pageModel
+                }
+
+        ( Model_Dashboard _, _ ) ->
+            Subscription.none
+
+        ( Model_OrganizationInit pageModel, Route.Path.OrganizationInit ) ->
+            handleSubscriptionsForPage
+                { subscriptions = Pages.OrganizationInit.subscriptions
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = OrganizationInit
+                , pageModel = pageModel
+                }
+
+        ( Model_OrganizationInit _, _ ) ->
+            Subscription.none
+
         ( Model_SignIn pageModel, Route.Path.SignIn ) ->
             handleSubscriptionsForPage
                 { subscriptions = Pages.SignIn.subscriptions
@@ -270,6 +346,34 @@ view url shared model =
                 }
 
         ( Model_HOME_ _, _ ) ->
+            "The route doesn't match the current page."
+                |> viewErrorPage url shared
+
+        ( Model_Dashboard pageModel, Route.Path.Dashboard ) ->
+            handleViewForPage
+                { view = Pages.Dashboard.view
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Dashboard
+                , pageModel = pageModel
+                }
+
+        ( Model_Dashboard _, _ ) ->
+            "The route doesn't match the current page."
+                |> viewErrorPage url shared
+
+        ( Model_OrganizationInit pageModel, Route.Path.OrganizationInit ) ->
+            handleViewForPage
+                { view = Pages.OrganizationInit.view
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = OrganizationInit
+                , pageModel = pageModel
+                }
+
+        ( Model_OrganizationInit _, _ ) ->
             "The route doesn't match the current page."
                 |> viewErrorPage url shared
 

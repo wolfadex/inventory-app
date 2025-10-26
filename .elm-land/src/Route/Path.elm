@@ -24,6 +24,8 @@ import Url exposing (Url)
 -}
 type Path
     = HOME_
+    | Dashboard
+    | OrganizationInit
     | SignIn
     | ALL_ { all_ : List String }
 
@@ -47,6 +49,12 @@ fromString urlPath =
         [] ->
             HOME_
 
+        "dashboard" :: [] ->
+            Dashboard
+
+        "organization-init" :: [] ->
+            OrganizationInit
+
         "sign-in" :: [] ->
             SignIn
 
@@ -61,6 +69,12 @@ toString path =
     case path of
         HOME_ ->
             toUrl []
+
+        Dashboard ->
+            toUrl [ "dashboard" ]
+
+        OrganizationInit ->
+            toUrl [ "organization-init" ]
 
         SignIn ->
             toUrl [ "sign-in" ]

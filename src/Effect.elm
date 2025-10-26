@@ -4,6 +4,7 @@ module Effect exposing
     , broadcast
     , CustomEffect(..)
     , reportUnexpectedFlags, acadia
+    , navigateTo
     )
 
 {-|
@@ -15,6 +16,8 @@ module Effect exposing
 @docs CustomEffect
 @docs reportUnexpectedFlags, acadia
 
+@docs navigateTo
+
 -}
 
 import Acadia.Transaction exposing (Transaction)
@@ -22,6 +25,7 @@ import Backend.Transaction
 import ElmLand.Effect
 import Json.Decode as Json
 import Subscription exposing (Subscription)
+import Route.Path
 
 
 
@@ -83,6 +87,13 @@ acadia props =
             , onFailure = props.onResponse Nothing
             }
         )
+
+-- Internal Navigation
+
+navigateTo : Route.Path.Path -> Effect msg
+navigateTo path =
+    ElmLand.Effect.pushUrl
+        (Route.Path.toString path)
 
 
 

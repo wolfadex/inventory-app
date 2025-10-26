@@ -14,7 +14,10 @@ import Effect exposing (Effect)
 import Interop
 import Json.Decode as Json
 import Route exposing (Route)
+import Effect
 import Subscription exposing (Subscription)
+import Backend
+import Authentication exposing (Authentication)
 
 
 
@@ -22,22 +25,21 @@ import Subscription exposing (Subscription)
 
 
 type alias Model =
-    { windowWidth : Float
+    { currentUser : Authentication
+    , currentOrganization : Maybe Backend.Organization
     }
 
 
 init : Json.Value -> Route () -> ( Model, Effect Msg )
 init json route =
-    case Json.decodeValue Interop.decoder json of
-        Ok flags ->
-            ( { windowWidth = flags.windowWidth }
-            , Effect.none
-            )
-
-        Err error ->
-            ( { windowWidth = 0 }
-            , Effect.reportUnexpectedFlags error
-            )
+    ( { currentUser = Authentication.Authenticating
+      , currentOrganization = Nothing
+      }
+    , Effect.acadia
+        { transaction = Backend.getUserSelf
+        , onResponse = GotCurrentUserAndOrg
+        }
+    )
 
 
 
@@ -45,15 +47,23 @@ init json route =
 
 
 type Msg
-    = WindowResized Int Int
+    = GotCurrentUserAndOrg (Maybe ( Backend.User, Maybe Backend.Organization ))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
 update route msg model =
     case msg of
-        WindowResized w h ->
-            ( { model | windowWidth = Basics.toFloat w }
-            , Effect.none
+        GotCurrentUserAndOrg Nothing ->
+             ( { model | currentUser = Authentication.Unauthenticated }
+            , Effect.broadcast Subscription.AuthenticationChanged
+            )
+
+        GotCurrentUserAndOrg (Just ( user, maybeOrg )) ->
+            ( { model
+                | currentUser = Authentication.Authenticated user
+                , currentOrganization = maybeOrg
+              }
+            , Effect.broadcast Subscription.AuthenticationChanged
             )
 
 
@@ -63,4 +73,4 @@ update route msg model =
 
 subscriptions : Route () -> Model -> Subscription Msg
 subscriptions route model =
-    Subscription.onResize WindowResized
+    Subscription.none
