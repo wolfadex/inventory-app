@@ -34,7 +34,7 @@ type alias Food =
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
     let
-        ( layout, layoutEffect ) = Layout.Authenticated.init shared
+        ( layout, layoutEffect ) = Layout.Authenticated.init shared route
     in
     ( { layout = layout
       , foods = Response.Loading
@@ -77,6 +77,7 @@ update { shared, route } msg model =
                 , model = model.layout
                 , toModel = \layout -> { model | layout = layout }
                 , sharedModel = shared
+                , route = route
                 }
 
         GotFoods (Just foods) ->

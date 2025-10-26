@@ -11,9 +11,11 @@ import Components.Icon
 import Effect exposing (Effect)
 import Route exposing (Route)
 import Route.Path
+import Dict
 import Shared
 import Subscription exposing (Subscription)
 import Response exposing (Response)
+import Url
 
 
 type alias AuthContext =
@@ -26,8 +28,8 @@ type alias AuthContext =
 type alias Model =
     ()
 
-init : Shared.Model -> ( Model, Effect Msg )
-init sharedModel =
+init : Shared.Model -> Route params -> ( Model, Effect Msg )
+init sharedModel route =
     ( ()
     , Debug.log "init" <| case sharedModel.currentUser of
         Authentication.Authenticated _ ->
@@ -36,13 +38,13 @@ init sharedModel =
                     ( Effect.none )
 
                 Nothing ->
-                    ( Effect.navigateTo Route.Path.OrganizationInit )
+                    ( Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) } )
 
         Authentication.Authenticating ->
             ( Effect.none )
 
         Authentication.Unauthenticated ->
-            ( Effect.navigateTo Route.Path.SignIn )
+            ( Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) } )
     )
 
 
@@ -62,6 +64,7 @@ update :
     { msg : Msg
     , model : Model
     , sharedModel : Shared.Model
+    , route : Route params
     , toModel : Model -> pageModel
     , toMsg : Msg -> pageMsg
     }
@@ -77,13 +80,13 @@ update ({ model } as config) =
                             ( Effect.none )
 
                         Nothing ->
-                            ( Effect.navigateTo Route.Path.OrganizationInit )
+                            ( Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
 
                 Authentication.Authenticating ->
                     ( Effect.none )
 
                 Authentication.Unauthenticated ->
-                    ( Effect.navigateTo Route.Path.SignIn )
+                    ( Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
             )
 
 

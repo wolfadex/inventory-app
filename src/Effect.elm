@@ -22,9 +22,11 @@ module Effect exposing
 
 import Acadia.Transaction exposing (Transaction)
 import Backend.Transaction
+import Dict exposing (Dict)
 import ElmLand.Effect
 import Json.Decode as Json
 import Subscription exposing (Subscription)
+import Route
 import Route.Path
 
 
@@ -90,10 +92,10 @@ acadia props =
 
 -- Internal Navigation
 
-navigateTo : Route.Path.Path -> Effect msg
-navigateTo path =
+navigateTo :  { path : Route.Path.Path, query : Dict String String } -> Effect msg
+navigateTo { path, query } =
     ElmLand.Effect.pushUrl
-        (Route.Path.toString path)
+        (Route.toString { path = path, query = query, fragment = Nothing })
 
 
 
