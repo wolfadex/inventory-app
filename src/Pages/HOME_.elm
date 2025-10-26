@@ -1,4 +1,4 @@
-module Page.Home exposing (..)
+module Pages.HOME_ exposing (..)
 
 import Backend
 import Html exposing (Html)
@@ -10,6 +10,7 @@ import Effect exposing (Effect)
 import Route exposing (Route)
 import Shared
 import Subscription exposing (Subscription)
+import Response exposing (Response)
 
 
 -- CONTEXT
@@ -30,7 +31,7 @@ type alias Food =
 
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
-    ( { foods = Loading }
+    ( { foods = Response.Loading }
     , Effect.acadia
         { transaction = Backend.getFoods
         , onResponse = GotFoods
@@ -46,9 +47,6 @@ subscriptions { shared, route } model =
     Subscription.none
 
 
-type Msg
-    = NoOp
-
 
 -- UPDATE
 
@@ -61,12 +59,12 @@ update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update { shared, route } msg model =
     case msg of
         GotFoods (Just foods) ->
-            ( { model | foods = Success foods }
+            ( { model | foods = Response.Success foods }
             , Effect.none
             )
 
         GotFoods Nothing ->
-            ( { model | foods = Failure "Couldn't fetch foods..." }
+            ( { model | foods = Response.Failure "Couldn't fetch foods..." }
             , Effect.none
             )
 
@@ -87,10 +85,10 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Homepage"
     , body =
-        [ div [ class "col align-cx" ]
+        [ Html.div [ Html.Attributes.class "col align-cx" ]
             [ Components.Icon.logo 240
-            , h1 [] [ text "Welcome to Elm Land!" ]
+            , Html.h1 [] [ Html.text "Welcome to Elm Land!" ]
             ]
-        , p [] [ text (Debug.toString model) ]
+        , Html.p [] [ Html.text (Debug.toString model) ]
         ]
     }

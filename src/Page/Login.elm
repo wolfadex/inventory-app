@@ -172,7 +172,7 @@ view model =
         , Html.Attributes.style "align-items" "center"
         , Html.Attributes.style "width" "100vw"
         ]
-        [ Html.h1 [] [ Html.text "My App" ]
+        [ Html.h1 [] [ Html.text "Inventory App" ]
         , case model of
             Unauthenticated unauthenticatedModel ->
                 viewUnauthenticated unauthenticatedModel

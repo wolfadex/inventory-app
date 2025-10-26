@@ -2,10 +2,10 @@ node_modules
 elm-stuff
 acadia-stuff
 
-public/elm.js
-src/Css.elm
-./index.html
+/public/app.elm.js
 
-gen
+gen/**/*.elm
+gen/index.html
 
 .DS_Store
+
