@@ -10,14 +10,20 @@ module Pages.OrganizationInit exposing
 
 -}
 
+import Authentication
 import Browser
+import Dict
 import Effect exposing (Effect)
+import Form
 import Html exposing (Html)
 import Html.Attributes
+import Html.Events
 import Route exposing (Route)
 import Icon
 import Shared
 import Subscription exposing (Subscription)
+import Submit exposing (Submit)
+import Route.Path
 
 
 
@@ -35,13 +41,25 @@ type alias Context =
 
 
 type alias Model =
-    {}
+    { name : String
+    , submit : Submit () String
+    }
 
 
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
-    ( {}
-    , Effect.none
+    ( { name = ""
+      , submit = Submit.Fresh
+      }
+    , case shared.currentUser of
+        Authentication.Unauthenticated ->
+            Effect.navigateTo { path = Route.Path.SignIn, query = Dict.empty }
+
+        Authentication.Authenticating ->
+            Effect.none
+
+        Authentication.Authenticated user ->
+            Effect.none
     )
 
 
@@ -50,15 +68,38 @@ init { shared, route } =
 
 
 type Msg
-    = NoOp
+    = UserChangedName String
+    | UserSubmittedForm
+    | AuthenticationChanged
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update { shared, route } msg model =
     case msg of
-        NoOp ->
+        AuthenticationChanged ->
+
             ( model
+            , case shared.currentUser of
+                Authentication.Authenticated _ ->
+                    Effect.none
+
+                Authentication.Authenticating ->
+                    Effect.none
+
+                Authentication.Unauthenticated ->
+                    Effect.navigateTo { path = Route.Path.SignIn, query = Dict.empty }
+            )
+
+        UserChangedName name ->
+            ( { model | name = name }
             , Effect.none
+            )
+
+        UserSubmittedForm ->
+            ( model
+            , Effect.acadia
+                { transaction = Backend.createOrganization
+                }
             )
 
 
@@ -68,7 +109,7 @@ update { shared, route } msg model =
 
 subscriptions : Context -> Model -> Subscription Msg
 subscriptions { shared, route } model =
-    Subscription.none
+    Subscription.onAuthenticationChange AuthenticationChanged
 
 
 
@@ -77,9 +118,24 @@ subscriptions { shared, route } model =
 
 view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
-    { title = "Create Organization"
+    { title = "Organization Setup"
     , body =
         [ Html.h1 [] [ Html.text "Inventory App" ]
-        , Html.p [] [ Html.text "Create organization..." ]
+        , Form.view
+            { title = "Setup organization"
+            , onSubmit = UserSubmittedForm
+            , submit = model.submit
+            , submitLabel = "Create organization"
+            , fields =
+                [ { name = "name"
+                  , label = "Name"
+                  , value = model.name
+                  , onInput = UserChangedName
+                  , attributes =
+                    [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                    ]
+                  }
+                ]
+            }
         ]
     }

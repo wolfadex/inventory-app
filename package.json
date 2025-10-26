@@ -8,7 +8,7 @@
         "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev'",
         "build": "npm run acadia:build && tsc && vite build",
         "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
-        "acadia:build": "acadia make --generate-elm-endpoints=gen",
+        "acadia:build": "acadia make --generate-elm-endpoints=gen --generate-haskell-endpoints=gen",
         "elm-land:server": "vite dev"
     },
     "repository": {
