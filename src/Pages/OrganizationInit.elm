@@ -15,7 +15,7 @@ import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Route exposing (Route)
-import Components.Icon
+import Icon
 import Shared
 import Subscription exposing (Subscription)
 
@@ -77,13 +77,9 @@ subscriptions { shared, route } model =
 
 view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
-    { title = "Sign in"
+    { title = "Create Organization"
     , body =
-        [ Html.div []
-            [ Html.div [Html.Attributes.class "col align-cx"]
-            [ Components.Icon.logo 240 ]
-            , Html.h1 [] [ Html.text "Welcome to Elm Land!" ]
-            ]
-        , Html.p [] [ Html.text "Let's get you signed in..." ]
+        [ Html.h1 [] [ Html.text "Inventory App" ]
+        , Html.p [] [ Html.text "Create organization..." ]
         ]
     }

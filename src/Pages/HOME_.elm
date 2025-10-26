@@ -5,7 +5,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Browser
-import Components.Icon
+import Icon
 import Effect exposing (Effect)
 import Route exposing (Route)
 import Shared
@@ -86,7 +86,7 @@ view { shared, route } model =
     { title = "Homepage"
     , body =
         [ Html.div [ Html.Attributes.class "col align-cx" ]
-            [ Components.Icon.logo 240
+            [ Icon.logo 240
             , Html.h1 [] [ Html.text "Welcome to Elm Land!" ]
             ]
         , Html.p [] [ Html.text (Debug.toString model) ]

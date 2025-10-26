@@ -12,12 +12,14 @@ module Shared exposing
 
 import Effect exposing (Effect)
 import Interop
+import Dict
 import Json.Decode as Json
 import Route exposing (Route)
 import Effect
 import Subscription exposing (Subscription)
 import Backend
 import Authentication exposing (Authentication)
+import Route.Path
 
 
 
@@ -48,13 +50,15 @@ init json route =
 
 type Msg
     = GotCurrentUserAndOrg (Maybe ( Backend.User, Maybe Backend.Organization ))
+    | AuthRefreshRequested (Maybe Route.Path.Path)
+    | RefreshedAuth (Maybe Route.Path.Path) (Maybe ( Backend.User, Maybe Backend.Organization ))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
 update route msg model =
     case msg of
         GotCurrentUserAndOrg Nothing ->
-             ( { model | currentUser = Authentication.Unauthenticated }
+            ( { model | currentUser = Authentication.Unauthenticated }
             , Effect.broadcast Subscription.AuthenticationChanged
             )
 
@@ -66,6 +70,32 @@ update route msg model =
             , Effect.broadcast Subscription.AuthenticationChanged
             )
 
+        AuthRefreshRequested maybePath ->
+            ( { model | currentUser = Authentication.Authenticating }
+            , Effect.acadia
+                { transaction = Backend.getUserSelf
+                , onResponse = GotCurrentUserAndOrg
+                }
+            )
+
+        RefreshedAuth _ Nothing ->
+            ( { model | currentUser = Authentication.Unauthenticated }
+            , Effect.broadcast Subscription.AuthenticationChanged
+            )
+
+        RefreshedAuth maybeRedirect (Just ( user, maybeOrg )) ->
+            ( { model
+                | currentUser = Authentication.Authenticated user
+                , currentOrganization = maybeOrg
+                }
+            , case maybeRedirect of
+                Nothing ->
+                    Effect.broadcast Subscription.AuthenticationChanged
+
+                Just path ->
+                    Effect.navigateTo { path = path, query = Dict.empty }
+            )
+
 
 
 -- SUBSCRIPTIONS
@@ -73,4 +103,4 @@ update route msg model =
 
 subscriptions : Route () -> Model -> Subscription Msg
 subscriptions route model =
-    Subscription.none
+    Subscription.onAuthenticationRefreshRequested AuthRefreshRequested

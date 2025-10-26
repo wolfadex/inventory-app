@@ -7,7 +7,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Browser
-import Components.Icon
+import Icon
 import Effect exposing (Effect)
 import Route exposing (Route)
 import Route.Path
@@ -114,7 +114,8 @@ view props =
                         ]
 
             Authentication.Authenticating ->
-                [ Html.h1 [] [ Html.text "Loading..." ]
+                [ Html.div []
+                    [ Icon.loading ]
                 ]
 
             Authentication.Unauthenticated ->

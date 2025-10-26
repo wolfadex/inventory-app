@@ -5,7 +5,7 @@ import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Browser
-import Components.Icon
+import Icon
 import Effect exposing (Effect)
 import Route exposing (Route)
 import Shared
@@ -113,7 +113,7 @@ view { shared, route } model =
         , body =
             \{ currentUser, currentOrganization } ->
                 [ Html.div [ Html.Attributes.class "col align-cx" ]
-                    [ Components.Icon.logo 240
+                    [ Icon.logo 240
                     , Html.h1 [] [ Html.text "Inventory App" ]
                     ]
                 ,   Html.text (currentUser.primaryEmail)

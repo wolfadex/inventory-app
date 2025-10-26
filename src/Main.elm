@@ -61,3 +61,6 @@ onCustomSub customSub =
 
         Subscription.OnAuthenticationChanged _ ->
             Sub.none
+
+        Subscription.OnAuthenticationRefreshRequested _ ->
+            Sub.none

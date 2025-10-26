@@ -5,7 +5,7 @@ module Subscription exposing
     , map
     , Event(..), onEvent
     , CustomSubscription(..)
-    , onAuthenticationChange
+    , onAuthenticationChange, onAuthenticationRefreshRequested
     )
 
 {-|
@@ -18,12 +18,13 @@ module Subscription exposing
 @docs Event, onEvent
 @docs CustomSubscription
 
-@docs onAuthenticationChange
+@docs onAuthenticationChange, onAuthenticationRefreshRequested
 
 -}
 
 import ElmLand.Subscription
 import Json.Decode as Json
+import Route.Path
 
 
 {-| Describes a listener for specific events
@@ -79,11 +80,14 @@ onDocumentPointerDown toMsg =
 
 
 
-{-| Runs whenever the URL changes but a new page is not loaded
--}
 onAuthenticationChange : msg -> Subscription msg
 onAuthenticationChange msg =
     ElmLand.Subscription.custom (OnAuthenticationChanged msg)
+
+
+onAuthenticationRefreshRequested : (Maybe Route.Path.Path -> msg) -> Subscription msg
+onAuthenticationRefreshRequested toMsg =
+    ElmLand.Subscription.custom (OnAuthenticationRefreshRequested toMsg)
 
 
 {-| Events that can be sent with `Effect.broadcast`
@@ -91,6 +95,7 @@ onAuthenticationChange msg =
 type Event
     = UrlChanged
     | AuthenticationChanged
+    | RefreshAuthentication (Maybe Route.Path.Path)
 
 
 {-| Describes a custom subscription outside of the
@@ -100,6 +105,7 @@ type CustomSubscription msg
     = OnUrlChanged msg
     | OnDocumentPointerDown (Json.Value -> msg)
     | OnAuthenticationChanged msg
+    | OnAuthenticationRefreshRequested (Maybe Route.Path.Path -> msg)
 
 
 
@@ -126,6 +132,9 @@ mapCustom fn sub =
         OnAuthenticationChanged msg1 ->
             OnAuthenticationChanged (fn msg1)
 
+        OnAuthenticationRefreshRequested toMsg1 ->
+            OnAuthenticationRefreshRequested (fn << toMsg1)
+
 
 
 -- NEEDED BY ELM LAND
@@ -146,4 +155,10 @@ onEvent event sub =
                     [ fn ]
 
                 ( AuthenticationChanged, _ ) ->
+                    []
+
+                ( RefreshAuthentication maybePath , OnAuthenticationRefreshRequested fn ) ->
+                    [ fn maybePath ]
+
+                ( RefreshAuthentication _, _ ) ->
                     []
