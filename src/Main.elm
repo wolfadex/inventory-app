@@ -42,7 +42,7 @@ onCustomEffect customEffect url key shared =
 
         Effect.Acadia info ->
             ( shared
-            , Acadia.Transaction.attempt "/_endpoints"
+            , Acadia.Transaction.attempt "/api"
                 (Maybe.withDefault info.onFailure)
                 info.transaction
             )

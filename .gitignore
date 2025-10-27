@@ -1,10 +1,16 @@
 node_modules
+
 elm-stuff
+
 acadia-stuff
+
+.stack-work/
+*~
 
 /public/app.elm.js
 
 gen/**/*.elm
+gen/**/*.hs
 gen/index.html
 
 .DS_Store

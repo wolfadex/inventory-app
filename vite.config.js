@@ -5,7 +5,8 @@ import elmLand from "./.elm-land/package/src/plugin";
 export default defineConfig({
     server: {
         proxy: {
-            "/_endpoints": "http://localhost:9000",
+            // "/_endpoints": "http://localhost:9000",
+            "/api": "http://localhost:8000",
         },
     },
     plugins: [

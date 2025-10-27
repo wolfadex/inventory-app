@@ -5,10 +5,11 @@
     "type": "module",
     "scripts": {
         "start": "npm i && npm run dev",
-        "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev'",
+        "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run haskell:dev'",
         "build": "npm run acadia:build && tsc && vite build",
         "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
         "acadia:build": "acadia make --generate-elm-endpoints=gen --generate-haskell-endpoints=gen",
+        "haskell:dev": "nodemon -w src -w gen --ext hs --exec \"stack run\"",
         "elm-land:server": "vite dev"
     },
     "repository": {

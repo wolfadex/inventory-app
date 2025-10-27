@@ -24,6 +24,7 @@ import Shared
 import Subscription exposing (Subscription)
 import Submit exposing (Submit)
 import Route.Path
+import Backend
 
 
 
@@ -71,6 +72,7 @@ type Msg
     = UserChangedName String
     | UserSubmittedForm
     | AuthenticationChanged
+    | OrganizationCreated (Maybe Backend.Organization)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -98,9 +100,17 @@ update { shared, route } msg model =
         UserSubmittedForm ->
             ( model
             , Effect.acadia
-                { transaction = Backend.createOrganization
+                { transaction = Backend.createOrganization { name = model.name }
+                , onResponse = OrganizationCreated
                 }
             )
+
+        OrganizationCreated Nothing ->
+            ( model, Effect.none )
+
+        OrganizationCreated (Just organization) ->
+            ( model, Effect.none )
+
 
 
 

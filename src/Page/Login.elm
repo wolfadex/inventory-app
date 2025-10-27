@@ -97,7 +97,8 @@ update ({ model } as config) =
                         { email = unauthenticatedModel.email
                         , password = unauthenticatedModel.password
                         }
-                        |> Acadia.Transaction.attempt "/_endpoints" (UserAuthenticated >> config.toMsg)
+                        -- |> Acadia.Transaction.attempt "/_endpoints" (UserAuthenticated >> config.toMsg)
+                        |> Acadia.Transaction.attempt "/api" (UserAuthenticated >> config.toMsg)
                     )
 
                 UserAuthenticated Nothing ->

@@ -11,6 +11,7 @@ import Route exposing (Route)
 import Shared
 import Subscription exposing (Subscription)
 import Response exposing (Response)
+import Route.Path
 
 
 -- CONTEXT
@@ -23,19 +24,12 @@ type alias Context =
 
 
 type alias Model =
-    { foods : Response (List Food)
-    }
-
-type alias Food =
-    ( String )
+    {}
 
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
-    ( { foods = Response.Loading }
-    , Effect.acadia
-        { transaction = Backend.getFoods
-        , onResponse = GotFoods
-        }
+    ( {}
+    , Effect.none
     )
 
 
@@ -52,33 +46,16 @@ subscriptions { shared, route } model =
 
 
 type Msg
-    = GotFoods (Maybe (List Food))
+    = NoOp
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update { shared, route } msg model =
     case msg of
-        GotFoods (Just foods) ->
-            ( { model | foods = Response.Success foods }
+        NoOp ->
+            ( model
             , Effect.none
             )
-
-        GotFoods Nothing ->
-            ( { model | foods = Response.Failure "Couldn't fetch foods..." }
-            , Effect.none
-            )
-
-
-
--- view : Backend.User -> Model -> Html Msg
--- view user model =
---     Html.div []
---         [ Html.h1 [] [ Html.text "Inventory App" ]
-
---         -- , Html.text (user.primaryEmail ++ " logged in")
---         ]
-
---         -- VIEW
 
 
 view : Context -> Model -> Browser.Document Msg
@@ -87,8 +64,10 @@ view { shared, route } model =
     , body =
         [ Html.div [ Html.Attributes.class "col align-cx" ]
             [ Icon.logo 240
-            , Html.h1 [] [ Html.text "Welcome to Elm Land!" ]
+            , Html.h1 [] [ Html.text "Inventory App" ]
             ]
-        , Html.p [] [ Html.text (Debug.toString model) ]
+        , Html.a
+            [ Route.Path.href Route.Path.SignIn ]
+            [ Html.text "Sign In" ]
         ]
     }
