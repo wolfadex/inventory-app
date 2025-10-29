@@ -22,12 +22,16 @@ module Effect exposing
 
 import Acadia.Transaction exposing (Transaction)
 import Backend.Transaction
+import Bytes exposing (Bytes)
+import Bytes.Decode
 import Dict exposing (Dict)
 import ElmLand.Effect
+import Http
 import Json.Decode as Json
-import Subscription exposing (Subscription)
 import Route
 import Route.Path
+import Serialize
+import Subscription exposing (Subscription)
 
 
 
@@ -73,8 +77,10 @@ reportUnexpectedFlags error =
 {-| Attempt to run an Acadia transaction
 -}
 acadia :
-    { onResponse : Maybe value -> msg
-    , transaction : Transaction value
+    { onResponse : Result (Serialize.Error Http.Error) value -> msg
+    , responseDecoder : Bytes.Decode.Decoder (Result (Serialize.Error Http.Error) value)
+    , requestBody : Bytes
+    , path : String
     }
     -> Effect msg
 acadia props =
@@ -82,17 +88,18 @@ acadia props =
     -- so things work nicely with "Effect msg"
     ElmLand.Effect.custom
         (Acadia
-            { transaction =
-                Backend.Transaction.map
-                    (Just >> props.onResponse)
-                    props.transaction
-            , onFailure = props.onResponse Nothing
+            { responseDecoder = Bytes.Decode.map props.onResponse props.responseDecoder
+            , path = props.path
+            , requestBody = props.requestBody
             }
         )
 
+
+
 -- Internal Navigation
 
-navigateTo :  { path : Route.Path.Path, query : Dict String String } -> Effect msg
+
+navigateTo : { path : Route.Path.Path, query : Dict String String } -> Effect msg
 navigateTo { path, query } =
     ElmLand.Effect.pushUrl
         (Route.toString { path = path, query = query, fragment = Nothing })
@@ -107,8 +114,9 @@ navigateTo { path, query } =
 type CustomEffect msg
     = ReportUnexpectedFlags Json.Error
     | Acadia
-        { transaction : Transaction msg
-        , onFailure : msg
+        { responseDecoder : Bytes.Decode.Decoder msg
+        , path : String
+        , requestBody : Bytes
         }
 
 
@@ -133,6 +141,7 @@ mapCustomEffect fn customEffect =
 
         Acadia info ->
             Acadia
-                { transaction = Backend.Transaction.map fn info.transaction
-                , onFailure = fn info.onFailure
+                { responseDecoder = Bytes.Decode.map fn info.responseDecoder
+                , path = info.path
+                , requestBody = info.requestBody
                 }

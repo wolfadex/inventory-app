@@ -10,20 +10,22 @@ module Pages.SignIn exposing
 
 -}
 
+import Acadia.Api
 import Authentication
 import Backend
 import Browser
+import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Dict
-import Submit exposing (Submit)
-import Route exposing (Route)
 import Icon
-import Shared
-import Subscription exposing (Subscription)
+import Route exposing (Route)
 import Route.Path
+import Serialize
+import Shared
+import Submit exposing (Submit)
+import Subscription exposing (Subscription)
 
 
 
@@ -41,7 +43,7 @@ type alias Context =
 
 
 type alias Model =
-    { pathAfterAuth :  Route.Path.Path
+    { pathAfterAuth : Route.Path.Path
     , email : String
     , password : String
     , submit : Submit () String
@@ -87,7 +89,7 @@ type Msg
     = UserChangedEmail String
     | UserChangedPassword String
     | UserSubmittedAuthForm
-    | UserAuthenticated (Maybe ())
+    | UserAuthenticated (Result (Serialize.Error Http.Error) ())
     | AuthenticationChanged
 
 
@@ -107,21 +109,24 @@ update { shared, route } msg model =
         UserSubmittedAuthForm ->
             ( { model | submit = Submit.Submitting }
             , Effect.acadia
-                { transaction =
-                    Backend.authenticate
+                { responseDecoder =
+                    Serialize.toBytesDecoder Acadia.Api.authenticateCodec
+                , requestBody =
+                    Serialize.encodeToBytes Acadia.Api.authenticateCodec
                         { email = model.email
                         , password = model.password
                         }
                 , onResponse = UserAuthenticated
+                , path = "/auth/authenticate"
                 }
             )
 
-        UserAuthenticated Nothing ->
+        UserAuthenticated (Err err) ->
             ( { model | submit = Submit.Failed "Error" }
             , Effect.none
             )
 
-        UserAuthenticated (Just ()) ->
+        UserAuthenticated (Ok ()) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication (Just model.pathAfterAuth))
             )
@@ -145,7 +150,6 @@ update { shared, route } msg model =
                         Nothing ->
                             Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.empty }
                     )
-
 
 
 
@@ -219,5 +223,3 @@ view { shared, route } model =
             ]
         ]
     }
-
-

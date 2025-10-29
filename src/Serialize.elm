@@ -33,6 +33,7 @@ module Serialize exposing
     , set
     , string
     , time
+    , toBytesDecoder
     , tuple
     , uint16
     , uint32
@@ -122,8 +123,8 @@ endian =
 
 {-| Extracts the `Decoder` contained inside the `Codec`.
 -}
-getBytesDecoderHelper : Codec e a -> BD.Decoder (Result (Error e) a)
-getBytesDecoderHelper (Codec m) =
+toBytesDecoder : Codec e a -> BD.Decoder (Result (Error e) a)
+toBytesDecoder (Codec m) =
     m.decoder
 
 
@@ -140,7 +141,7 @@ decodeFromBytes codec bytes_ =
                             Err DataCorrupted |> BD.succeed
 
                         else if value == version then
-                            getBytesDecoderHelper codec
+                            toBytesDecoder codec
 
                         else
                             Err SerializerOutOfDate |> BD.succeed
@@ -448,7 +449,7 @@ list codec =
         (listEncode (getBytesEncoderHelper codec))
         (BD.unsignedInt32 endian
             |> BD.andThen
-                (\length -> BD.loop ( length, [] ) (listStep (getBytesDecoderHelper codec)))
+                (\length -> BD.loop ( length, [] ) (listStep (toBytesDecoder codec)))
         )
 
 
@@ -749,7 +750,7 @@ field getter codec (RecordCodec recordCodec) =
                             Err err
                 )
                 recordCodec.decoder
-                (getBytesDecoderHelper codec)
+                (toBytesDecoder codec)
         , fieldIndex = recordCodec.fieldIndex + 1
         }
 
@@ -876,7 +877,7 @@ variant1 ctor m1 =
                 [ getBytesEncoderHelper m1 v
                 ]
         )
-        (BD.map (result1 ctor) (getBytesDecoderHelper m1))
+        (BD.map (result1 ctor) (toBytesDecoder m1))
 
 
 result1 :
@@ -910,8 +911,8 @@ variant2 ctor m1 m2 =
         )
         (BD.map2
             (result2 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
         )
 
 
@@ -952,9 +953,9 @@ variant3 ctor m1 m2 m3 =
         )
         (BD.map3
             (result3 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
-            (getBytesDecoderHelper m3)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
+            (toBytesDecoder m3)
         )
 
 
@@ -1001,10 +1002,10 @@ variant4 ctor m1 m2 m3 m4 =
         )
         (BD.map4
             (result4 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
-            (getBytesDecoderHelper m3)
-            (getBytesDecoderHelper m4)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
+            (toBytesDecoder m3)
+            (toBytesDecoder m4)
         )
 
 
@@ -1057,11 +1058,11 @@ variant5 ctor m1 m2 m3 m4 m5 =
         )
         (BD.map5
             (result5 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
-            (getBytesDecoderHelper m3)
-            (getBytesDecoderHelper m4)
-            (getBytesDecoderHelper m5)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
+            (toBytesDecoder m3)
+            (toBytesDecoder m4)
+            (toBytesDecoder m5)
         )
 
 
@@ -1120,13 +1121,13 @@ variant6 ctor m1 m2 m3 m4 m5 m6 =
         )
         (BD.map5
             (result6 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
-            (getBytesDecoderHelper m3)
-            (getBytesDecoderHelper m4)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
+            (toBytesDecoder m3)
+            (toBytesDecoder m4)
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m5)
-                (getBytesDecoderHelper m6)
+                (toBytesDecoder m5)
+                (toBytesDecoder m6)
             )
         )
 
@@ -1191,16 +1192,16 @@ variant7 ctor m1 m2 m3 m4 m5 m6 m7 =
         )
         (BD.map5
             (result7 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
-            (getBytesDecoderHelper m3)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
+            (toBytesDecoder m3)
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m4)
-                (getBytesDecoderHelper m5)
+                (toBytesDecoder m4)
+                (toBytesDecoder m5)
             )
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m6)
-                (getBytesDecoderHelper m7)
+                (toBytesDecoder m6)
+                (toBytesDecoder m7)
             )
         )
 
@@ -1270,19 +1271,19 @@ variant8 ctor m1 m2 m3 m4 m5 m6 m7 m8 =
         )
         (BD.map5
             (result8 ctor)
-            (getBytesDecoderHelper m1)
-            (getBytesDecoderHelper m2)
+            (toBytesDecoder m1)
+            (toBytesDecoder m2)
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m3)
-                (getBytesDecoderHelper m4)
+                (toBytesDecoder m3)
+                (toBytesDecoder m4)
             )
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m5)
-                (getBytesDecoderHelper m6)
+                (toBytesDecoder m5)
+                (toBytesDecoder m6)
             )
             (BD.map2 Tuple.pair
-                (getBytesDecoderHelper m7)
-                (getBytesDecoderHelper m8)
+                (toBytesDecoder m7)
+                (toBytesDecoder m8)
             )
         )
 
@@ -1378,7 +1379,7 @@ mapHelper : (Result (Error e) a -> Result (Error e) b) -> (b -> a) -> Codec e a 
 mapHelper fromBytes_ toBytes_ codec =
     build
         (\v -> toBytes_ v |> getBytesEncoderHelper codec)
-        (getBytesDecoderHelper codec |> BD.map fromBytes_)
+        (toBytesDecoder codec |> BD.map fromBytes_)
 
 
 {-| Map from one codec to another codec in a way that can potentially fail when decoding.
@@ -1412,7 +1413,7 @@ mapValid : (a -> Result e b) -> (b -> a) -> Codec e a -> Codec e b
 mapValid fromBytes_ toBytes_ codec =
     build
         (\v -> toBytes_ v |> getBytesEncoderHelper codec)
-        (getBytesDecoderHelper codec
+        (toBytesDecoder codec
             |> BD.map
                 (\value ->
                     case value of
@@ -1431,7 +1432,7 @@ mapError : (e1 -> e2) -> Codec e1 a -> Codec e2 a
 mapError mapFunc codec =
     build
         (getBytesEncoderHelper codec)
-        (getBytesDecoderHelper codec |> BD.map (mapErrorHelper mapFunc))
+        (toBytesDecoder codec |> BD.map (mapErrorHelper mapFunc))
 
 
 mapErrorHelper : (e -> a) -> Result (Error e) b -> Result (Error a) b
@@ -1484,4 +1485,4 @@ lazy : (() -> Codec e a) -> Codec e a
 lazy f =
     build
         (\value -> getBytesEncoderHelper (f ()) value)
-        (BD.succeed () |> BD.andThen (\() -> getBytesDecoderHelper (f ())))
+        (BD.succeed () |> BD.andThen (\() -> toBytesDecoder (f ())))
