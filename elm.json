@@ -1,10 +1,16 @@
 {
     "type": "application",
-    "source-directories": ["src", ".elm-land/src", "gen"],
+    "source-directories": [
+        "src",
+        ".elm-land/src",
+        "gen"
+    ],
     "elm-version": "0.19.1",
     "dependencies": {
         "direct": {
             "BrianHicks/elm-csv": "4.0.1",
+            "bburdette/toop": "1.2.0",
+            "danfishgold/base64-bytes": "1.1.0",
             "dasch/levenshtein": "1.0.3",
             "dillonkearns/elm-markdown": "7.0.1",
             "elm/browser": "1.0.2",
@@ -13,6 +19,7 @@
             "elm/html": "1.0.0",
             "elm/http": "2.0.0",
             "elm/json": "1.1.4",
+            "elm/regex": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
             "elm/url": "1.0.0",
@@ -26,7 +33,6 @@
             "elm/file": "1.0.5",
             "elm/parser": "1.1.0",
             "elm/random": "1.0.0",
-            "elm/regex": "1.0.0",
             "elm/virtual-dom": "1.0.4",
             "rtfeldman/elm-hex": "1.0.0"
         }
