@@ -1,6 +1,7 @@
 database module Backend exposing
     ( User
     , UserID
+    , AuthInfo
     , endpoint authenticate
     , endpoint logout
     , endpoint getUserSelf
@@ -13,13 +14,6 @@ database module Backend exposing
     , endpoint addFood
     , endpoint getFoods
     )
-    -- ( endpoint addFood
-    -- , endpoint getFoods
-    -- --
-    -- , endpoint addUser
-    -- , endpoint login
-    -- , endpoint logout
-    -- )
 
 import Cookies exposing (Cookies)
 import Rows exposing (..)
@@ -324,8 +318,12 @@ superUser =
 -- SESSION ENDPOINTS -----------------------------------------------------------
 --------------------------------------------------------------------------------
 
+type alias AuthInfo =
+    { email : String
+    , password : String
+    }
 
-authenticate : Cookies -> { email : String, password : String} -> Transaction Cookies.Header
+authenticate : Cookies -> AuthInfo -> Transaction Cookies.Header
 authenticate _ authData =
     let
         existingUser :=

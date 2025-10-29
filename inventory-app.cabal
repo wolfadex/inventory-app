@@ -25,7 +25,9 @@ source-repository head
 
 library
   exposed-modules:
+      Acadia.Api
       Lib
+      Serialize
       Acadia.Bytes.Decode
       Acadia.Bytes.Encode
       Acadia.Password
@@ -45,11 +47,14 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       aeson
+    , array
     , base >=4.7 && <5
     , base-compat
     , bytestring
+    , containers
     , directory
     , ghc-prim
+    , http-conduit
     , mtl
     , servant-server ==0.20.*
     , text
@@ -69,11 +74,14 @@ executable inventory-app-exe
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , array
     , base >=4.7 && <5
     , base-compat
     , bytestring
+    , containers
     , directory
     , ghc-prim
+    , http-conduit
     , inventory-app
     , mtl
     , servant-server ==0.20.*
@@ -95,11 +103,14 @@ test-suite inventory-app-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       aeson
+    , array
     , base >=4.7 && <5
     , base-compat
     , bytestring
+    , containers
     , directory
     , ghc-prim
+    , http-conduit
     , inventory-app
     , mtl
     , servant-server ==0.20.*

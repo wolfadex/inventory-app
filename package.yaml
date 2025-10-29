@@ -21,11 +21,14 @@ description: Please see the README on GitHub at <https://github.com/wolfadex/inv
 
 dependencies:
     - aeson
+    - array
     - base >= 4.7 && < 5
     - base-compat
     - bytestring
+    - containers
     - directory
     - ghc-prim
+    - http-conduit
     - mtl
     - servant-server >= 0.20 && < 0.21
     - text

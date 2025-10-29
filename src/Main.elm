@@ -1,5 +1,6 @@
 module Main exposing (main)
 
+import Acadia.Api
 import Acadia.Transaction
 import Browser.Navigation exposing (Key)
 import Effect exposing (Effect)

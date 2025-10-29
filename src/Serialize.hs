@@ -52,6 +52,7 @@ module Serialize
     variant6,
     variant7,
     variant8,
+    (&),
   )
 where
 
