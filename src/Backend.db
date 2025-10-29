@@ -54,6 +54,7 @@ foods :=
             Security.policy
                 { access = \( organizationID, permission ) food -> permission.read && food.owningOrganization == organizationID
                 , insert = \( organizationID, permission ) food -> permission.create && food.owningOrganization == organizationID
+                , update = \( organizationID, permission ) food -> permission.update && food.owningOrganization == organizationID
                 , remove = \( organizationID, permission ) food -> permission.delete && food.owningOrganization == organizationID
                 }
         }
@@ -194,6 +195,7 @@ organizationUsers :=
             Security.policy
                 { access = \_ _ -> True
                 , insert = \_ _ -> True
+                , update = \_ _ -> True
                 , remove = \_ _ -> True
                 }
         }
@@ -314,6 +316,7 @@ superUser =
     Security.policy
         { access = \SuperUser _ -> True
         , insert = \SuperUser _ -> True
+        , update = \SuperUser _ -> True
         , remove = \SuperUser _ -> True
         }
 
