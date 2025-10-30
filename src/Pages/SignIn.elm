@@ -11,6 +11,7 @@ module Pages.SignIn exposing
 -}
 
 import Acadia.Api
+import Acadia.Transaction
 import Authentication
 import Backend
 import Browser
@@ -19,6 +20,7 @@ import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Http
 import Icon
 import Route exposing (Route)
 import Route.Path
@@ -89,7 +91,7 @@ type Msg
     = UserChangedEmail String
     | UserChangedPassword String
     | UserSubmittedAuthForm
-    | UserAuthenticated (Result (Serialize.Error Http.Error) ())
+    | UserAuthenticated (Result Http.Error (Result (Serialize.Error ()) ()))
     | AuthenticationChanged
 
 
@@ -109,26 +111,27 @@ update { shared, route } msg model =
         UserSubmittedAuthForm ->
             ( { model | submit = Submit.Submitting }
             , Effect.acadia
-                { responseDecoder =
-                    Serialize.toBytesDecoder Acadia.Api.authenticateCodec
-                , requestBody =
-                    Serialize.encodeToBytes Acadia.Api.authenticateCodec
-                        { email = model.email
-                        , password = model.password
-                        }
+                { transaction =
+                    Acadia.Transaction.Transaction
+                        (Serialize.toBytesEncoder Acadia.Api.authInfoCodec
+                            { email = model.email
+                            , password = model.password
+                            }
+                        )
+                        (Serialize.toBytesDecoder Acadia.Api.authenticateCodec)
                 , onResponse = UserAuthenticated
                 , path = "/auth/authenticate"
                 }
             )
 
-        UserAuthenticated (Err err) ->
-            ( { model | submit = Submit.Failed "Error" }
-            , Effect.none
-            )
-
-        UserAuthenticated (Ok ()) ->
+        UserAuthenticated (Ok (Ok ())) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication (Just model.pathAfterAuth))
+            )
+
+        UserAuthenticated _ ->
+            ( { model | submit = Submit.Failed "Error" }
+            , Effect.none
             )
 
         AuthenticationChanged ->

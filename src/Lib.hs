@@ -54,13 +54,17 @@ import Prelude ()
 
 type AppAPI = "api" :> AuthAPI -- :<|> OrganizationAPI)
 
-type AuthAPI = "auth" :> "authenticate" :> ReqBody '[OctetStream] ByteString :> Post '[OctetStream] ByteString
+type AuthAPI =
+  "auth"
+    :> ( "authenticate" :> ReqBody '[OctetStream] ByteString :> Post '[OctetStream] ByteString
+           :<|> "self" :> Post '[OctetStream] ByteString
+       )
 
 -- type OrganizationAPI = "organizations" :> Get '[JSON] [User]
 
 authenticate :: ByteString -> Handler ByteString
 authenticate input = do
-  result <- liftIO $ Serialize.decodeFromBytes authenticateCodec input
+  result <- liftIO $ Serialize.decodeFromBytes authInfoCodec input
   case result of
     Err error -> throwError $ err400 {errBody = "Bad body"}
     Ok authArgs -> do
@@ -75,7 +79,12 @@ authenticate input = do
               throwError $ err400 {errBody = "Invalid password"}
             else do
               resp <- acadiaRequest $ Backend.authenticate authArgs
-              pure $ Serialize.encodeToBytes Serialize.unit resp
+              pure $ Serialize.encodeToBytes authenticateCodec resp
+
+self :: Handler ByteString
+self = do
+  resp <- acadiaRequest Backend.getUserSelf
+  pure $ Serialize.encodeToBytes getUserSelfCodec resp
 
 acadiaRequest :: Acadia.Transaction.Transaction a -> Handler a
 acadiaRequest (Acadia.Transaction.Transaction postBody decoder) = do
@@ -92,8 +101,7 @@ acadiaRequest (Acadia.Transaction.Transaction postBody decoder) = do
 
 server :: Server AppAPI
 server =
-  -- :<|> pure organization
-  authenticate
+  authenticate :<|> self
 
 userAPI :: Proxy AppAPI
 userAPI = Proxy

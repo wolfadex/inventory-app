@@ -34,6 +34,7 @@ module Serialize exposing
     , string
     , time
     , toBytesDecoder
+    , toBytesEncoder
     , tuple
     , uint16
     , uint32
@@ -198,8 +199,8 @@ replaceFromUrl =
 
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
-getBytesEncoderHelper : Codec e a -> a -> BE.Encoder
-getBytesEncoderHelper (Codec m) =
+toBytesEncoder : Codec e a -> a -> BE.Encoder
+toBytesEncoder (Codec m) =
     m.encoder
 
 
@@ -209,7 +210,7 @@ encodeToBytes : Codec e a -> a -> Bytes.Bytes
 encodeToBytes codec value =
     BE.sequence
         [ BE.unsignedInt8 version
-        , value |> getBytesEncoderHelper codec
+        , value |> toBytesEncoder codec
         ]
         |> BE.encode
 
@@ -446,7 +447,7 @@ maybe justCodec =
 list : Codec e a -> Codec e (List a)
 list codec =
     build
-        (listEncode (getBytesEncoderHelper codec))
+        (listEncode (toBytesEncoder codec))
         (BD.unsignedInt32 endian
             |> BD.andThen
                 (\length -> BD.loop ( length, [] ) (listStep (toBytesDecoder codec)))
@@ -735,7 +736,7 @@ record ctor =
 field : (a -> f) -> Codec e f -> RecordCodec e a (f -> b) -> RecordCodec e a b
 field getter codec (RecordCodec recordCodec) =
     RecordCodec
-        { encoder = \v -> (getBytesEncoderHelper codec <| getter v) :: recordCodec.encoder v
+        { encoder = \v -> (toBytesEncoder codec <| getter v) :: recordCodec.encoder v
         , decoder =
             BD.map2
                 (\f x ->
@@ -874,7 +875,7 @@ variant1 ctor m1 =
     variant
         (\c v ->
             c
-                [ getBytesEncoderHelper m1 v
+                [ toBytesEncoder m1 v
                 ]
         )
         (BD.map (result1 ctor) (toBytesDecoder m1))
@@ -904,8 +905,8 @@ variant2 :
 variant2 ctor m1 m2 =
     variant
         (\c v1 v2 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
             ]
                 |> c
         )
@@ -945,9 +946,9 @@ variant3 :
 variant3 ctor m1 m2 m3 =
     variant
         (\c v1 v2 v3 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
             ]
                 |> c
         )
@@ -993,10 +994,10 @@ variant4 :
 variant4 ctor m1 m2 m3 m4 =
     variant
         (\c v1 v2 v3 v4 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
-            , getBytesEncoderHelper m4 v4
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
+            , toBytesEncoder m4 v4
             ]
                 |> c
         )
@@ -1048,11 +1049,11 @@ variant5 :
 variant5 ctor m1 m2 m3 m4 m5 =
     variant
         (\c v1 v2 v3 v4 v5 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
-            , getBytesEncoderHelper m4 v4
-            , getBytesEncoderHelper m5 v5
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
+            , toBytesEncoder m4 v4
+            , toBytesEncoder m5 v5
             ]
                 |> c
         )
@@ -1110,12 +1111,12 @@ variant6 :
 variant6 ctor m1 m2 m3 m4 m5 m6 =
     variant
         (\c v1 v2 v3 v4 v5 v6 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
-            , getBytesEncoderHelper m4 v4
-            , getBytesEncoderHelper m5 v5
-            , getBytesEncoderHelper m6 v6
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
+            , toBytesEncoder m4 v4
+            , toBytesEncoder m5 v5
+            , toBytesEncoder m6 v6
             ]
                 |> c
         )
@@ -1180,13 +1181,13 @@ variant7 :
 variant7 ctor m1 m2 m3 m4 m5 m6 m7 =
     variant
         (\c v1 v2 v3 v4 v5 v6 v7 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
-            , getBytesEncoderHelper m4 v4
-            , getBytesEncoderHelper m5 v5
-            , getBytesEncoderHelper m6 v6
-            , getBytesEncoderHelper m7 v7
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
+            , toBytesEncoder m4 v4
+            , toBytesEncoder m5 v5
+            , toBytesEncoder m6 v6
+            , toBytesEncoder m7 v7
             ]
                 |> c
         )
@@ -1258,14 +1259,14 @@ variant8 :
 variant8 ctor m1 m2 m3 m4 m5 m6 m7 m8 =
     variant
         (\c v1 v2 v3 v4 v5 v6 v7 v8 ->
-            [ getBytesEncoderHelper m1 v1
-            , getBytesEncoderHelper m2 v2
-            , getBytesEncoderHelper m3 v3
-            , getBytesEncoderHelper m4 v4
-            , getBytesEncoderHelper m5 v5
-            , getBytesEncoderHelper m6 v6
-            , getBytesEncoderHelper m7 v7
-            , getBytesEncoderHelper m8 v8
+            [ toBytesEncoder m1 v1
+            , toBytesEncoder m2 v2
+            , toBytesEncoder m3 v3
+            , toBytesEncoder m4 v4
+            , toBytesEncoder m5 v5
+            , toBytesEncoder m6 v6
+            , toBytesEncoder m7 v7
+            , toBytesEncoder m8 v8
             ]
                 |> c
         )
@@ -1378,7 +1379,7 @@ map fromBytes_ toBytes_ codec =
 mapHelper : (Result (Error e) a -> Result (Error e) b) -> (b -> a) -> Codec e a -> Codec e b
 mapHelper fromBytes_ toBytes_ codec =
     build
-        (\v -> toBytes_ v |> getBytesEncoderHelper codec)
+        (\v -> toBytes_ v |> toBytesEncoder codec)
         (toBytesDecoder codec |> BD.map fromBytes_)
 
 
@@ -1412,7 +1413,7 @@ I recommend writing tests for Codecs that use `mapValid` to make sure you get ba
 mapValid : (a -> Result e b) -> (b -> a) -> Codec e a -> Codec e b
 mapValid fromBytes_ toBytes_ codec =
     build
-        (\v -> toBytes_ v |> getBytesEncoderHelper codec)
+        (\v -> toBytes_ v |> toBytesEncoder codec)
         (toBytesDecoder codec
             |> BD.map
                 (\value ->
@@ -1431,7 +1432,7 @@ mapValid fromBytes_ toBytes_ codec =
 mapError : (e1 -> e2) -> Codec e1 a -> Codec e2 a
 mapError mapFunc codec =
     build
-        (getBytesEncoderHelper codec)
+        (toBytesEncoder codec)
         (toBytesDecoder codec |> BD.map (mapErrorHelper mapFunc))
 
 
@@ -1484,5 +1485,5 @@ Be careful here, and test your codecs using elm-test with larger inputs than you
 lazy : (() -> Codec e a) -> Codec e a
 lazy f =
     build
-        (\value -> getBytesEncoderHelper (f ()) value)
+        (\value -> toBytesEncoder (f ()) value)
         (BD.succeed () |> BD.andThen (\() -> toBytesDecoder (f ())))

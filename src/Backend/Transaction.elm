@@ -7,13 +7,12 @@ module Backend.Transaction exposing (map)
 -}
 
 import Acadia.Bytes.Decode as Decode
-import Acadia.Bytes.Encode as Encode
-import Acadia.Transaction exposing (Transaction)
+import Acadia.Transaction
 
 
 {-| Convert a transaction with one value into another
 -}
-map : (a -> b) -> Transaction a -> Transaction b
+map : (a -> b) -> Acadia.Transaction.Transaction a -> Acadia.Transaction.Transaction b
 map fn (Acadia.Transaction.Transaction encoder decoder) =
     Acadia.Transaction.Transaction
         encoder

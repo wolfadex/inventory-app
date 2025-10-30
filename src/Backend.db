@@ -146,19 +146,14 @@ type alias OrganizationRow =
 
 
 type alias Organization =
-    -- { id : String -- Temporary fix for `Uuid`s not being supported in Elm yet
-    { id : Uuid -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id : OrganizationID
     , name : String
     }
 
 
 organizationRowToOrganization : OrganizationRow -> Organization
 organizationRowToOrganization org =
-    let
-        (OrganizationID id) = org.id
-    in
-    -- { id = Uuid.toBase64 id -- Temporary fix for `Uuid`s not being supported in Elm yet
-    { id = id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id = org.id
     , name = org.name
     }
 
@@ -237,18 +232,13 @@ users :=
         }
 
 type alias User =
-    -- { id : String -- Temporary fix for `Uuid`s not being supported in Elm yet
-    { id : Uuid -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id : UserID
     , primaryEmail : String
     }
 
 userToUserRow : UserRow -> User
 userToUserRow user =
-    let
-        (UserID id) = user.id
-    in
-    -- { id = Uuid.toBase64 id -- Temporary fix for `Uuid`s not being supported in Elm yet
-    { id = id -- Temporary fix for `Uuid`s not being supported in Elm yet
+    { id = user.id
     , primaryEmail = user.primaryEmail
     }
 

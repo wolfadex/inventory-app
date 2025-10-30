@@ -10,7 +10,10 @@ module Pages.OrganizationInit exposing
 
 -}
 
+import Acadia.Api
+import Acadia.Transaction
 import Authentication
+import Backend
 import Browser
 import Dict
 import Effect exposing (Effect)
@@ -18,13 +21,14 @@ import Form
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Route exposing (Route)
+import Http
 import Icon
-import Shared
-import Subscription exposing (Subscription)
-import Submit exposing (Submit)
+import Route exposing (Route)
 import Route.Path
-import Backend
+import Serialize
+import Shared
+import Submit exposing (Submit)
+import Subscription exposing (Subscription)
 
 
 
@@ -72,14 +76,13 @@ type Msg
     = UserChangedName String
     | UserSubmittedForm
     | AuthenticationChanged
-    | OrganizationCreated (Maybe Backend.Organization)
+    | OrganizationCreated (Result Http.Error (Result (Serialize.Error ()) Backend.Organization))
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update { shared, route } msg model =
     case msg of
         AuthenticationChanged ->
-
             ( model
             , case shared.currentUser of
                 Authentication.Authenticated _ ->
@@ -100,17 +103,23 @@ update { shared, route } msg model =
         UserSubmittedForm ->
             ( model
             , Effect.acadia
-                { transaction = Backend.createOrganization { name = model.name }
+                { transaction =
+                    Acadia.Transaction.Transaction
+                        (Serialize.toBytesEncoder Acadia.Api.createOrganizationCodec
+                            { name = model.name
+                            }
+                        )
+                        (Serialize.toBytesDecoder Acadia.Api.organizationCodec)
                 , onResponse = OrganizationCreated
+                , path = "/organizations/create"
                 }
             )
 
-        OrganizationCreated Nothing ->
+        OrganizationCreated (Ok (Ok organization)) ->
             ( model, Effect.none )
 
-        OrganizationCreated (Just organization) ->
+        OrganizationCreated _ ->
             ( model, Effect.none )
-
 
 
 
@@ -142,8 +151,8 @@ view { shared, route } model =
                   , value = model.name
                   , onInput = UserChangedName
                   , attributes =
-                    [ Html.Attributes.disabled (model.submit == Submit.Submitting)
-                    ]
+                        [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                        ]
                   }
                 ]
             }

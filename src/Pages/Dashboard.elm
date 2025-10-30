@@ -1,17 +1,18 @@
 module Pages.Dashboard exposing (..)
 
 import Backend
+import Browser
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Browser
 import Icon
-import Effect exposing (Effect)
+import Layout.Authenticated
+import Response exposing (Response)
 import Route exposing (Route)
 import Shared
 import Subscription exposing (Subscription)
-import Response exposing (Response)
-import Layout.Authenticated
+
 
 
 -- CONTEXT
@@ -28,25 +29,25 @@ type alias Model =
     , foods : Response (List Food)
     }
 
+
 type alias Food =
-    ( String )
+    String
+
 
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
     let
-        ( layout, layoutEffect ) = Layout.Authenticated.init shared route
+        ( layout, layoutEffect ) =
+            Layout.Authenticated.init shared route
     in
     ( { layout = layout
       , foods = Response.Loading
       }
     , Effect.batch
-        [ Effect.acadia
-            { transaction = Backend.getFoods
-            , onResponse = GotFoods
-            }
-        , Effect.map LayoutMessage layoutEffect
+        [ Effect.map LayoutMessage layoutEffect
         ]
     )
+
 
 
 -- SUBSCRIPTIONS
@@ -96,10 +97,8 @@ update { shared, route } msg model =
 -- view user model =
 --     Html.div []
 --         [ Html.h1 [] [ Html.text "Inventory App" ]
-
 --         -- , Html.text (user.primaryEmail ++ " logged in")
 --         ]
-
 --         -- VIEW
 
 
@@ -116,6 +115,6 @@ view { shared, route } model =
                     [ Icon.logo 240
                     , Html.h1 [] [ Html.text "Inventory App" ]
                     ]
-                ,   Html.text (currentUser.primaryEmail)
+                , Html.text currentUser.primaryEmail
                 ]
         }

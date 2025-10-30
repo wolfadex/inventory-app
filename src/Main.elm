@@ -3,10 +3,12 @@ module Main exposing (main)
 import Acadia.Api
 import Acadia.Transaction
 import Browser.Navigation exposing (Key)
+import Bytes.Encode
 import Effect exposing (Effect)
 import ElmLand.Effect
 import ElmLand.Program exposing (Msg, Program)
 import ElmLand.Subscription
+import Http
 import Interop
 import Json.Decode as Json
 import Shared
@@ -42,10 +44,26 @@ onCustomEffect customEffect url key shared =
             )
 
         Effect.Acadia info ->
+            let
+                (Acadia.Transaction.Transaction encoder decoder) =
+                    info.transaction
+            in
             ( shared
-            , Acadia.Transaction.attempt "/api"
-                (Maybe.withDefault info.onFailure)
-                info.transaction
+            , Http.post
+                { url = "api" ++ info.path
+                , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode encoder)
+                , expect =
+                    Http.expectBytes
+                        (\result ->
+                            case result of
+                                Err err ->
+                                    info.onFailure err
+
+                                Ok msg ->
+                                    msg
+                        )
+                        decoder
+                }
             )
 
 

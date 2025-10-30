@@ -20,7 +20,7 @@ module Effect exposing
 
 -}
 
-import Acadia.Transaction exposing (Transaction)
+import Acadia.Transaction
 import Backend.Transaction
 import Bytes exposing (Bytes)
 import Bytes.Decode
@@ -77,9 +77,8 @@ reportUnexpectedFlags error =
 {-| Attempt to run an Acadia transaction
 -}
 acadia :
-    { onResponse : Result (Serialize.Error Http.Error) value -> msg
-    , responseDecoder : Bytes.Decode.Decoder (Result (Serialize.Error Http.Error) value)
-    , requestBody : Bytes
+    { onResponse : Result Http.Error (Result (Serialize.Error ()) value) -> msg
+    , transaction : Acadia.Transaction.Transaction (Result (Serialize.Error ()) value)
     , path : String
     }
     -> Effect msg
@@ -88,9 +87,12 @@ acadia props =
     -- so things work nicely with "Effect msg"
     ElmLand.Effect.custom
         (Acadia
-            { responseDecoder = Bytes.Decode.map props.onResponse props.responseDecoder
+            { transaction =
+                Backend.Transaction.map
+                    (Ok >> props.onResponse)
+                    props.transaction
+            , onFailure = Err >> props.onResponse
             , path = props.path
-            , requestBody = props.requestBody
             }
         )
 
@@ -114,9 +116,9 @@ navigateTo { path, query } =
 type CustomEffect msg
     = ReportUnexpectedFlags Json.Error
     | Acadia
-        { responseDecoder : Bytes.Decode.Decoder msg
+        { transaction : Acadia.Transaction.Transaction msg
+        , onFailure : Http.Error -> msg
         , path : String
-        , requestBody : Bytes
         }
 
 
@@ -141,7 +143,7 @@ mapCustomEffect fn customEffect =
 
         Acadia info ->
             Acadia
-                { responseDecoder = Bytes.Decode.map fn info.responseDecoder
+                { transaction = Backend.Transaction.map fn info.transaction
+                , onFailure = info.onFailure >> fn
                 , path = info.path
-                , requestBody = info.requestBody
                 }
