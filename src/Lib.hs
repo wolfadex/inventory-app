@@ -25,32 +25,28 @@ import Control.Monad.Except
 import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.Types
--- import Data.Attoparsec.ByteString
 import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
 import Data.ByteString.Builder qualified as BB
 import Data.ByteString.Lazy qualified as BSL
 import Data.List
 import Data.Maybe (Maybe)
 import Data.Maybe qualified as Maybe
 import Data.Text qualified as Text
--- import Data.String.Conversions
 import Data.Time.Calendar
 import Data.Time.Clock
+import Debug.Trace
 import GHC.Generics
 import GHC.Records (getField)
 import Network.HTTP.Simple qualified as HTTP
--- import Network.HTTP.Media ((//), (/:))
 import Network.Wai
 import Network.Wai.Handler.Warp
 import Prelude.Compat
 import Serialize ((&))
 import Serialize qualified
 import Servant
--- import Servant.API
 import System.Directory
 import Prelude ()
-
--- import Servant.Types.SourceT (source)
 
 type AppAPI = "api" :> AuthAPI -- :<|> OrganizationAPI)
 
@@ -89,7 +85,7 @@ self = do
 acadiaRequest :: Acadia.Transaction.Transaction a -> Handler a
 acadiaRequest (Acadia.Transaction.Transaction postBody decoder) = do
   response <-
-    HTTP.parseRequest_ "localhost:9000"
+    HTTP.parseRequest_ "http://localhost:9000"
       & HTTP.setRequestMethod "POST"
       & HTTP.setRequestBodyLBS (BB.toLazyByteString postBody)
       & HTTP.httpBS

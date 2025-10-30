@@ -11,6 +11,7 @@ import ElmLand.Subscription
 import Http
 import Interop
 import Json.Decode as Json
+import Serialize
 import Shared
 import Subscription
 import Url exposing (Url)
@@ -51,7 +52,7 @@ onCustomEffect customEffect url key shared =
             ( shared
             , Http.post
                 { url = "api" ++ info.path
-                , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode encoder)
+                , body = Http.bytesBody "application/octet-stream" (Serialize.encodeSimple encoder)
                 , expect =
                     Http.expectBytes
                         (\result ->

@@ -11,6 +11,7 @@ module Serialize exposing
     , customType
     , decodeFromBytes
     , dict
+    , encodeSimple
     , encodeToBytes
     , enum
     , field
@@ -202,6 +203,15 @@ replaceFromUrl =
 toBytesEncoder : Codec e a -> a -> BE.Encoder
 toBytesEncoder (Codec m) =
     m.encoder
+
+
+encodeSimple : BE.Encoder -> Bytes.Bytes
+encodeSimple encoder =
+    BE.sequence
+        [ BE.unsignedInt8 version
+        , encoder
+        ]
+        |> BE.encode
 
 
 {-| Convert an Elm value into a sequence of bytes.
