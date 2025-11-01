@@ -26,10 +26,13 @@ dependencies:
     - base-compat
     - bytestring
     - containers
+    - cookie
     - directory
     - ghc-prim
     - http-conduit
+    - http-types
     - mtl
+    - servant
     - servant-server >= 0.20 && < 0.21
     - text
     - time

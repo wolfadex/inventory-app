@@ -52,10 +52,13 @@ library
     , base-compat
     , bytestring
     , containers
+    , cookie
     , directory
     , ghc-prim
     , http-conduit
+    , http-types
     , mtl
+    , servant
     , servant-server ==0.20.*
     , text
     , time
@@ -79,11 +82,14 @@ executable inventory-app-exe
     , base-compat
     , bytestring
     , containers
+    , cookie
     , directory
     , ghc-prim
     , http-conduit
+    , http-types
     , inventory-app
     , mtl
+    , servant
     , servant-server ==0.20.*
     , text
     , time
@@ -108,11 +114,14 @@ test-suite inventory-app-test
     , base-compat
     , bytestring
     , containers
+    , cookie
     , directory
     , ghc-prim
     , http-conduit
+    , http-types
     , inventory-app
     , mtl
+    , servant
     , servant-server ==0.20.*
     , text
     , time
