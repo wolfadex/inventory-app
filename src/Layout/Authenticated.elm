@@ -1,20 +1,18 @@
 module Layout.Authenticated exposing (..)
 
-
 import Authentication
 import Backend
+import Browser
+import Dict
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Browser
 import Icon
-import Effect exposing (Effect)
 import Route exposing (Route)
 import Route.Path
-import Dict
 import Shared
 import Subscription exposing (Subscription)
-import Response exposing (Response)
 import Url
 
 
@@ -23,42 +21,52 @@ type alias AuthContext =
     , currentOrganization : Backend.Organization
     }
 
+
+
 -- INIT
+
 
 type alias Model =
     ()
 
+
 init : Shared.Model -> Route params -> ( Model, Effect Msg )
 init sharedModel route =
     ( ()
-    , Debug.log "init" <| case sharedModel.currentUser of
-        Authentication.Authenticated _ ->
-            case sharedModel.currentOrganization of
-                Just _ ->
-                    ( Effect.none )
+    , Debug.log "init" <|
+        case sharedModel.currentUser of
+            Authentication.Authenticated _ ->
+                case sharedModel.currentOrganization of
+                    Just _ ->
+                        Effect.none
 
-                Nothing ->
-                    ( Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) } )
+                    Nothing ->
+                        Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) }
 
-        Authentication.Authenticating ->
-            ( Effect.none )
+            Authentication.Authenticating ->
+                Effect.none
 
-        Authentication.Unauthenticated ->
-            ( Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) } )
+            Authentication.Unauthenticated ->
+                Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) }
     )
 
 
+
 -- SUBSCRIPTIONS
+
 
 subscriptions : Model -> Subscription Msg
 subscriptions model =
     Subscription.onAuthenticationChange AuthenticationChanged
 
 
+
 -- UPDATE
+
 
 type Msg
     = AuthenticationChanged
+
 
 update :
     { msg : Msg
@@ -77,20 +85,22 @@ update ({ model } as config) =
                 Authentication.Authenticated _ ->
                     case config.sharedModel.currentOrganization of
                         Just _ ->
-                            ( Effect.none )
+                            Effect.none
 
                         Nothing ->
-                            ( Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
+                            Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) }
 
                 Authentication.Authenticating ->
-                    ( Effect.none )
+                    Effect.none
 
                 Authentication.Unauthenticated ->
-                    ( Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
+                    Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString config.route.url) }
             )
 
 
+
 -- VIEW
+
 
 view :
     { model : Model
@@ -103,22 +113,28 @@ view :
 view props =
     { title = props.title
     , body =
-        case props.sharedModel.currentUser of
-            Authentication.Authenticated user ->
-                case props.sharedModel.currentOrganization of
-                    Just organization ->
-                        props.body { currentUser = user, currentOrganization = organization }
+        Html.node "link"
+            [ Html.Attributes.rel "stylesheet"
+            , Html.Attributes.href "assets/picocss/pico.min.css"
+            ]
+            []
+            :: (case props.sharedModel.currentUser of
+                    Authentication.Authenticated user ->
+                        case props.sharedModel.currentOrganization of
+                            Just organization ->
+                                props.body { currentUser = user, currentOrganization = organization }
 
-                    Nothing ->
-                        [ Html.h1 [] [ Html.text "TODO: missing current org" ]
+                            Nothing ->
+                                [ Html.h1 [] [ Html.text "TODO: missing current org" ]
+                                ]
+
+                    Authentication.Authenticating ->
+                        [ Html.div []
+                            [ Icon.loading ]
                         ]
 
-            Authentication.Authenticating ->
-                [ Html.div []
-                    [ Icon.loading ]
-                ]
-
-            Authentication.Unauthenticated ->
-                [ Html.h1 [] [ Html.text "TODO: reauthenticate" ]
-                ]
+                    Authentication.Unauthenticated ->
+                        [ Html.h1 [] [ Html.text "TODO: reauthenticate" ]
+                        ]
+               )
     }

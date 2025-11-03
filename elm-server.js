@@ -3345,6 +3345,10 @@ var $author$project$Server$AuthenticateResponse = F2(
 	function (a, b) {
 		return {$: 'AuthenticateResponse', a: a, b: b};
 	});
+var $author$project$Server$OrganizationCreateResponse = F2(
+	function (a, b) {
+		return {$: 'OrganizationCreateResponse', a: a, b: b};
+	});
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -4676,6 +4680,142 @@ var $author$project$Serialize$unit = A2(
 	$elm$bytes$Bytes$Decode$succeed(
 		$elm$core$Result$Ok(_Utils_Tuple0)));
 var $author$project$Acadia$Api$authenticateCodec = $author$project$Serialize$unit;
+var $author$project$Acadia$Bytes$Decode$andThen = $elm$bytes$Bytes$Decode$andThen;
+var $elm$bytes$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$Decoder(_Bytes_decodeFailure);
+var $author$project$Acadia$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$fail;
+var $author$project$Acadia$Int32$Int32 = function (a) {
+	return {$: 'Int32', a: a};
+};
+var $elm$bytes$Bytes$Decode$signedInt32 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_i32(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $author$project$Acadia$Int32$decodeBE = A2(
+	$elm$bytes$Bytes$Decode$map,
+	$author$project$Acadia$Int32$Int32,
+	$elm$bytes$Bytes$Decode$signedInt32($elm$bytes$Bytes$BE));
+var $author$project$Acadia$Bytes$Decode$int32BE = $author$project$Acadia$Int32$decodeBE;
+var $author$project$Acadia$Bytes$Decode$string = function (n) {
+	return $elm$bytes$Bytes$Decode$string(
+		$author$project$Acadia$UInt32$toInt(n));
+};
+var $author$project$Acadia$Int32$toInt = function (_v0) {
+	var n = _v0.a;
+	return n;
+};
+var $author$project$Backend$d_ARG_1 = A2(
+	$author$project$Acadia$Bytes$Decode$andThen,
+	function (n) {
+		return ($author$project$Acadia$Int32$toInt(n) < 0) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$string(
+			$author$project$Acadia$UInt32$fromInt(
+				$author$project$Acadia$Int32$toInt(n)));
+	},
+	$author$project$Acadia$Bytes$Decode$int32BE);
+var $author$project$Backend$OrganizationID = function (a) {
+	return {$: 'OrganizationID', a: a};
+};
+var $author$project$Acadia$Bytes$Decode$map = $elm$bytes$Bytes$Decode$map;
+var $elm$core$Basics$neq = _Utils_notEqual;
+var $author$project$Acadia$Uuid$Uuid = F4(
+	function (a, b, c, d) {
+		return {$: 'Uuid', a: a, b: b, c: c, d: d};
+	});
+var $elm$bytes$Bytes$Decode$map4 = F5(
+	function (func, _v0, _v1, _v2, _v3) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v4 = A2(decodeA, bites, offset);
+					var aOffset = _v4.a;
+					var a = _v4.b;
+					var _v5 = A2(decodeB, bites, aOffset);
+					var bOffset = _v5.a;
+					var b = _v5.b;
+					var _v6 = A2(decodeC, bites, bOffset);
+					var cOffset = _v6.a;
+					var c = _v6.b;
+					var _v7 = A2(decodeD, bites, cOffset);
+					var dOffset = _v7.a;
+					var d = _v7.b;
+					return _Utils_Tuple2(
+						dOffset,
+						A4(func, a, b, c, d));
+				}));
+	});
+var $author$project$Acadia$Uuid$decode = A5(
+	$elm$bytes$Bytes$Decode$map4,
+	$author$project$Acadia$Uuid$Uuid,
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE));
+var $author$project$Acadia$Bytes$Decode$uuid = $author$project$Acadia$Uuid$decode;
+var $author$project$Backend$d_ARG_4 = A2(
+	$author$project$Acadia$Bytes$Decode$map,
+	function (v) {
+		return $author$project$Backend$OrganizationID(v);
+	},
+	A2(
+		$author$project$Acadia$Bytes$Decode$andThen,
+		function (n) {
+			return ($author$project$Acadia$Int32$toInt(n) !== 16) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$uuid;
+		},
+		$author$project$Acadia$Bytes$Decode$int32BE));
+var $author$project$Backend$e_ARG_2 = function (v) {
+	var v_name = v.name;
+	var o0 = $author$project$Acadia$UInt32$fromInt(0);
+	var o1 = $author$project$Acadia$UInt32$fromInt(
+		$author$project$Acadia$UInt32$toInt(o0) + $author$project$Acadia$UInt32$toInt(
+			$author$project$Acadia$Bytes$Encode$getSizeString(v_name)));
+	var e0 = $author$project$Acadia$Bytes$Encode$string(v_name);
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(o1),
+				e0
+			]));
+};
+var $author$project$Backend$createOrganization = function (v0) {
+	return A2(
+		$author$project$Acadia$Transaction$Transaction,
+		$author$project$Acadia$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(0)),
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(5)),
+					$author$project$Backend$e_ARG_2(v0)
+				])),
+		A2(
+			$author$project$Acadia$Bytes$Decode$andThen,
+			function (id) {
+				return A2(
+					$author$project$Acadia$Bytes$Decode$andThen,
+					function (name) {
+						return $author$project$Acadia$Bytes$Decode$succeed(
+							{id: id, name: name});
+					},
+					$author$project$Backend$d_ARG_1);
+			},
+			$author$project$Backend$d_ARG_4));
+};
+var $author$project$Acadia$Api$createOrganizationCodec = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.name;
+		},
+		$author$project$Serialize$string,
+		$author$project$Serialize$record(
+			function (name) {
+				return {name: name};
+			})));
 var $author$project$Serialize$DataCorrupted = {$: 'DataCorrupted'};
 var $elm$core$String$length = _String_length;
 var $elm$core$Basics$modBy = _Basics_modBy;
@@ -4987,68 +5127,6 @@ var $author$project$Serialize$decodeFromString = F2(
 var $author$project$Backend$UserID = function (a) {
 	return {$: 'UserID', a: a};
 };
-var $author$project$Acadia$Bytes$Decode$andThen = $elm$bytes$Bytes$Decode$andThen;
-var $elm$bytes$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$Decoder(_Bytes_decodeFailure);
-var $author$project$Acadia$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$fail;
-var $author$project$Acadia$Int32$Int32 = function (a) {
-	return {$: 'Int32', a: a};
-};
-var $elm$bytes$Bytes$Decode$signedInt32 = function (endianness) {
-	return $elm$bytes$Bytes$Decode$Decoder(
-		_Bytes_read_i32(
-			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
-};
-var $author$project$Acadia$Int32$decodeBE = A2(
-	$elm$bytes$Bytes$Decode$map,
-	$author$project$Acadia$Int32$Int32,
-	$elm$bytes$Bytes$Decode$signedInt32($elm$bytes$Bytes$BE));
-var $author$project$Acadia$Bytes$Decode$int32BE = $author$project$Acadia$Int32$decodeBE;
-var $author$project$Acadia$Bytes$Decode$string = function (n) {
-	return $elm$bytes$Bytes$Decode$string(
-		$author$project$Acadia$UInt32$toInt(n));
-};
-var $author$project$Acadia$Int32$toInt = function (_v0) {
-	var n = _v0.a;
-	return n;
-};
-var $author$project$Acadia$Uuid$Uuid = F4(
-	function (a, b, c, d) {
-		return {$: 'Uuid', a: a, b: b, c: c, d: d};
-	});
-var $elm$bytes$Bytes$Decode$map4 = F5(
-	function (func, _v0, _v1, _v2, _v3) {
-		var decodeA = _v0.a;
-		var decodeB = _v1.a;
-		var decodeC = _v2.a;
-		var decodeD = _v3.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v4 = A2(decodeA, bites, offset);
-					var aOffset = _v4.a;
-					var a = _v4.b;
-					var _v5 = A2(decodeB, bites, aOffset);
-					var bOffset = _v5.a;
-					var b = _v5.b;
-					var _v6 = A2(decodeC, bites, bOffset);
-					var cOffset = _v6.a;
-					var c = _v6.b;
-					var _v7 = A2(decodeD, bites, cOffset);
-					var dOffset = _v7.a;
-					var d = _v7.b;
-					return _Utils_Tuple2(
-						dOffset,
-						A4(func, a, b, c, d));
-				}));
-	});
-var $author$project$Acadia$Uuid$decode = A5(
-	$elm$bytes$Bytes$Decode$map4,
-	$author$project$Acadia$Uuid$Uuid,
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE));
-var $author$project$Acadia$Bytes$Decode$uuid = $author$project$Acadia$Uuid$decode;
 var $author$project$Backend$d_ARG_2 = A2(
 	$author$project$Acadia$Bytes$Decode$andThen,
 	function (n) {
@@ -5074,10 +5152,6 @@ var $author$project$Backend$d_ARG_2 = A2(
 			$author$project$Acadia$Bytes$Decode$uuid);
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
-var $author$project$Backend$OrganizationID = function (a) {
-	return {$: 'OrganizationID', a: a};
-};
-var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Acadia$UInt8$toInt = function (_v0) {
 	var n = _v0.a;
 	return n;
@@ -5377,6 +5451,7 @@ var $author$project$Acadia$Api$getUserSelfCodec = A2(
 	$author$project$Serialize$tuple,
 	$author$project$Acadia$Api$userCodec,
 	$author$project$Serialize$maybe($author$project$Acadia$Api$organizationCodec));
+var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -5434,41 +5509,55 @@ var $author$project$Server$init = function (request) {
 	return _Utils_Tuple2(
 		{},
 		function () {
-			var _v0 = _Utils_Tuple2(request.method, request.path);
-			_v0$2:
-			while (true) {
-				if (_v0.a === 'POST') {
-					switch (_v0.b) {
-						case '/api/auth/self':
-							return A3(
+			if (request.method !== 'POST') {
+				return $author$project$Server$respond(
+					{body: 'Not Found', headers: _List_Nil, status: 404});
+			} else {
+				var _v0 = A2($elm$core$Debug$log, 'path', request.path);
+				switch (_v0) {
+					case '/api/auth/self':
+						return A3(
+							$author$project$Server$acadiaRequest,
+							request.headers,
+							$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfCodec),
+							$author$project$Backend$getUserSelf);
+					case '/api/auth/authenticate':
+						var _v1 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
+						if (_v1.$ === 'Err') {
+							return $author$project$Server$respond(
+								{body: 'Decode error', headers: _List_Nil, status: 400});
+						} else {
+							var authInfo = _v1.a;
+							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$respond(
+								{body: 'Invalid email', headers: _List_Nil, status: 400}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$respond(
+								{body: 'Password too short', headers: _List_Nil, status: 400}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
-								$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfCodec),
-								$author$project$Backend$getUserSelf);
-						case '/api/auth/authenticate':
-							var _v1 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
-							if (_v1.$ === 'Err') {
-								return $author$project$Server$respond(
-									{body: 'Decode error', headers: _List_Nil, status: 400});
-							} else {
-								var authInfo = _v1.a;
-								return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$respond(
-									{body: 'Invalid email', headers: _List_Nil, status: 400}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$respond(
-									{body: 'Password too short', headers: _List_Nil, status: 400}) : A3(
-									$author$project$Server$acadiaRequest,
-									request.headers,
-									$author$project$Server$AuthenticateResponse($author$project$Acadia$Api$authenticateCodec),
-									$author$project$Backend$authenticate(authInfo)));
-							}
-						default:
-							break _v0$2;
-					}
-				} else {
-					break _v0$2;
+								$author$project$Server$AuthenticateResponse($author$project$Acadia$Api$authenticateCodec),
+								$author$project$Backend$authenticate(authInfo)));
+						}
+					case '/api/organizations/create':
+						var _v2 = A2(
+							$elm$core$Debug$log,
+							'org create args',
+							A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body));
+						if (_v2.$ === 'Err') {
+							return $author$project$Server$respond(
+								{body: 'Decode error', headers: _List_Nil, status: 400});
+						} else {
+							var newOrg = _v2.a;
+							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$respond(
+								{body: 'Invalid name', headers: _List_Nil, status: 400}) : A3(
+								$author$project$Server$acadiaRequest,
+								request.headers,
+								$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
+								$author$project$Backend$createOrganization(newOrg));
+						}
+					default:
+						return $author$project$Server$respond(
+							{body: 'Not Found', headers: _List_Nil, status: 404});
 				}
 			}
-			return $author$project$Server$respond(
-				{body: 'Not Found', headers: _List_Nil, status: 404});
 		}());
 };
 var $elm$json$Json$Decode$list = _Json_decodeList;
@@ -5824,11 +5913,12 @@ var $elm$core$List$filter = F2(
 	});
 var $author$project$Server$acadiaResponse = F2(
 	function (codec, result) {
-		if (result.$ === 'Err') {
+		var _v0 = A2($elm$core$Debug$log, 'res', result);
+		if (_v0.$ === 'Err') {
 			return $author$project$Server$respond(
 				{body: 'Database error', headers: _List_Nil, status: 400});
 		} else {
-			var _v1 = result.a;
+			var _v1 = _v0.a;
 			var headers = _v1.a;
 			var body = _v1.b;
 			return $author$project$Server$respond(
@@ -5852,18 +5942,25 @@ var $author$project$Server$acadiaResponse = F2(
 	});
 var $author$project$Server$update = F2(
 	function (msg, model) {
-		if (msg.$ === 'AuthenticateResponse') {
-			var codec = msg.a;
-			var result = msg.b;
-			return _Utils_Tuple2(
-				model,
-				A2($author$project$Server$acadiaResponse, codec, result));
-		} else {
-			var codec = msg.a;
-			var result = msg.b;
-			return _Utils_Tuple2(
-				model,
-				A2($author$project$Server$acadiaResponse, codec, result));
+		switch (msg.$) {
+			case 'AuthenticateResponse':
+				var codec = msg.a;
+				var result = msg.b;
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Server$acadiaResponse, codec, result));
+			case 'AuthSelfResponse':
+				var codec = msg.a;
+				var result = msg.b;
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Server$acadiaResponse, codec, result));
+			default:
+				var codec = msg.a;
+				var result = msg.b;
+				return _Utils_Tuple2(
+					model,
+					A2($author$project$Server$acadiaResponse, codec, result));
 		}
 	});
 var $elm$core$Platform$worker = _Platform_worker;

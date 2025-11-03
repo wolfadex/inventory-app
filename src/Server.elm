@@ -51,27 +51,43 @@ type alias Response =
 init : Request -> ( Model, Cmd Msg )
 init request =
     ( {}
-    , case ( request.method, request.path ) of
-        ( "POST", "/api/auth/self" ) ->
-            acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
+    , if request.method /= "POST" then
+        respond { status = 404, body = "Not Found", headers = [] }
 
-        ( "POST", "/api/auth/authenticate" ) ->
-            case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
-                Err _ ->
-                    respond { status = 400, body = "Decode error", headers = [] }
+      else
+        case Debug.log "path" request.path of
+            "/api/auth/self" ->
+                acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
 
-                Ok authInfo ->
-                    if String.length authInfo.email < 3 then
-                        respond { status = 400, body = "Invalid email", headers = [] }
+            "/api/auth/authenticate" ->
+                case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
+                    Err _ ->
+                        respond { status = 400, body = "Decode error", headers = [] }
 
-                    else if String.length authInfo.password < 8 then
-                        respond { status = 400, body = "Password too short", headers = [] }
+                    Ok authInfo ->
+                        if String.length authInfo.email < 3 then
+                            respond { status = 400, body = "Invalid email", headers = [] }
 
-                    else
-                        acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.authenticate authInfo)
+                        else if String.length authInfo.password < 8 then
+                            respond { status = 400, body = "Password too short", headers = [] }
 
-        _ ->
-            respond { status = 404, body = "Not Found", headers = [] }
+                        else
+                            acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.authenticate authInfo)
+
+            "/api/organizations/create" ->
+                case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body |> Debug.log "org create args" of
+                    Err _ ->
+                        respond { status = 400, body = "Decode error", headers = [] }
+
+                    Ok newOrg ->
+                        if String.length newOrg.name < 1 then
+                            respond { status = 400, body = "Invalid name", headers = [] }
+
+                        else
+                            acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.organizationCodec) (Backend.createOrganization newOrg)
+
+            _ ->
+                respond { status = 404, body = "Not Found", headers = [] }
     )
 
 
@@ -133,6 +149,7 @@ subscriptions _ =
 type Msg
     = AuthenticateResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
     | AuthSelfResponse (Serialize.Codec () ( Backend.User, Maybe Backend.Organization )) (Result Http.Error ( Headers, ( Backend.User, Maybe Backend.Organization ) ))
+    | OrganizationCreateResponse (Serialize.Codec () Backend.Organization) (Result Http.Error ( Headers, Backend.Organization ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -148,10 +165,15 @@ update msg model =
             , acadiaResponse codec result
             )
 
+        OrganizationCreateResponse codec result ->
+            ( model
+            , acadiaResponse codec result
+            )
+
 
 acadiaResponse : Serialize.Codec () a -> Result Http.Error ( Headers, a ) -> Cmd msg
 acadiaResponse codec result =
-    case result of
+    case Debug.log "res" result of
         Err _ ->
             respond { status = 400, body = "Database error", headers = [] }
 

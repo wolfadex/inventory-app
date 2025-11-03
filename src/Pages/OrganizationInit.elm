@@ -139,7 +139,12 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Organization Setup"
     , body =
-        [ Html.h1 [] [ Html.text "Inventory App" ]
+        [ Html.node "link"
+            [ Html.Attributes.rel "stylesheet"
+            , Html.Attributes.href "assets/picocss/pico.min.css"
+            ]
+            []
+        , Html.h1 [] [ Html.text "Inventory App" ]
         , Form.view
             { title = "Setup organization"
             , onSubmit = UserSubmittedForm

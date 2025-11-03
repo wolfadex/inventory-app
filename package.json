@@ -5,13 +5,14 @@
   "type": "module",
   "scripts": {
     "start": "npm i && npm run dev",
-    "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run elm-server:dev'",
+    "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run elm-server:elm' 'npm run elm-server:dev'",
     "build": "npm run acadia:build && tsc && vite build",
     "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
     "acadia:build": "acadia make --generate-elm-endpoints=gen --generate-haskell-endpoints=gen",
     "haskell:dev": "nodemon -w src -w gen --ext hs --exec \"stack run\"",
     "elm-land:server": "vite dev",
-    "elm-server:dev": "node --watch server.js"
+    "elm-server:dev": "node --watch server.js",
+    "elm-server:elm": "nodemon -w src/Server.elm --exec \"elm-esm make src/Server.elm --output=./elm-server.js\""
   },
   "repository": {
     "type": "git",
