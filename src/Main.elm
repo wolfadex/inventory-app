@@ -44,14 +44,19 @@ onCustomEffect customEffect url key shared =
                 }
             )
 
+        Effect.Command cmd ->
+            ( shared, cmd )
+
         Effect.Acadia info ->
             let
                 (Acadia.Transaction.Transaction encoder decoder) =
                     info.transaction
             in
             ( shared
-            , Http.post
-                { url = "api" ++ info.path
+            , Http.request
+                { url = "/api" ++ info.path
+                , method = "POST"
+                , headers = []
                 , body = Http.bytesBody "application/octet-stream" (Serialize.encodeSimple encoder)
                 , expect =
                     Http.expectBytes
@@ -64,6 +69,8 @@ onCustomEffect customEffect url key shared =
                                     msg
                         )
                         decoder
+                , timeout = Nothing
+                , tracker = Nothing
                 }
             )
 

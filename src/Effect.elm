@@ -5,6 +5,7 @@ module Effect exposing
     , CustomEffect(..)
     , reportUnexpectedFlags, acadia
     , navigateTo
+    , command
     )
 
 {-|
@@ -74,6 +75,11 @@ reportUnexpectedFlags error =
     ElmLand.Effect.custom (ReportUnexpectedFlags error)
 
 
+command : Cmd msg -> Effect msg
+command cmd =
+    ElmLand.Effect.custom (Command cmd)
+
+
 {-| Attempt to run an Acadia transaction
 -}
 acadia :
@@ -120,6 +126,7 @@ type CustomEffect msg
         , onFailure : Http.Error -> msg
         , path : String
         }
+    | Command (Cmd msg)
 
 
 
@@ -147,3 +154,6 @@ mapCustomEffect fn customEffect =
                 , onFailure = info.onFailure >> fn
                 , path = info.path
                 }
+
+        Command m1 ->
+            Command (Cmd.map fn m1)

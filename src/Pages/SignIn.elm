@@ -15,6 +15,7 @@ import Acadia.Transaction
 import Authentication
 import Backend
 import Browser
+import Bytes.Encode as BE
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)

@@ -58,6 +58,7 @@ library
     , http-conduit
     , http-types
     , mtl
+    , scotty
     , servant
     , servant-server ==0.20.*
     , text
@@ -89,6 +90,7 @@ executable inventory-app-exe
     , http-types
     , inventory-app
     , mtl
+    , scotty
     , servant
     , servant-server ==0.20.*
     , text
@@ -121,6 +123,7 @@ test-suite inventory-app-test
     , http-types
     , inventory-app
     , mtl
+    , scotty
     , servant
     , servant-server ==0.20.*
     , text

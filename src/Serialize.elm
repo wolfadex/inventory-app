@@ -10,9 +10,11 @@ module Serialize exposing
     , bytes
     , customType
     , decodeFromBytes
+    , decodeFromString
     , dict
     , encodeSimple
     , encodeToBytes
+    , encodeToString
     , enum
     , field
     , finishCustomType
@@ -109,11 +111,6 @@ type Error e
     | SerializerOutOfDate
 
 
-version : Int
-version =
-    1
-
-
 
 -- DECODE
 
@@ -130,24 +127,48 @@ toBytesDecoder (Codec m) =
     m.decoder
 
 
+decodeFromString : Codec e a -> String -> Result (Error e) a
+decodeFromString codec base64 =
+    case decode base64 of
+        Just bytes_ ->
+            decodeFromBytes codec bytes_
+
+        Nothing ->
+            Err DataCorrupted
+
+
+{-| Convert an Elm value into a string. This string contains only url safe characters, so you can do the following:
+
+    import Serialize as S
+
+    myUrl =
+        "www.mywebsite.com/?data=" ++ S.encodeToString S.float 1234
+
+and not risk generating an invalid url.
+
+-}
+encodeToString : Codec e a -> a -> String
+encodeToString codec =
+    encodeToBytes codec >> replaceBase64Chars
+
+
 {-| Run a `Codec` to turn a sequence of bytes into an Elm value.
 -}
 decodeFromBytes : Codec e a -> Bytes.Bytes -> Result (Error e) a
 decodeFromBytes codec bytes_ =
     let
         decoder =
-            BD.unsignedInt8
-                |> BD.andThen
-                    (\value ->
-                        if value <= 0 then
-                            Err DataCorrupted |> BD.succeed
+            -- BD.unsignedInt8
+            --     |> BD.andThen
+            --         (\value ->
+            --             if value <= 0 then
+            --                 Err DataCorrupted |> BD.succeed
+            --             else if value == version then
+            toBytesDecoder codec
 
-                        else if value == version then
-                            toBytesDecoder codec
-
-                        else
-                            Err SerializerOutOfDate |> BD.succeed
-                    )
+        --     else
+        --         Err SerializerOutOfDate |> BD.succeed
+        -- )
     in
     case BD.decode decoder bytes_ of
         Just value ->
@@ -186,7 +207,8 @@ decode base64text =
                 else
                     4 - hanging
         in
-        Regex.replace replaceFromUrl replaceChar (base64text ++ String.repeat ilen "=") |> Base64.toBytes
+        Regex.replace replaceFromUrl replaceChar (base64text ++ String.repeat ilen "=")
+            |> Base64.toBytes
 
 
 replaceFromUrl : Regex
@@ -208,8 +230,9 @@ toBytesEncoder (Codec m) =
 encodeSimple : BE.Encoder -> Bytes.Bytes
 encodeSimple encoder =
     BE.sequence
-        [ BE.unsignedInt8 version
-        , encoder
+        [ -- BE.unsignedInt8 version
+          -- ,
+          encoder
         ]
         |> BE.encode
 
@@ -219,8 +242,9 @@ encodeSimple encoder =
 encodeToBytes : Codec e a -> a -> Bytes.Bytes
 encodeToBytes codec value =
     BE.sequence
-        [ BE.unsignedInt8 version
-        , value |> toBytesEncoder codec
+        [ -- BE.unsignedInt8 version
+          -- ,
+          value |> toBytesEncoder codec
         ]
         |> BE.encode
 

@@ -1,32 +1,33 @@
 {
-    "name": "inventory-app",
-    "version": "1.0.0",
-    "description": "An app for Bekah",
-    "type": "module",
-    "scripts": {
-        "start": "npm i && npm run dev",
-        "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run haskell:dev'",
-        "build": "npm run acadia:build && tsc && vite build",
-        "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
-        "acadia:build": "acadia make --generate-elm-endpoints=gen --generate-haskell-endpoints=gen",
-        "haskell:dev": "nodemon -w src -w gen --ext hs --exec \"stack run\"",
-        "elm-land:server": "vite dev"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/wolfadex/inventory-app.git"
-    },
-    "author": "Wolfgang Schuster",
-    "bugs": {
-        "url": "https://github.com/wolfadex/inventory-app/issues"
-    },
-    "homepage": "https://github.com/wolfadex/inventory-app#readme",
-    "devDependencies": {
-        "concurrently": "^9.2.1",
-        "gray-matter": "^4.0.3",
-        "nodemon": "^3.1.10",
-        "typescript": "^5.9.3",
-        "vite": "^7.1.12",
-        "vite-plugin-elm-watch": "^1.4.4"
-    }
+  "name": "inventory-app",
+  "version": "1.0.0",
+  "description": "An app for Bekah",
+  "type": "module",
+  "scripts": {
+    "start": "npm i && npm run dev",
+    "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run elm-server:dev'",
+    "build": "npm run acadia:build && tsc && vite build",
+    "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
+    "acadia:build": "acadia make --generate-elm-endpoints=gen --generate-haskell-endpoints=gen",
+    "haskell:dev": "nodemon -w src -w gen --ext hs --exec \"stack run\"",
+    "elm-land:server": "vite dev",
+    "elm-server:dev": "node --watch server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wolfadex/inventory-app.git"
+  },
+  "author": "Wolfgang Schuster",
+  "bugs": {
+    "url": "https://github.com/wolfadex/inventory-app/issues"
+  },
+  "homepage": "https://github.com/wolfadex/inventory-app#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "gray-matter": "^4.0.3",
+    "nodemon": "^3.1.10",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12",
+    "vite-plugin-elm-watch": "^1.4.4"
+  }
 }

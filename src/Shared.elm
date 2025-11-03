@@ -58,7 +58,7 @@ init json route =
 type Msg
     = GotCurrentUserAndOrg (Result Http.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
     | AuthRefreshRequested (Maybe Route.Path.Path)
-    | RefreshedAuth (Maybe Route.Path.Path) (Maybe ( Backend.User, Maybe Backend.Organization ))
+    | RefreshedAuth (Maybe Route.Path.Path) (Result Http.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
@@ -84,17 +84,12 @@ update route msg model =
                     Acadia.Transaction.Transaction
                         (Serialize.toBytesEncoder Serialize.unit ())
                         (Serialize.toBytesDecoder Acadia.Api.getUserSelfCodec)
-                , onResponse = GotCurrentUserAndOrg
+                , onResponse = RefreshedAuth maybePath
                 , path = "/auth/self"
                 }
             )
 
-        RefreshedAuth _ Nothing ->
-            ( { model | currentUser = Authentication.Unauthenticated }
-            , Effect.broadcast Subscription.AuthenticationChanged
-            )
-
-        RefreshedAuth maybeRedirect (Just ( user, maybeOrg )) ->
+        RefreshedAuth maybeRedirect (Ok (Ok ( user, maybeOrg ))) ->
             ( { model
                 | currentUser = Authentication.Authenticated user
                 , currentOrganization = maybeOrg
@@ -105,6 +100,11 @@ update route msg model =
 
                 Just path ->
                     Effect.navigateTo { path = path, query = Dict.empty }
+            )
+
+        RefreshedAuth _ _ ->
+            ( { model | currentUser = Authentication.Unauthenticated }
+            , Effect.broadcast Subscription.AuthenticationChanged
             )
 
 
