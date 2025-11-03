@@ -53,10 +53,8 @@ onCustomEffect customEffect url key shared =
                     info.transaction
             in
             ( shared
-            , Http.request
+            , Http.post
                 { url = "/api" ++ info.path
-                , method = "POST"
-                , headers = []
                 , body = Http.bytesBody "application/octet-stream" (Serialize.encodeSimple encoder)
                 , expect =
                     Http.expectBytes
@@ -69,8 +67,6 @@ onCustomEffect customEffect url key shared =
                                     msg
                         )
                         decoder
-                , timeout = Nothing
-                , tracker = Nothing
                 }
             )
 

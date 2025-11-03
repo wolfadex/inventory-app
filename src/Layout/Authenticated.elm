@@ -113,28 +113,22 @@ view :
 view props =
     { title = props.title
     , body =
-        Html.node "link"
-            [ Html.Attributes.rel "stylesheet"
-            , Html.Attributes.href "assets/picocss/pico.min.css"
-            ]
-            []
-            :: (case props.sharedModel.currentUser of
-                    Authentication.Authenticated user ->
-                        case props.sharedModel.currentOrganization of
-                            Just organization ->
-                                props.body { currentUser = user, currentOrganization = organization }
+        case props.sharedModel.currentUser of
+            Authentication.Authenticated user ->
+                case props.sharedModel.currentOrganization of
+                    Just organization ->
+                        props.body { currentUser = user, currentOrganization = organization }
 
-                            Nothing ->
-                                [ Html.h1 [] [ Html.text "TODO: missing current org" ]
-                                ]
-
-                    Authentication.Authenticating ->
-                        [ Html.div []
-                            [ Icon.loading ]
+                    Nothing ->
+                        [ Html.h1 [] [ Html.text "TODO: missing current org" ]
                         ]
 
-                    Authentication.Unauthenticated ->
-                        [ Html.h1 [] [ Html.text "TODO: reauthenticate" ]
-                        ]
-               )
+            Authentication.Authenticating ->
+                [ Html.div []
+                    [ Icon.loading ]
+                ]
+
+            Authentication.Unauthenticated ->
+                [ Html.h1 [] [ Html.text "TODO: reauthenticate" ]
+                ]
     }

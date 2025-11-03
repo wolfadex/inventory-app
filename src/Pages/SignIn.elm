@@ -180,12 +180,7 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Sign in"
     , body =
-        [ Html.node "link"
-            [ Html.Attributes.rel "stylesheet"
-            , Html.Attributes.href "assets/picocss/pico.min.css"
-            ]
-            []
-        , Html.div
+        [ Html.div
             []
             [ Html.h1 [] [ Html.text "Inventory App" ]
             , Html.form
