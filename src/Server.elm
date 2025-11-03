@@ -166,8 +166,6 @@ acadiaResponse codec result =
                                 "content-length" ->
                                     False
 
-                                -- "content-type" ->
-                                --     False
                                 _ ->
                                     True
                         )

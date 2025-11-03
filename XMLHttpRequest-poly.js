@@ -43,7 +43,6 @@ class XMLHttpRequest {
         this.response = await response.arrayBuffer();
     }
 
-    // console.log("body", this.response);
     this._eventLoad(this.response);
   }
 
@@ -94,10 +93,9 @@ class XMLHttpRequest {
         headers,
         // credentials: this.withCredentials ? "same-origin" : "omit",
       });
-      // console.log("REQ", this.timeout <= 0, request);
       if (this.timeout <= 0) {
         const response = await fetch(request);
-        // console.log("RES 1", response);
+
         this._respond(response);
       } else {
         const timeoutPromise = new Promise((resolve) => {
@@ -105,7 +103,7 @@ class XMLHttpRequest {
         });
         const requestPromise = fetch(request);
         const response = await Promise.race([timeoutPromise, requestPromise]);
-        // console.log("RES 2", response);
+
         if (response === "timeout") {
           this._eventTimeout();
         } else {

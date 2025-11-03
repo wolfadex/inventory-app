@@ -10,7 +10,6 @@ const port = process.env.PORT || 8000;
 http
   .createServer(async (req, res) => {
     try {
-      // console.log("REQ HEADERS", req.headers);
       const body = await getBody(req);
       const elmRequest = {
         path: req.url,
@@ -18,26 +17,24 @@ http
         method: req.method,
         headers: Object.entries(req.headers),
       };
-      console.log("Requested", elmRequest);
+
       const handler = Elm.Server.init({
         flags: elmRequest,
       });
 
       handler.ports.respond.subscribe(function (response) {
-        // console.log("To respond with", response);
         const headers = {};
-        console.log("headers", response.headers);
+
         for (const header of response.headers) {
           headers[header[0]] = header[1];
         }
         res.writeHead(response.status, headers);
-        // console.log("Respond with", response.body);
+
         const respBody = Buffer.from(response.body, "base64");
 
-        console.log("Resp", respBody);
         res.write(respBody);
         res.end();
-        console.log("Responding with", response);
+
         handler.ports.respond.unsubscribe();
       });
     } catch (error) {
