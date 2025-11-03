@@ -3,6 +3,7 @@ database module Backend exposing
     , UserID
     , AuthInfo
     , endpoint authenticate
+    , endpoint signup
     , endpoint logout
     , endpoint getUserSelf
     --
@@ -323,6 +324,39 @@ authenticate _ authData =
     in
     case existingUser of
         Nothing ->
+            Transaction.fail
+
+        Just user ->
+            let
+                organization :=
+                    access organizationUsers SuperUser
+                        |> filter (\orgUsers -> orgUsers.userID == user.id)
+                        |> limitBy .organizationID 1
+                        |> selectMaybe
+
+                created := Time.now
+                uuid := Uuid.uuid
+
+                () :=
+                    insert sessions SuperUser
+                        { cookie = uuid
+                        , user = user.id
+                        , expires = Time.plus 15 Minutes created
+                        , organization = Maybe.map .organizationID organization
+                        }
+            in
+            succeed (toCookie uuid)
+
+signup : Cookies -> AuthInfo -> Transaction Cookies.Header
+signup _ authData =
+    let
+        existingUser :=
+            access users SuperUser
+                |> filter (\u -> u.primaryEmail == authData.email && Password.verify u.pw_hash authData.password)
+                |> selectMaybe
+    in
+    case existingUser of
+        Nothing ->
             let
                 userID  := Uuid.uuid |> Transaction.map UserID
                 created := Time.now
@@ -347,28 +381,8 @@ authenticate _ authData =
             in
             succeed (toCookie uuid)
 
-        Just user ->
-            let
-                organization :=
-                    access organizationUsers SuperUser
-                        |> filter (\orgUsers -> orgUsers.userID == user.id)
-                        |> limitBy .organizationID 1
-                        |> selectMaybe
-
-                created := Time.now
-                uuid := Uuid.uuid
-
-                () :=
-                    insert sessions SuperUser
-                        { cookie = uuid
-                        , user = user.id
-                        , expires = Time.plus 15 Minutes created
-                        , organization = Maybe.map .organizationID organization
-                        }
-            in
-            succeed (toCookie uuid)
-
-
+        Just _ ->
+            Transaction.fail
 
 -- LOGOUT
 

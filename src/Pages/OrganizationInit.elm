@@ -143,6 +143,7 @@ view { shared, route } model =
         , Form.view
             { title = "Setup organization"
             , onSubmit = UserSubmittedForm
+            , additionalButtons = []
             , submit = model.submit
             , submitLabel = "Create organization"
             , fields =

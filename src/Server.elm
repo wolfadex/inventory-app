@@ -74,6 +74,21 @@ init request =
                         else
                             acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.authenticate authInfo)
 
+            "/api/auth/signup" ->
+                case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
+                    Err _ ->
+                        respond { status = 400, body = "Decode error", headers = [] }
+
+                    Ok authInfo ->
+                        if String.length authInfo.email < 3 then
+                            respond { status = 400, body = "Invalid email", headers = [] }
+
+                        else if String.length authInfo.password < 8 then
+                            respond { status = 400, body = "Password too short", headers = [] }
+
+                        else
+                            acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.signup authInfo)
+
             "/api/organizations/create" ->
                 case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body |> Debug.log "org create args" of
                     Err _ ->

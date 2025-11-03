@@ -13,11 +13,10 @@ module Pages.SignIn exposing
 import Acadia.Api
 import Acadia.Transaction
 import Authentication
-import Backend
 import Browser
-import Bytes.Encode as BE
 import Dict
 import Effect exposing (Effect)
+import Form
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -94,6 +93,7 @@ type Msg
     | UserSubmittedAuthForm
     | UserAuthenticated (Result Http.Error (Result (Serialize.Error ()) ()))
     | AuthenticationChanged
+    | UserClickedSignUp
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -122,6 +122,22 @@ update { shared, route } msg model =
                         (Serialize.toBytesDecoder Acadia.Api.authenticateCodec)
                 , onResponse = UserAuthenticated
                 , path = "/auth/authenticate"
+                }
+            )
+
+        UserClickedSignUp ->
+            ( { model | submit = Submit.Submitting }
+            , Effect.acadia
+                { transaction =
+                    Acadia.Transaction.Transaction
+                        (Serialize.toBytesEncoder Acadia.Api.authInfoCodec
+                            { email = model.email
+                            , password = model.password
+                            }
+                        )
+                        (Serialize.toBytesDecoder Acadia.Api.authenticateCodec)
+                , onResponse = UserAuthenticated
+                , path = "/auth/signup"
                 }
             )
 
@@ -183,51 +199,37 @@ view { shared, route } model =
         [ Html.div
             []
             [ Html.h1 [] [ Html.text "Inventory App" ]
-            , Html.form
-                [ Html.Events.onSubmit UserSubmittedAuthForm
-                ]
-                [ Html.fieldset []
-                    [ Html.label
-                        [ Html.Attributes.for "email" ]
-                        [ Html.text "Email:"
-                        , Html.input
-                            [ Html.Attributes.type_ "email"
-                            , Html.Attributes.name "email"
-                            , Html.Attributes.value model.email
-                            , Html.Events.onInput UserChangedEmail
-                            , Html.Attributes.disabled (model.submit == Submit.Submitting)
+            , Form.view
+                { title = "Setup organization"
+                , onSubmit = UserSubmittedAuthForm
+                , submit = model.submit
+                , submitLabel = "Login"
+                , additionalButtons =
+                    [ { onClick = UserClickedSignUp
+                      , label = "Sign up"
+                      }
+                    ]
+                , fields =
+                    [ { name = "email"
+                      , label = "Email"
+                      , value = model.email
+                      , onInput = UserChangedEmail
+                      , attributes =
+                            [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                            , Html.Attributes.type_ "email"
                             ]
-                            []
-                        ]
-                    ]
-                , Html.fieldset []
-                    [ Html.label
-                        [ Html.Attributes.for "password" ]
-                        [ Html.text "Password:"
-                        , Html.input
-                            [ Html.Attributes.type_ "password"
-                            , Html.Attributes.name "password"
-                            , Html.Attributes.value model.password
-                            , Html.Events.onInput UserChangedPassword
-                            , Html.Attributes.disabled (model.submit == Submit.Submitting)
+                      }
+                    , { name = "password"
+                      , label = "Password"
+                      , value = model.password
+                      , onInput = UserChangedPassword
+                      , attributes =
+                            [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                            , Html.Attributes.type_ "password"
                             ]
-                            []
-                        ]
+                      }
                     ]
-                , Html.button
-                    [ Html.Attributes.type_ "submit"
-                    , Html.Attributes.disabled (model.submit == Submit.Submitting)
-                    ]
-                    [ Html.text "Login / Sign Up" ]
-                , case model.submit of
-                    Submit.Failed error ->
-                        Html.span
-                            []
-                            [ Html.text error ]
-
-                    _ ->
-                        Html.text ""
-                ]
+                }
             ]
         ]
     }

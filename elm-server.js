@@ -4633,7 +4633,7 @@ var $author$project$Acadia$UInt32$encodeLE = function (_v0) {
 	return A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$LE, n);
 };
 var $author$project$Acadia$Bytes$Encode$uint32LE = $author$project$Acadia$UInt32$encodeLE;
-var $author$project$Backend$e_ARG_1 = function (v) {
+var $author$project$Backend$e_ARG_0 = function (v) {
 	var v_password = v.password;
 	var v_email = v.email;
 	var o0 = $author$project$Acadia$UInt32$fromInt(4);
@@ -4664,8 +4664,8 @@ var $author$project$Backend$authenticate = function (v0) {
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
-					$author$project$Acadia$UInt32$fromInt(4)),
-					$author$project$Backend$e_ARG_1(v0)
+					$author$project$Acadia$UInt32$fromInt(5)),
+					$author$project$Backend$e_ARG_0(v0)
 				])),
 		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 };
@@ -4789,7 +4789,7 @@ var $author$project$Backend$createOrganization = function (v0) {
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
-					$author$project$Acadia$UInt32$fromInt(5)),
+					$author$project$Acadia$UInt32$fromInt(6)),
 					$author$project$Backend$e_ARG_2(v0)
 				])),
 		A2(
@@ -5213,7 +5213,7 @@ var $author$project$Backend$getUserSelf = A2(
 				$author$project$Acadia$Bytes$Encode$uint32BE(
 				$author$project$Acadia$UInt32$fromInt(0)),
 				$author$project$Acadia$Bytes$Encode$uint32BE(
-				$author$project$Acadia$UInt32$fromInt(3))
+				$author$project$Acadia$UInt32$fromInt(4))
 			])),
 	A3(
 		$author$project$Acadia$Bytes$Decode$map2,
@@ -5505,6 +5505,20 @@ var $author$project$Server$respond = _Platform_outgoingPort(
 					$elm$json$Json$Encode$int($.status))
 				]));
 	});
+var $author$project$Backend$signup = function (v0) {
+	return A2(
+		$author$project$Acadia$Transaction$Transaction,
+		$author$project$Acadia$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(0)),
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(1)),
+					$author$project$Backend$e_ARG_0(v0)
+				])),
+		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
+};
 var $author$project$Server$init = function (request) {
 	return _Utils_Tuple2(
 		{},
@@ -5536,16 +5550,31 @@ var $author$project$Server$init = function (request) {
 								$author$project$Server$AuthenticateResponse($author$project$Acadia$Api$authenticateCodec),
 								$author$project$Backend$authenticate(authInfo)));
 						}
-					case '/api/organizations/create':
-						var _v2 = A2(
-							$elm$core$Debug$log,
-							'org create args',
-							A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body));
+					case '/api/auth/signup':
+						var _v2 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
 						if (_v2.$ === 'Err') {
 							return $author$project$Server$respond(
 								{body: 'Decode error', headers: _List_Nil, status: 400});
 						} else {
-							var newOrg = _v2.a;
+							var authInfo = _v2.a;
+							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$respond(
+								{body: 'Invalid email', headers: _List_Nil, status: 400}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$respond(
+								{body: 'Password too short', headers: _List_Nil, status: 400}) : A3(
+								$author$project$Server$acadiaRequest,
+								request.headers,
+								$author$project$Server$AuthenticateResponse($author$project$Acadia$Api$authenticateCodec),
+								$author$project$Backend$signup(authInfo)));
+						}
+					case '/api/organizations/create':
+						var _v3 = A2(
+							$elm$core$Debug$log,
+							'org create args',
+							A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body));
+						if (_v3.$ === 'Err') {
+							return $author$project$Server$respond(
+								{body: 'Decode error', headers: _List_Nil, status: 400});
+						} else {
+							var newOrg = _v3.a;
 							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$respond(
 								{body: 'Invalid name', headers: _List_Nil, status: 400}) : A3(
 								$author$project$Server$acadiaRequest,

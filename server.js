@@ -1,6 +1,5 @@
 import { Buffer } from "node:buffer";
 import http from "node:http";
-// import { XMLHttpRequest } from "xmlhttprequest";
 import "./XMLHttpRequest-poly.js";
 
 import { Elm } from "./elm-server.js";
