@@ -14,6 +14,7 @@ import Acadia.Api
 import Acadia.Transaction
 import Authentication
 import Browser
+import Css
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -101,13 +102,13 @@ view : Context -> Model -> Browser.Document Msg
 view _ _ =
     { title = "Logout"
     , body =
-        [ Html.header
-            []
-            [ Html.h1 [] [ Html.text "Inventory App" ]
-            ]
-        , Html.main_ []
-            [ Icon.loading
+        [ Html.main_ [ Css.pageCentered ]
+            [ Html.header
+                []
+                [ Html.h1 [] [ Html.text "Inventory App" ]
+                ]
             , Html.text "Logging out..."
+            , Icon.loading
             ]
         ]
     }

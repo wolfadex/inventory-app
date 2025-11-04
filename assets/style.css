@@ -45,3 +45,30 @@ header {
     height: 100lvh;
     width: 100lvw;
 }
+
+.pageFull {
+    display: flex;
+    flex-direction: column;
+    height: 100lvh;
+    width: 100lvw;
+
+    header {
+        display: inherit;
+        box-shadow: 0px 2px 16px black;
+        padding-top: 0;
+        padding-bottom: 0;
+
+        nav {
+            width: 100lvw;
+
+            li {
+                padding-top: 0.5rem;
+                padding-bottom: 0.5rem;
+            }
+        }
+    }
+
+    main {
+        overflow: auto;
+    }
+}

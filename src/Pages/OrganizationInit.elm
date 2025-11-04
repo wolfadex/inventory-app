@@ -15,6 +15,7 @@ import Acadia.Transaction
 import Authentication
 import Backend
 import Browser
+import Css
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -140,22 +141,29 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Organization Setup"
     , body =
-        [ Html.h1 [] [ Html.text "Inventory App" ]
-        , Ui.Form.view
-            { title = "Setup organization"
-            , onSubmit = UserSubmittedForm
-            , additionalButtons = []
-            , submit = model.submit
-            , submitLabel = "Create organization"
-            , fields =
-                [ Ui.TextInput.basic
-                    { label = "Name"
-                    , value = model.name
-                    , onInput = UserChangedName
-                    }
-                    [ Html.Attributes.disabled (model.submit == Submit.Submitting)
-                    ]
+        [ Html.main_ [ Css.pageCentered ]
+            [ Html.header
+                []
+                [ Html.strong [ Html.Attributes.style "font-size" "3rem" ] [ Html.text "Inventory App" ]
                 ]
-            }
+            , Html.article []
+                [ Ui.Form.view
+                    { title = "Setup organization"
+                    , onSubmit = UserSubmittedForm
+                    , additionalButtons = []
+                    , submit = model.submit
+                    , submitLabel = "Create organization"
+                    , fields =
+                        [ Ui.TextInput.basic
+                            { label = "Name"
+                            , value = model.name
+                            , onInput = UserChangedName
+                            }
+                            [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                            ]
+                        ]
+                    }
+                ]
+            ]
         ]
     }

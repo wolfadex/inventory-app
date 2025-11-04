@@ -3,6 +3,7 @@ module Layout.Authenticated exposing (..)
 import Authentication
 import Backend
 import Browser
+import Css
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -137,38 +138,44 @@ view props =
 
 viewAuthenticataed : { currentUser : Backend.User, currentOrganization : Backend.Organization } -> List (Html msg) -> List (Html msg)
 viewAuthenticataed context body =
-    [ Html.header []
-        [ Html.nav []
-            [ Html.ul []
-                [ Html.li []
-                    [ Html.a [ Route.Path.href Route.Path.Dashboard ]
-                        [ Html.strong [] [ Html.text "Inventory App" ] ]
-                    ]
-                ]
-            , Html.ul []
-                [ Html.li []
-                    [ Html.a
-                        [ Route.Path.href Route.Path.Dashboard
-                        , Html.Attributes.class "secondary"
+    [ Html.div [ Css.pageFull ]
+        [ Html.header []
+            [ Html.nav []
+                [ Html.ul []
+                    [ Html.li []
+                        [ Html.a
+                            [ Route.Path.href Route.Path.Dashboard
+                            ]
+                            [ Icon.logo 32
+                            , Html.strong [ Html.Attributes.style "margin-left" "0.5rem" ] [ Html.text "Inventory App" ]
+                            ]
                         ]
-                        [ Html.text "EX: Dash" ]
                     ]
-                , Html.li []
-                    [ Html.details
-                        [ Html.Attributes.class "dropdown" ]
-                        [ Html.summary [] [ Html.text context.currentUser.primaryEmail ]
-                        , Html.ul [ Html.Attributes.dir "rtl" ]
-                            [ Html.li []
-                                [ Html.a
-                                    [ Route.Path.href Route.Path.Logout
+                , Html.ul []
+                    [ Html.li []
+                        [ Html.a
+                            [ Route.Path.href Route.Path.Dashboard
+                            , Html.Attributes.class "secondary"
+                            ]
+                            [ Html.text "Example nav link" ]
+                        ]
+                    , Html.li []
+                        [ Html.details
+                            [ Html.Attributes.class "dropdown" ]
+                            [ Html.summary [] [ Html.text context.currentUser.primaryEmail ]
+                            , Html.ul [ Html.Attributes.dir "rtl" ]
+                                [ Html.li []
+                                    [ Html.a
+                                        [ Route.Path.href Route.Path.Logout
+                                        ]
+                                        [ Html.text "Logout" ]
                                     ]
-                                    [ Html.text "Logout" ]
                                 ]
                             ]
                         ]
                     ]
                 ]
             ]
+        , Html.main_ [] body
         ]
-    , Html.main_ [] body
     ]
