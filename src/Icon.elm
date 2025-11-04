@@ -9,32 +9,98 @@ import Svg.Attributes
 
 logo : Int -> Svg msg
 logo size =
+    -- Svg.svg
+    --     [ Svg.Attributes.viewBox "0 0 400 400"
+    --     , Svg.Attributes.fill "none"
+    --     , Svg.Attributes.width (String.fromInt size)
+    --     , Svg.Attributes.height (String.fromInt size)
+    --     ]
+    --     [ Svg.path
+    --         [ Svg.Attributes.d "M396.408 313.179C382.797 280.624 352.148 66.6928 192.902 69.3208C42.8345 71.7968 -1.21852 239.147 3.39348 324.691C3.59248 328.381 17.7515 337.283 18.0885 322.346C19.4195 263.368 68.9385 86.6798 189.759 93.8188C338.898 102.631 359.087 293.914 379.665 315.691C394.099 330.966 398.585 318.386 396.408 313.179Z"
+    --         , Svg.Attributes.fill "#EF4769"
+    --         ]
+    --         []
+    --     , Svg.path
+    --         [ Svg.Attributes.d "M190.298 99.8668C223.98 102.556 328.112 129.619 360.217 293.993C364.698 316.931 348.428 307.501 341.992 297.618C318.947 262.229 281.148 138.907 186.436 132.218C100.111 126.122 65.1255 269.198 59.2035 304.16C53.2815 339.122 27.7715 308.439 29.4635 297.019C48.7435 166.862 124.591 94.6198 190.298 99.8668Z"
+    --         , Svg.Attributes.fill "#FFEA4F"
+    --         ]
+    --         []
+    --     , Svg.path
+    --         [ Svg.Attributes.d "M194.277 172.66C99.4275 183.08 105.597 297.626 99.5295 311.597C92.6285 327.485 74.9995 326.36 73.0005 314.954C60.6805 244.665 121.474 152.605 189.66 146.75C254.833 141.153 322.48 261.241 326.597 287.312C330.678 313.152 321.107 307.254 312.513 294.731C292.628 265.755 224.728 169.315 194.277 172.66Z"
+    --         , Svg.Attributes.fill "#6CE16C"
+    --         ]
+    --         []
+    --     , Svg.path
+    --         [ Svg.Attributes.d "M113.996 317.261C107.558 280.339 122.244 196.336 167.04 188.64C238.488 176.364 287.167 276.039 286.296 283.924C283.152 312.383 268.074 299.487 264.058 292.616C221.004 218.962 184.49 212.002 179.463 214.106C167.381 219.163 165.968 216.543 138.048 312.502C134.158 325.87 115.834 327.799 113.996 317.261Z"
+    --         , Svg.Attributes.fill "#44BFE1"
+    --         ]
+    --         []
+    --     ]
     Svg.svg
-        [ Svg.Attributes.viewBox "0 0 400 400"
-        , Svg.Attributes.fill "none"
+        [ Svg.Attributes.id "logo-svg"
         , Svg.Attributes.width (String.fromInt size)
         , Svg.Attributes.height (String.fromInt size)
+        , Svg.Attributes.viewBox "0 0 200 200"
+        , Svg.Attributes.style "overflow: visible;"
         ]
-        [ Svg.path
-            [ Svg.Attributes.d "M396.408 313.179C382.797 280.624 352.148 66.6928 192.902 69.3208C42.8345 71.7968 -1.21852 239.147 3.39348 324.691C3.59248 328.381 17.7515 337.283 18.0885 322.346C19.4195 263.368 68.9385 86.6798 189.759 93.8188C338.898 102.631 359.087 293.914 379.665 315.691C394.099 330.966 398.585 318.386 396.408 313.179Z"
-            , Svg.Attributes.fill "#EF4769"
+        [ Svg.defs []
+            [ Svg.linearGradient
+                [ Svg.Attributes.id "gradient"
+                , Svg.Attributes.x1 "0%"
+                , Svg.Attributes.y1 "0%"
+                , Svg.Attributes.x2 "100%"
+                , Svg.Attributes.y2 "100%"
+                ]
+                [ Svg.stop
+                    [ Svg.Attributes.offset "0%"
+                    , Svg.Attributes.style "stop-color: rgb(162, 198, 156); stop-opacity: 1;"
+                    ]
+                    []
+                , Svg.stop [ Svg.Attributes.offset "100%", Svg.Attributes.style "stop-color: rgb(255, 71, 101); stop-opacity: 1;" ] []
+                ]
+            , Svg.filter
+                [ Svg.Attributes.id "shadow"
+                , Svg.Attributes.x "-100%"
+                , Svg.Attributes.y "-100%"
+                , Svg.Attributes.width "300%"
+                , Svg.Attributes.height "300%"
+                , Svg.Attributes.filterUnits "objectBoundingBox"
+                ]
+                []
+            ]
+        , Svg.rect
+            [ Svg.Attributes.x "0"
+            , Svg.Attributes.y "0"
+            , Svg.Attributes.width "200"
+            , Svg.Attributes.height "200"
+            , Svg.Attributes.fill "#a2c69c"
+            , Svg.Attributes.rx "24"
+            , Svg.Attributes.ry "24"
             ]
             []
-        , Svg.path
-            [ Svg.Attributes.d "M190.298 99.8668C223.98 102.556 328.112 129.619 360.217 293.993C364.698 316.931 348.428 307.501 341.992 297.618C318.947 262.229 281.148 138.907 186.436 132.218C100.111 126.122 65.1255 269.198 59.2035 304.16C53.2815 339.122 27.7715 308.439 29.4635 297.019C48.7435 166.862 124.591 94.6198 190.298 99.8668Z"
-            , Svg.Attributes.fill "#FFEA4F"
+        , Svg.g
+            [ Svg.Attributes.transform "translate(31 31)"
             ]
-            []
-        , Svg.path
-            [ Svg.Attributes.d "M194.277 172.66C99.4275 183.08 105.597 297.626 99.5295 311.597C92.6285 327.485 74.9995 326.36 73.0005 314.954C60.6805 244.665 121.474 152.605 189.66 146.75C254.833 141.153 322.48 261.241 326.597 287.312C330.678 313.152 321.107 307.254 312.513 294.731C292.628 265.755 224.728 169.315 194.277 172.66Z"
-            , Svg.Attributes.fill "#6CE16C"
+            [ Svg.svg
+                [ Svg.Attributes.width "138"
+                , Svg.Attributes.height "138"
+                , Svg.Attributes.viewBox "0 0 24 24"
+                , Svg.Attributes.fill "#FFFFFF"
+                , Svg.Attributes.stroke "#FFFFFF"
+                , Svg.Attributes.strokeWidth "2"
+                , Svg.Attributes.strokeLinecap "round"
+                , Svg.Attributes.strokeLinejoin "round"
+                , Svg.Attributes.class "lucide lucide-box"
+                , Svg.Attributes.fillOpacity "0"
+                ]
+                [ Svg.path
+                    [ Svg.Attributes.d "M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+                    ]
+                    []
+                , Svg.path [ Svg.Attributes.d "m3.3 7 8.7 5 8.7-5" ] []
+                , Svg.path [ Svg.Attributes.d "M12 22V12" ] []
+                ]
             ]
-            []
-        , Svg.path
-            [ Svg.Attributes.d "M113.996 317.261C107.558 280.339 122.244 196.336 167.04 188.64C238.488 176.364 287.167 276.039 286.296 283.924C283.152 312.383 268.074 299.487 264.058 292.616C221.004 218.962 184.49 212.002 179.463 214.106C167.381 219.163 165.968 216.543 138.048 312.502C134.158 325.87 115.834 327.799 113.996 317.261Z"
-            , Svg.Attributes.fill "#44BFE1"
-            ]
-            []
         ]
 
 

@@ -3,6 +3,9 @@
     "command": ["just", "acadia-serve"]
   },
   {
+    "command": ["just", "css-dev"]
+  },
+  {
     "command": ["vite", "dev"]
   },
   {

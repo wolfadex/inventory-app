@@ -138,8 +138,7 @@ view props =
 viewAuthenticataed : { currentUser : Backend.User, currentOrganization : Backend.Organization } -> List (Html msg) -> List (Html msg)
 viewAuthenticataed context body =
     [ Html.header []
-        [ -- Html.h1 [] [ Html.text "Inventory App" ]
-          Html.nav []
+        [ Html.nav []
             [ Html.ul []
                 [ Html.li []
                     [ Html.a [ Route.Path.href Route.Path.Dashboard ]

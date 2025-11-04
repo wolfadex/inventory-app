@@ -1,9 +1,14 @@
-module Css exposing (temp)
+module Css exposing (dropdown, pageCentered)
 
 import Html
 import Html.Attributes
 
 
-temp : Html.Attribute msg
-temp =
-    Html.Attributes.class "temp"
+dropdown : Html.Attribute msg
+dropdown =
+    Html.Attributes.class "dropdown"
+
+
+pageCentered : Html.Attribute msg
+pageCentered =
+    Html.Attributes.class "pageCentered"

@@ -16,6 +16,7 @@ import Authentication
 import Backend
 import Browser
 import Bytes.Encode
+import Css
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
@@ -206,12 +207,15 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Sign in"
     , body =
-        [ Html.header
-            []
-            [ Html.h1 [] [ Html.text "Inventory App" ]
+        [ Html.main_
+            [ Css.pageCentered
             ]
-        , Html.main_ []
-            [ Html.article []
+            [ Html.header
+                []
+                [ Icon.logo 64
+                , Html.strong [ Html.Attributes.style "font-size" "3rem" ] [ Html.text "Inventory App" ]
+                ]
+            , Html.article []
                 [ Ui.Form.view
                     { title = "Login"
                     , onSubmit = UserSubmittedAuthForm

@@ -2,37 +2,39 @@
 @import url("https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");*/
 
 /* DARK MODE SUPPORT */
-/*:root {
-    --color_bg: #fff;
-    --color_fg: #000;
+:root {
+    --color_bg: #f2f0ef;
+    --color_fg: #333;
 }
 @media (prefers-color-scheme: dark) {
     :root {
-        --color_bg: #000;
-        --color_fg: #fff;
+        --color_bg: #333;
+        --color_fg: #f2f0ef;
     }
-}*/
+}
 
-/* LAYOUT UTILS */
-/*.row {
-    display: flex;
+body {
+    background-color: var(--color_bg);
+    color: var(--color_fg);
 }
-.col {
-    display: flex;
-    flex-direction: column;
-}
-.row:where(.align-cx) {
-    justify-content: center;
-}
-.col:where(.align-cx) {
-    align-items: center;
-}*/
 
 header {
     padding-left: 1rem;
     padding-right: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
 }
 
 .dropdown ul {
     max-width: fit-content;
+}
+
+.pageCentered {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100lvh;
+    width: 100lvw;
 }
