@@ -1,0 +1,14 @@
+[
+  {
+    "command": ["just", "acadia-serve"]
+  },
+  {
+    "command": ["vite", "dev"]
+  },
+  {
+    "command": ["just", "server-build-dev"]
+  },
+  {
+    "command": ["just", "server-serve"]
+  }
+]

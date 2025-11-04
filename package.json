@@ -3,16 +3,6 @@
   "version": "1.0.0",
   "description": "An app for Bekah",
   "type": "module",
-  "scripts": {
-    "start": "npm i && npm run dev",
-    "dev": "concurrently --raw 'npm run acadia:serve' 'vite dev' 'npm run elm-server:elm' 'npm run elm-server:dev'",
-    "build": "npm run acadia:build && tsc && vite build",
-    "acadia:serve": "nodemon -w src/Backend.db --exec \"acadia serve\"",
-    "acadia:build": "acadia make --generate-elm-endpoints=gen",
-    "elm-land:server": "vite dev",
-    "elm-server:dev": "node --watch server.js",
-    "elm-server:elm": "nodemon -w src/Server.elm --exec \"elm-esm make src/Server.elm --output=./elm-server.js\""
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wolfadex/inventory-app.git"
@@ -23,14 +13,10 @@
   },
   "homepage": "https://github.com/wolfadex/inventory-app#readme",
   "devDependencies": {
-    "concurrently": "^9.2.1",
     "gray-matter": "^4.0.3",
     "nodemon": "^3.1.10",
     "typescript": "^5.9.3",
     "vite": "^7.1.12",
     "vite-plugin-elm-watch": "^1.4.4"
-  },
-  "dependencies": {
-    "@awesome.me/webawesome": "^3.0.0"
   }
 }
