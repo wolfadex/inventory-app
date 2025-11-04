@@ -2,7 +2,7 @@ database module Backend exposing
     ( User
     , UserID
     , AuthInfo
-    , endpoint authenticate
+    , endpoint login
     , endpoint signup
     , endpoint logout
     , endpoint getUserSelf
@@ -368,8 +368,8 @@ type alias AuthInfo =
     , password : String
     }
 
-authenticate : Cookies -> AuthInfo -> Transaction Cookies.Header
-authenticate _ authData =
+login : Cookies -> AuthInfo -> Transaction Cookies.Header
+login _ authData =
     let
         existingUser :=
             access users SuperUser

@@ -1,8 +1,9 @@
 module Acadia.Api exposing
     ( authInfoCodec
-    , authenticateCodec
     , createOrganizationCodec
     , getUserSelfCodec
+    , loginCodec
+    , logoutCodec
     , organizationCodec
     , userCodec
     , userIdCodec
@@ -12,8 +13,13 @@ import Backend
 import Serialize
 
 
-authenticateCodec : Serialize.Codec e ()
-authenticateCodec =
+logoutCodec : Serialize.Codec e ()
+logoutCodec =
+    Serialize.unit
+
+
+loginCodec : Serialize.Codec e ()
+loginCodec =
     Serialize.unit
 
 

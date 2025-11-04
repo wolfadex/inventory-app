@@ -33,21 +33,20 @@ type alias Model =
 init : Shared.Model -> Route params -> ( Model, Effect Msg )
 init sharedModel route =
     ( ()
-    , Debug.log "init" <|
-        case sharedModel.currentUser of
-            Authentication.Authenticated _ ->
-                case sharedModel.currentOrganization of
-                    Just _ ->
-                        Effect.none
+    , case sharedModel.currentUser of
+        Authentication.Authenticated _ ->
+            case sharedModel.currentOrganization of
+                Just _ ->
+                    Effect.none
 
-                    Nothing ->
-                        Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) }
+                Nothing ->
+                    Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) }
 
-            Authentication.Authenticating ->
-                Effect.none
+        Authentication.Authenticating ->
+            Effect.none
 
-            Authentication.Unauthenticated ->
-                Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) }
+        Authentication.Unauthenticated ->
+            Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) }
     )
 
 
@@ -117,7 +116,9 @@ view props =
             Authentication.Authenticated user ->
                 case props.sharedModel.currentOrganization of
                     Just organization ->
-                        props.body { currentUser = user, currentOrganization = organization }
+                        viewAuthenticataed
+                            { currentUser = user, currentOrganization = organization }
+                            (props.body { currentUser = user, currentOrganization = organization })
 
                     Nothing ->
                         [ Html.h1 [] [ Html.text "TODO: missing current org" ]
@@ -132,3 +133,43 @@ view props =
                 [ Html.h1 [] [ Html.text "TODO: reauthenticate" ]
                 ]
     }
+
+
+viewAuthenticataed : { currentUser : Backend.User, currentOrganization : Backend.Organization } -> List (Html msg) -> List (Html msg)
+viewAuthenticataed context body =
+    [ Html.header []
+        [ -- Html.h1 [] [ Html.text "Inventory App" ]
+          Html.nav []
+            [ Html.ul []
+                [ Html.li []
+                    [ Html.a [ Route.Path.href Route.Path.Dashboard ]
+                        [ Html.strong [] [ Html.text "Inventory App" ] ]
+                    ]
+                ]
+            , Html.ul []
+                [ Html.li []
+                    [ Html.a
+                        [ Route.Path.href Route.Path.Dashboard
+                        , Html.Attributes.class "secondary"
+                        ]
+                        [ Html.text "EX: Dash" ]
+                    ]
+                , Html.li []
+                    [ Html.details
+                        [ Html.Attributes.class "dropdown" ]
+                        [ Html.summary [] [ Html.text context.currentUser.primaryEmail ]
+                        , Html.ul [ Html.Attributes.dir "rtl" ]
+                            [ Html.li []
+                                [ Html.a
+                                    [ Route.Path.href Route.Path.Logout
+                                    ]
+                                    [ Html.text "Logout" ]
+                                ]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    , Html.main_ [] body
+    ]

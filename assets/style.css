@@ -1,66 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap');
-
-/* CSS RESET (https://www.joshwcomeau.com/css/custom-css-reset) */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
-* {
-  margin: 0;
-}
-body {
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-img, picture, video, canvas, svg {
-  display: block;
-  max-width: 100%;
-}
-input, button, textarea, select {
-  font: inherit;
-}
-p, h1, h2, h3, h4, h5, h6 {
-  overflow-wrap: break-word;
-}
-p {
-  text-wrap: pretty;
-}
-h1, h2, h3, h4, h5, h6 {
-  text-wrap: balance;
-}
+/*@import url("https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,200..900;1,200..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300..900;1,300..900&display=swap");*/
 
 /* DARK MODE SUPPORT */
-:root {
-  --color_bg: #fff;
-  --color_fg: #000;
+/*:root {
+    --color_bg: #fff;
+    --color_fg: #000;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color_bg: #000;
-    --color_fg: #fff;
-  }
-}
-
-/* SAMPLE STYLES */
-html, body { height: 100%; }
-body {
-  font-family: 'Rubik', sans-serif;
-  color: var(--color_fg);
-  background: var(--color_bg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-h1 {
-  font-family: 'Source Sans 3', sans-serif;
-  letter-spacing: -0.05em;
-  font-size: 2.5rem;
-}
-a { color: inherit; }
+    :root {
+        --color_bg: #000;
+        --color_fg: #fff;
+    }
+}*/
 
 /* LAYOUT UTILS */
-.row { display: flex; }
-.col { display: flex; flex-direction: column; }
-.row:where(.align-cx) { justify-content: center; }
-.col:where(.align-cx) { align-items: center; }
+/*.row {
+    display: flex;
+}
+.col {
+    display: flex;
+    flex-direction: column;
+}
+.row:where(.align-cx) {
+    justify-content: center;
+}
+.col:where(.align-cx) {
+    align-items: center;
+}*/
+
+header {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.dropdown ul {
+    max-width: fit-content;
+}

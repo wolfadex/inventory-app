@@ -92,16 +92,6 @@ update { shared, route } msg model =
             )
 
 
-
--- view : Backend.User -> Model -> Html Msg
--- view user model =
---     Html.div []
---         [ Html.h1 [] [ Html.text "Inventory App" ]
---         -- , Html.text (user.primaryEmail ++ " logged in")
---         ]
---         -- VIEW
-
-
 view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     Layout.Authenticated.view
@@ -111,10 +101,6 @@ view { shared, route } model =
         , title = "Dashboard"
         , body =
             \{ currentUser, currentOrganization } ->
-                [ Html.div [ Html.Attributes.class "col align-cx" ]
-                    [ Icon.logo 240
-                    , Html.h1 [] [ Html.text "Inventory App" ]
-                    ]
-                , Html.text currentUser.primaryEmail
+                [ Html.text currentUser.primaryEmail
                 ]
         }

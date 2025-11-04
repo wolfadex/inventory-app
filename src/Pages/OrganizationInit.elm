@@ -17,7 +17,6 @@ import Backend
 import Browser
 import Dict
 import Effect exposing (Effect)
-import Form
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -29,6 +28,8 @@ import Serialize
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
+import Ui.Form
+import Ui.TextInput
 
 
 
@@ -140,21 +141,20 @@ view { shared, route } model =
     { title = "Organization Setup"
     , body =
         [ Html.h1 [] [ Html.text "Inventory App" ]
-        , Form.view
+        , Ui.Form.view
             { title = "Setup organization"
             , onSubmit = UserSubmittedForm
             , additionalButtons = []
             , submit = model.submit
             , submitLabel = "Create organization"
             , fields =
-                [ { name = "name"
-                  , label = "Name"
-                  , value = model.name
-                  , onInput = UserChangedName
-                  , attributes =
-                        [ Html.Attributes.disabled (model.submit == Submit.Submitting)
-                        ]
-                  }
+                [ Ui.TextInput.basic
+                    { label = "Name"
+                    , value = model.name
+                    , onInput = UserChangedName
+                    }
+                    [ Html.Attributes.disabled (model.submit == Submit.Submitting)
+                    ]
                 ]
             }
         ]

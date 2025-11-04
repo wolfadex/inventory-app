@@ -18,7 +18,6 @@ import Browser
 import Bytes.Encode
 import Dict
 import Effect exposing (Effect)
-import Form
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -30,6 +29,8 @@ import Serialize
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
+import Ui.Form
+import Ui.TextInput
 
 
 
@@ -60,8 +61,11 @@ init { shared, route } =
         pathAfterAuth =
             route.query
                 |> Dict.get "returnto"
+                |> Debug.log "return to"
                 |> Maybe.map Route.Path.fromString
+                |> Debug.log "from str"
                 |> Maybe.withDefault Route.Path.Dashboard
+                |> Debug.log "final"
     in
     ( { pathAfterAuth = pathAfterAuth
       , email = ""
@@ -93,7 +97,7 @@ type Msg
     = UserChangedEmail String
     | UserChangedPassword String
     | UserSubmittedAuthForm
-    | UserAuthenticated (Result Http.Error (Result (Serialize.Error ()) ()))
+    | UserLoggedIn (Result Http.Error (Result (Serialize.Error ()) ()))
     | Carl (Result Http.Error ())
     | AuthenticationChanged
     | UserClickedSignUp
@@ -122,24 +126,10 @@ update { shared, route } msg model =
                             , password = model.password
                             }
                         )
-                        (Serialize.toBytesDecoder Acadia.Api.authenticateCodec)
-                , onResponse = UserAuthenticated
-                , path = "/auth/authenticate"
+                        (Serialize.toBytesDecoder Acadia.Api.loginCodec)
+                , onResponse = UserLoggedIn
+                , path = "/auth/login"
                 }
-              -- , let
-              --     (Acadia.Transaction.Transaction enc dec) =
-              --         Backend.authenticate
-              --             { email = model.email
-              --             , password = model.password
-              --             }
-              --   in
-              --   Http.post
-              --     { url = "/_endpoints"
-              --     , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode enc)
-              --     , expect =
-              --         Http.expectBytes Carl dec
-              --     }
-              --     |> Effect.command
             )
 
         Carl _ ->
@@ -155,18 +145,18 @@ update { shared, route } msg model =
                             , password = model.password
                             }
                         )
-                        (Serialize.toBytesDecoder Acadia.Api.authenticateCodec)
-                , onResponse = UserAuthenticated
+                        (Serialize.toBytesDecoder Acadia.Api.loginCodec)
+                , onResponse = UserLoggedIn
                 , path = "/auth/signup"
                 }
             )
 
-        UserAuthenticated (Ok (Ok ())) ->
+        UserLoggedIn (Ok (Ok ())) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication (Just model.pathAfterAuth))
             )
 
-        UserAuthenticated _ ->
+        UserLoggedIn _ ->
             ( { model | submit = Submit.Failed "Error" }
             , Effect.none
             )
@@ -180,7 +170,7 @@ update { shared, route } msg model =
                                 Submit.Fresh
 
                             else
-                                Submit.Failed "Failed to authenticate"
+                                Submit.Failed "Failed to login"
                       }
                     , Effect.none
                     )
@@ -216,40 +206,42 @@ view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
     { title = "Sign in"
     , body =
-        [ Html.div
+        [ Html.header
             []
             [ Html.h1 [] [ Html.text "Inventory App" ]
-            , Form.view
-                { title = "Setup organization"
-                , onSubmit = UserSubmittedAuthForm
-                , submit = model.submit
-                , submitLabel = "Login"
-                , additionalButtons =
-                    [ { onClick = UserClickedSignUp
-                      , label = "Sign up"
-                      }
-                    ]
-                , fields =
-                    [ { name = "email"
-                      , label = "Email"
-                      , value = model.email
-                      , onInput = UserChangedEmail
-                      , attributes =
+            ]
+        , Html.main_ []
+            [ Html.article []
+                [ Ui.Form.view
+                    { title = "Login"
+                    , onSubmit = UserSubmittedAuthForm
+                    , submit = model.submit
+                    , submitLabel = "Login"
+                    , additionalButtons =
+                        [ { onClick = UserClickedSignUp
+                          , label = "Sign up"
+                          }
+                        ]
+                    , fields =
+                        [ Ui.TextInput.email
+                            { label = "Email"
+                            , value = model.email
+                            , onInput = UserChangedEmail
+                            }
                             [ Html.Attributes.disabled (model.submit == Submit.Submitting)
                             , Html.Attributes.type_ "email"
                             ]
-                      }
-                    , { name = "password"
-                      , label = "Password"
-                      , value = model.password
-                      , onInput = UserChangedPassword
-                      , attributes =
+                        , Ui.TextInput.password
+                            { label = "Password"
+                            , value = model.password
+                            , onInput = UserChangedPassword
+                            }
                             [ Html.Attributes.disabled (model.submit == Submit.Submitting)
                             , Html.Attributes.type_ "password"
                             ]
-                      }
-                    ]
-                }
+                        ]
+                    }
+                ]
             ]
         ]
     }

@@ -113,5 +113,5 @@ update route msg model =
 
 
 subscriptions : Route () -> Model -> Subscription Msg
-subscriptions route model =
+subscriptions _ _ =
     Subscription.onAuthenticationRefreshRequested AuthRefreshRequested

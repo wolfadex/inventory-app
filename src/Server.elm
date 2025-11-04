@@ -59,7 +59,10 @@ init request =
             "/api/auth/self" ->
                 acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
 
-            "/api/auth/authenticate" ->
+            "/api/auth/logout" ->
+                acadiaRequest request.headers (AuthLogoutResponse Acadia.Api.logoutCodec) Backend.logout
+
+            "/api/auth/login" ->
                 case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
                     Err _ ->
                         respond { status = 400, body = "Decode error", headers = [] }
@@ -72,7 +75,7 @@ init request =
                             respond { status = 400, body = "Password too short", headers = [] }
 
                         else
-                            acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.authenticate authInfo)
+                            acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login authInfo)
 
             "/api/auth/signup" ->
                 case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
@@ -87,7 +90,7 @@ init request =
                             respond { status = 400, body = "Password too short", headers = [] }
 
                         else
-                            acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.signup authInfo)
+                            acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup authInfo)
 
             "/api/organizations/create" ->
                 case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
@@ -163,7 +166,8 @@ subscriptions _ =
 
 
 type Msg
-    = AuthenticateResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
+    = LoginResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
+    | AuthLogoutResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
     | AuthSelfResponse (Serialize.Codec () ( Backend.User, Maybe Backend.Organization )) (Result Http.Error ( Headers, ( Backend.User, Maybe Backend.Organization ) ))
     | OrganizationCreateResponse (Serialize.Codec () Backend.Organization) (Result Http.Error ( Headers, Backend.Organization ))
 
@@ -171,7 +175,12 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        AuthenticateResponse codec result ->
+        LoginResponse codec result ->
+            ( model
+            , acadiaResponse codec result
+            )
+
+        AuthLogoutResponse codec result ->
             ( model
             , acadiaResponse codec result
             )

@@ -20,6 +20,7 @@ import Html
 import Pages.ALL_
 import Pages.Dashboard
 import Pages.HOME_
+import Pages.Logout
 import Pages.OrganizationInit
 import Pages.SignIn
 import Route exposing (Route)
@@ -42,6 +43,7 @@ type alias Context params =
 type Model
     = Model_HOME_ Pages.HOME_.Model
     | Model_Dashboard Pages.Dashboard.Model
+    | Model_Logout Pages.Logout.Model
     | Model_OrganizationInit Pages.OrganizationInit.Model
     | Model_SignIn Pages.SignIn.Model
     | Model_ALL_ Pages.ALL_.Model
@@ -68,6 +70,16 @@ init url shared =
                 , params = ()
                 , toModel = Model_Dashboard
                 , toMsg = Dashboard
+                }
+
+        Route.Path.Logout ->
+            handleInitForPage
+                { init = Pages.Logout.init
+                , shared = shared
+                , url = url
+                , params = ()
+                , toModel = Model_Logout
+                , toMsg = Logout
                 }
 
         Route.Path.OrganizationInit ->
@@ -131,6 +143,7 @@ handleInitForPage props =
 type Msg
     = HOME_ Pages.HOME_.Msg
     | Dashboard Pages.Dashboard.Msg
+    | Logout Pages.Logout.Msg
     | OrganizationInit Pages.OrganizationInit.Msg
     | SignIn Pages.SignIn.Msg
     | ALL_ Pages.ALL_.Msg
@@ -163,6 +176,18 @@ update url shared msg model =
                 , shared = shared
                 , toModel = Model_Dashboard
                 , toMsg = Dashboard
+                , params = ()
+                , pageModel = pageModel
+                , pageMsg = pageMsg
+                }
+
+        ( Route.Path.Logout, Logout pageMsg, Model_Logout pageModel ) ->
+            handleUpdateForPage
+                { update = Pages.Logout.update
+                , url = url
+                , shared = shared
+                , toModel = Model_Logout
+                , toMsg = Logout
                 , params = ()
                 , pageModel = pageModel
                 , pageMsg = pageMsg
@@ -270,6 +295,19 @@ subscriptions url shared model =
         ( Model_Dashboard _, _ ) ->
             Subscription.none
 
+        ( Model_Logout pageModel, Route.Path.Logout ) ->
+            handleSubscriptionsForPage
+                { subscriptions = Pages.Logout.subscriptions
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Logout
+                , pageModel = pageModel
+                }
+
+        ( Model_Logout _, _ ) ->
+            Subscription.none
+
         ( Model_OrganizationInit pageModel, Route.Path.OrganizationInit ) ->
             handleSubscriptionsForPage
                 { subscriptions = Pages.OrganizationInit.subscriptions
@@ -360,6 +398,20 @@ view url shared model =
                 }
 
         ( Model_Dashboard _, _ ) ->
+            "The route doesn't match the current page."
+                |> viewErrorPage url shared
+
+        ( Model_Logout pageModel, Route.Path.Logout ) ->
+            handleViewForPage
+                { view = Pages.Logout.view
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Logout
+                , pageModel = pageModel
+                }
+
+        ( Model_Logout _, _ ) ->
             "The route doesn't match the current page."
                 |> viewErrorPage url shared
 
