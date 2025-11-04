@@ -108,7 +108,7 @@ view _ _ =
                 [ Html.h1 [] [ Html.text "Inventory App" ]
                 ]
             , Html.text "Logging out..."
-            , Icon.loading
+            , Icon.loading 64
             ]
         ]
     }

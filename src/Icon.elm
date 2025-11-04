@@ -104,11 +104,13 @@ logo size =
         ]
 
 
-loading : Svg msg
-loading =
+loading : Int -> Svg msg
+loading size =
     Svg.svg
         [ Svg.Attributes.fill "hsl(228, 97%, 42%)"
         , Svg.Attributes.viewBox "0 0 24 24"
+        , Svg.Attributes.width (String.fromInt size)
+        , Svg.Attributes.height (String.fromInt size)
         ]
         [ Svg.rect
             [ Svg.Attributes.x "1"

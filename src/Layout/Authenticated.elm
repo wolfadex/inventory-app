@@ -127,7 +127,7 @@ view props =
 
             Authentication.Authenticating ->
                 [ Html.div []
-                    [ Icon.loading ]
+                    [ Icon.loading 64 ]
                 ]
 
             Authentication.Unauthenticated ->
