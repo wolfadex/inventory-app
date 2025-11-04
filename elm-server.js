@@ -1,5 +1,5 @@
-// -- (function(scope){
-// -- 'use strict';
+// -- // -- // -- // -- // -- // -- // -- (function(scope){
+// -- // -- // -- // -- // -- // -- // -- 'use strict';
 
 function F(arity, fun, wrapper) {
   wrapper.a = arity;
@@ -2321,6 +2321,12 @@ function _Platform_setupIncomingPort(name, sendToApp)
 
 
 /*
+/*
+/*
+/*
+/*
+/*
+/*
 function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
@@ -2329,7 +2335,19 @@ function _Platform_export_UNUSED(exports)
 }
 
 */
+*/
+*/
+*/
+*/
+*/
+*/
 
+/*
+/*
+/*
+/*
+/*
+/*
 /*
 function _Platform_mergeExportsProd(obj, exports)
 {
@@ -2343,8 +2361,20 @@ function _Platform_mergeExportsProd(obj, exports)
 	}
 }
 */
+*/
+*/
+*/
+*/
+*/
+*/
 
 
+/*
+/*
+/*
+/*
+/*
+/*
 /*
 function _Platform_export(exports)
 {
@@ -2354,7 +2384,19 @@ function _Platform_export(exports)
 }
 
 */
+*/
+*/
+*/
+*/
+*/
+*/
 
+/*
+/*
+/*
+/*
+/*
+/*
 /*
 function _Platform_mergeExportsDebug(moduleName, obj, exports)
 {
@@ -2367,6 +2409,12 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 			: (obj[name] = exports[name]);
 	}
 }
+*/
+*/
+*/
+*/
+*/
+*/
 */
 
 
@@ -4155,6 +4203,7 @@ var $elm$http$Http$Header = F2(
 		return {$: 'Header', a: a, b: b};
 	});
 var $elm$http$Http$header = $elm$http$Http$Header;
+var $elm$core$Debug$log = _Debug_log;
 var $elm$http$Http$Request = function (a) {
 	return {$: 'Request', a: a};
 };
@@ -4365,7 +4414,7 @@ var $author$project$Server$acadiaRequest = F3(
 									return $elm$core$Maybe$Nothing;
 							}
 						},
-						headers)),
+						A2($elm$core$Debug$log, 'to acadia headers', headers))),
 				method: 'POST',
 				timeout: $elm$core$Maybe$Nothing,
 				tracker: $elm$core$Maybe$Nothing,
@@ -4699,76 +4748,17 @@ var $author$project$Acadia$Int32$decodeBE = A2(
 	$author$project$Acadia$Int32$Int32,
 	$elm$bytes$Bytes$Decode$signedInt32($elm$bytes$Bytes$BE));
 var $author$project$Acadia$Bytes$Decode$int32BE = $author$project$Acadia$Int32$decodeBE;
-var $author$project$Acadia$Bytes$Decode$string = function (n) {
-	return $elm$bytes$Bytes$Decode$string(
-		$author$project$Acadia$UInt32$toInt(n));
-};
+var $elm$core$Basics$neq = _Utils_notEqual;
 var $author$project$Acadia$Int32$toInt = function (_v0) {
 	var n = _v0.a;
 	return n;
 };
-var $author$project$Backend$d_ARG_1 = A2(
+var $author$project$Backend$d_ARG_0 = A2(
 	$author$project$Acadia$Bytes$Decode$andThen,
 	function (n) {
-		return ($author$project$Acadia$Int32$toInt(n) < 0) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$string(
-			$author$project$Acadia$UInt32$fromInt(
-				$author$project$Acadia$Int32$toInt(n)));
+		return (!(!$author$project$Acadia$Int32$toInt(n))) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0);
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
-var $author$project$Backend$OrganizationID = function (a) {
-	return {$: 'OrganizationID', a: a};
-};
-var $author$project$Acadia$Bytes$Decode$map = $elm$bytes$Bytes$Decode$map;
-var $elm$core$Basics$neq = _Utils_notEqual;
-var $author$project$Acadia$Uuid$Uuid = F4(
-	function (a, b, c, d) {
-		return {$: 'Uuid', a: a, b: b, c: c, d: d};
-	});
-var $elm$bytes$Bytes$Decode$map4 = F5(
-	function (func, _v0, _v1, _v2, _v3) {
-		var decodeA = _v0.a;
-		var decodeB = _v1.a;
-		var decodeC = _v2.a;
-		var decodeD = _v3.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v4 = A2(decodeA, bites, offset);
-					var aOffset = _v4.a;
-					var a = _v4.b;
-					var _v5 = A2(decodeB, bites, aOffset);
-					var bOffset = _v5.a;
-					var b = _v5.b;
-					var _v6 = A2(decodeC, bites, bOffset);
-					var cOffset = _v6.a;
-					var c = _v6.b;
-					var _v7 = A2(decodeD, bites, cOffset);
-					var dOffset = _v7.a;
-					var d = _v7.b;
-					return _Utils_Tuple2(
-						dOffset,
-						A4(func, a, b, c, d));
-				}));
-	});
-var $author$project$Acadia$Uuid$decode = A5(
-	$elm$bytes$Bytes$Decode$map4,
-	$author$project$Acadia$Uuid$Uuid,
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
-	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE));
-var $author$project$Acadia$Bytes$Decode$uuid = $author$project$Acadia$Uuid$decode;
-var $author$project$Backend$d_ARG_4 = A2(
-	$author$project$Acadia$Bytes$Decode$map,
-	function (v) {
-		return $author$project$Backend$OrganizationID(v);
-	},
-	A2(
-		$author$project$Acadia$Bytes$Decode$andThen,
-		function (n) {
-			return ($author$project$Acadia$Int32$toInt(n) !== 16) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$uuid;
-		},
-		$author$project$Acadia$Bytes$Decode$int32BE));
 var $author$project$Backend$e_ARG_2 = function (v) {
 	var v_name = v.name;
 	var o0 = $author$project$Acadia$UInt32$fromInt(0);
@@ -4795,18 +4785,7 @@ var $author$project$Backend$createOrganization = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(6)),
 					$author$project$Backend$e_ARG_2(v0)
 				])),
-		A2(
-			$author$project$Acadia$Bytes$Decode$andThen,
-			function (id) {
-				return A2(
-					$author$project$Acadia$Bytes$Decode$andThen,
-					function (name) {
-						return $author$project$Acadia$Bytes$Decode$succeed(
-							{id: id, name: name});
-					},
-					$author$project$Backend$d_ARG_1);
-			},
-			$author$project$Backend$d_ARG_4));
+		$author$project$Backend$d_ARG_0);
 };
 var $author$project$Acadia$Api$createOrganizationCodec = $author$project$Serialize$finishRecord(
 	A3(
@@ -5130,6 +5109,48 @@ var $author$project$Serialize$decodeFromString = F2(
 var $author$project$Backend$UserID = function (a) {
 	return {$: 'UserID', a: a};
 };
+var $author$project$Acadia$Bytes$Decode$string = function (n) {
+	return $elm$bytes$Bytes$Decode$string(
+		$author$project$Acadia$UInt32$toInt(n));
+};
+var $author$project$Acadia$Uuid$Uuid = F4(
+	function (a, b, c, d) {
+		return {$: 'Uuid', a: a, b: b, c: c, d: d};
+	});
+var $elm$bytes$Bytes$Decode$map4 = F5(
+	function (func, _v0, _v1, _v2, _v3) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v4 = A2(decodeA, bites, offset);
+					var aOffset = _v4.a;
+					var a = _v4.b;
+					var _v5 = A2(decodeB, bites, aOffset);
+					var bOffset = _v5.a;
+					var b = _v5.b;
+					var _v6 = A2(decodeC, bites, bOffset);
+					var cOffset = _v6.a;
+					var c = _v6.b;
+					var _v7 = A2(decodeD, bites, cOffset);
+					var dOffset = _v7.a;
+					var d = _v7.b;
+					return _Utils_Tuple2(
+						dOffset,
+						A4(func, a, b, c, d));
+				}));
+	});
+var $author$project$Acadia$Uuid$decode = A5(
+	$elm$bytes$Bytes$Decode$map4,
+	$author$project$Acadia$Uuid$Uuid,
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE));
+var $author$project$Acadia$Bytes$Decode$uuid = $author$project$Acadia$Uuid$decode;
 var $author$project$Backend$d_ARG_2 = A2(
 	$author$project$Acadia$Bytes$Decode$andThen,
 	function (n) {
@@ -5155,6 +5176,9 @@ var $author$project$Backend$d_ARG_2 = A2(
 			$author$project$Acadia$Bytes$Decode$uuid);
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
+var $author$project$Backend$OrganizationID = function (a) {
+	return {$: 'OrganizationID', a: a};
+};
 var $author$project$Acadia$UInt8$toInt = function (_v0) {
 	var n = _v0.a;
 	return n;
@@ -5454,6 +5478,7 @@ var $author$project$Acadia$Api$getUserSelfCodec = A2(
 	$author$project$Serialize$tuple,
 	$author$project$Acadia$Api$userCodec,
 	$author$project$Serialize$maybe($author$project$Acadia$Api$organizationCodec));
+var $author$project$Acadia$Api$organizationCodecTemp = $author$project$Serialize$unit;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -5568,17 +5593,23 @@ var $author$project$Server$init = function (request) {
 								$author$project$Backend$signup(authInfo)));
 						}
 					case '/api/organizations/create':
-						var _v3 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
+						var _v3 = A2(
+							$elm$core$Debug$log,
+							'create org args',
+							A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body));
 						if (_v3.$ === 'Err') {
 							return $author$project$Server$respond(
 								{body: 'Decode error', headers: _List_Nil, status: 400});
 						} else {
 							var newOrg = _v3.a;
-							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$respond(
+							return A2(
+								$elm$core$Debug$log,
+								'name len',
+								$elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$respond(
 								{body: 'Invalid name', headers: _List_Nil, status: 400}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
-								$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
+								$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodecTemp),
 								$author$project$Backend$createOrganization(newOrg));
 						}
 					default:
@@ -5928,38 +5959,39 @@ var $author$project$Serialize$encodeToString = function (codec) {
 		$author$project$Serialize$encodeToBytes(codec),
 		$author$project$Serialize$replaceBase64Chars);
 };
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
+var $author$project$Server$setPathOnCookie = function (cookie) {
+	return cookie + '; Path=/api';
+};
 var $author$project$Server$acadiaResponse = F2(
 	function (codec, result) {
-		if (result.$ === 'Err') {
+		var _v0 = A2($elm$core$Debug$log, 'acadia resp', result);
+		if (_v0.$ === 'Err') {
 			return $author$project$Server$respond(
 				{body: 'Database error', headers: _List_Nil, status: 400});
 		} else {
-			var _v1 = result.a;
+			var _v1 = _v0.a;
 			var headers = _v1.a;
 			var body = _v1.b;
 			return $author$project$Server$respond(
 				{
 					body: A2($author$project$Serialize$encodeToString, codec, body),
 					headers: A2(
-						$elm$core$List$filter,
+						$elm$core$List$filterMap,
 						function (_v2) {
 							var key = _v2.a;
+							var value = _v2.b;
 							var _v3 = $elm$core$String$toLower(key);
-							if (_v3 === 'content-length') {
-								return false;
-							} else {
-								return true;
+							switch (_v3) {
+								case 'content-length':
+									return $elm$core$Maybe$Nothing;
+								case 'set-cookie':
+									return $elm$core$Maybe$Just(
+										_Utils_Tuple2(
+											key,
+											$author$project$Server$setPathOnCookie(value)));
+								default:
+									return $elm$core$Maybe$Just(
+										_Utils_Tuple2(key, value));
 							}
 						},
 						headers),
@@ -5993,6 +6025,12 @@ var $author$project$Server$update = F2(
 var $elm$core$Platform$worker = _Platform_worker;
 var $author$project$Server$main = $elm$core$Platform$worker(
 	{init: $author$project$Server$init, subscriptions: $author$project$Server$subscriptions, update: $author$project$Server$update});
+/*
+/*
+/*
+/*
+/*
+/*
 /*
 _Platform_export({'Server':{'init':$author$project$Server$main(
 	A2(
@@ -6033,6 +6071,246 @@ _Platform_export({'Server':{'init':$author$project$Server$main(
 		},
 		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}});}(this));
 */
+*/
+*/
+*/
+*/
+*/
+*/
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main(
+	A2(
+		$elm$json$Json$Decode$andThen,
+		function (path) {
+			return A2(
+				$elm$json$Json$Decode$andThen,
+				function (method) {
+					return A2(
+						$elm$json$Json$Decode$andThen,
+						function (headers) {
+							return A2(
+								$elm$json$Json$Decode$andThen,
+								function (body) {
+									return $elm$json$Json$Decode$succeed(
+										{body: body, headers: headers, method: method, path: path});
+								},
+								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
+						},
+						A2(
+							$elm$json$Json$Decode$field,
+							'headers',
+							$elm$json$Json$Decode$list(
+								A2(
+									$elm$json$Json$Decode$andThen,
+									function (_v0) {
+										return A2(
+											$elm$json$Json$Decode$andThen,
+											function (_v1) {
+												return $elm$json$Json$Decode$succeed(
+													_Utils_Tuple2(_v0, _v1));
+											},
+											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
+									},
+									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
+				},
+				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
+		},
+		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+  
 export const Elm = {'Server':{'init':$author$project$Server$main(
 	A2(
 		$elm$json$Json$Decode$andThen,

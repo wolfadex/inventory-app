@@ -198,17 +198,25 @@ acadiaResponse codec result =
                 { status = 200
                 , body = Serialize.encodeToString codec body
                 , headers =
-                    List.filter
-                        (\( key, _ ) ->
+                    List.filterMap
+                        (\( key, value ) ->
                             case String.toLower key of
                                 "content-length" ->
-                                    False
+                                    Nothing
+
+                                "set-cookie" ->
+                                    Just ( key, setPathOnCookie value )
 
                                 _ ->
-                                    True
+                                    Just ( key, value )
                         )
                         headers
                 }
 
 
 port respond : Response -> Cmd msg
+
+
+setPathOnCookie : String -> String
+setPathOnCookie cookie =
+    cookie ++ "; Path=/api"
