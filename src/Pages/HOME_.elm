@@ -1,17 +1,19 @@
 module Pages.HOME_ exposing (..)
 
 import Backend
+import Browser
+import Css
+import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Browser
 import Icon
-import Effect exposing (Effect)
+import Response exposing (Response)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import Subscription exposing (Subscription)
-import Response exposing (Response)
-import Route.Path
+
 
 
 -- CONTEXT
@@ -26,18 +28,20 @@ type alias Context =
 type alias Model =
     {}
 
+
 init : Context -> ( Model, Effect Msg )
-init { shared, route } =
+init _ =
     ( {}
     , Effect.none
     )
+
 
 
 -- SUBSCRIPTIONS
 
 
 subscriptions : Context -> Model -> Subscription Msg
-subscriptions { shared, route } model =
+subscriptions _ _ =
     Subscription.none
 
 
@@ -50,7 +54,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared, route } msg model =
+update _ msg model =
     case msg of
         NoOp ->
             ( model
@@ -59,15 +63,27 @@ update { shared, route } msg model =
 
 
 view : Context -> Model -> Browser.Document Msg
-view { shared, route } model =
-    { title = "Homepage"
+view _ _ =
+    { title = "Welcome"
     , body =
-        [ Html.div [ Html.Attributes.class "col align-cx" ]
-            [ Icon.logo 240
+        [ Html.header []
+            [ Icon.logo 100
             , Html.h1 [] [ Html.text "Inventory App" ]
             ]
-        , Html.a
-            [ Route.Path.href Route.Path.SignIn ]
-            [ Html.text "Sign In" ]
+        , Html.main_
+            [ Html.Attributes.class "container"
+            , Css.pageMarketing
+            ]
+            [ Html.p [] [ Html.text "A one stop shop for managing what you have and where it is." ]
+            , Html.span []
+                [ Html.a
+                    [ Route.Path.href Route.Path.SignIn ]
+                    [ Html.text "Sign In" ]
+                , Html.text " or "
+                , Html.a
+                    [ Route.Path.href Route.Path.SignIn ]
+                    [ Html.text "Sign Up!" ]
+                ]
+            ]
         ]
     }
