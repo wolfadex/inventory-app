@@ -4346,23 +4346,26 @@ var $author$project$Server$acadiaRequest = F3(
 					toMsg,
 					$author$project$Server$bytesResponseWithHeaders(dec)),
 				headers: A2(
-					$elm$core$List$filterMap,
-					function (_v1) {
-						var key = _v1.a;
-						var value = _v1.b;
-						var _v2 = $elm$core$String$toLower(key);
-						switch (_v2) {
-							case 'cookie':
-								return $elm$core$Maybe$Just(
-									A2($elm$http$Http$header, key, value));
-							case 'content-type':
-								return $elm$core$Maybe$Just(
-									A2($elm$http$Http$header, key, value));
-							default:
-								return $elm$core$Maybe$Nothing;
-						}
-					},
-					headers),
+					$elm$core$List$cons,
+					A2($elm$http$Http$header, 'accept', 'application/octet-stream'),
+					A2(
+						$elm$core$List$filterMap,
+						function (_v1) {
+							var key = _v1.a;
+							var value = _v1.b;
+							var _v2 = $elm$core$String$toLower(key);
+							switch (_v2) {
+								case 'cookie':
+									return $elm$core$Maybe$Just(
+										A2($elm$http$Http$header, key, value));
+								case 'content-type':
+									return $elm$core$Maybe$Just(
+										A2($elm$http$Http$header, key, value));
+								default:
+									return $elm$core$Maybe$Nothing;
+							}
+						},
+						headers)),
 				method: 'POST',
 				timeout: $elm$core$Maybe$Nothing,
 				tracker: $elm$core$Maybe$Nothing,
@@ -5451,7 +5454,6 @@ var $author$project$Acadia$Api$getUserSelfCodec = A2(
 	$author$project$Serialize$tuple,
 	$author$project$Acadia$Api$userCodec,
 	$author$project$Serialize$maybe($author$project$Acadia$Api$organizationCodec));
-var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -5527,7 +5529,7 @@ var $author$project$Server$init = function (request) {
 				return $author$project$Server$respond(
 					{body: 'Not Found', headers: _List_Nil, status: 404});
 			} else {
-				var _v0 = A2($elm$core$Debug$log, 'path', request.path);
+				var _v0 = request.path;
 				switch (_v0) {
 					case '/api/auth/self':
 						return A3(
@@ -5566,10 +5568,7 @@ var $author$project$Server$init = function (request) {
 								$author$project$Backend$signup(authInfo)));
 						}
 					case '/api/organizations/create':
-						var _v3 = A2(
-							$elm$core$Debug$log,
-							'org create args',
-							A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body));
+						var _v3 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
 						if (_v3.$ === 'Err') {
 							return $author$project$Server$respond(
 								{body: 'Decode error', headers: _List_Nil, status: 400});
@@ -5942,12 +5941,11 @@ var $elm$core$List$filter = F2(
 	});
 var $author$project$Server$acadiaResponse = F2(
 	function (codec, result) {
-		var _v0 = A2($elm$core$Debug$log, 'res', result);
-		if (_v0.$ === 'Err') {
+		if (result.$ === 'Err') {
 			return $author$project$Server$respond(
 				{body: 'Database error', headers: _List_Nil, status: 400});
 		} else {
-			var _v1 = _v0.a;
+			var _v1 = result.a;
 			var headers = _v1.a;
 			var body = _v1.b;
 			return $author$project$Server$respond(

@@ -55,7 +55,7 @@ init request =
         respond { status = 404, body = "Not Found", headers = [] }
 
       else
-        case Debug.log "path" request.path of
+        case request.path of
             "/api/auth/self" ->
                 acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
 
@@ -90,7 +90,7 @@ init request =
                             acadiaRequest request.headers (AuthenticateResponse Acadia.Api.authenticateCodec) (Backend.signup authInfo)
 
             "/api/organizations/create" ->
-                case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body |> Debug.log "org create args" of
+                case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
                     Err _ ->
                         respond { status = 400, body = "Decode error", headers = [] }
 
@@ -112,19 +112,20 @@ acadiaRequest headers toMsg (Acadia.Transaction.Transaction enc dec) =
         { url = "http://localhost:9000/_endpoints"
         , method = "POST"
         , headers =
-            List.filterMap
-                (\( key, value ) ->
-                    case String.toLower key of
-                        "cookie" ->
-                            Just <| Http.header key value
+            Http.header "accept" "application/octet-stream"
+                :: List.filterMap
+                    (\( key, value ) ->
+                        case String.toLower key of
+                            "cookie" ->
+                                Just <| Http.header key value
 
-                        "content-type" ->
-                            Just <| Http.header key value
+                            "content-type" ->
+                                Just <| Http.header key value
 
-                        _ ->
-                            Nothing
-                )
-                headers
+                            _ ->
+                                Nothing
+                    )
+                    headers
         , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode enc)
         , expect = Http.expectBytesResponse toMsg (bytesResponseWithHeaders dec)
         , timeout = Nothing
@@ -188,7 +189,7 @@ update msg model =
 
 acadiaResponse : Serialize.Codec () a -> Result Http.Error ( Headers, a ) -> Cmd msg
 acadiaResponse codec result =
-    case Debug.log "res" result of
+    case result of
         Err _ ->
             respond { status = 400, body = "Database error", headers = [] }
 

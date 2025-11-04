@@ -107,21 +107,55 @@ type alias Permission =
     , delete : Bool
     }
 
+allPermission : Permission
+allPermission =
+    { create = True
+    , read = True
+    , update = True
+    , delete = True
+    }
+
+
+readOnlyPermission : Permission
+readOnlyPermission =
+    { create = False
+    , read = True
+    , update = False
+    , delete = False
+    }
+
 
 type alias Role =
     { id : RoleID
     , food : Permission
+    , organization : Permission
+    , organizationUsers : Permission
+    }
+
+
+enableAllRoles : RoleID -> Role
+enableAllRoles roleId =
+    { id = roleId
+    , food = allPermission
+    , organization = allPermission
+    , organizationUsers = allPermission
     }
 
 
 type RoleID = RoleID Uuid
 
 
-roles : Table SuperUser Role
+roles : Table Permission Role
 roles :=
     table
         { primary = .id
-        , security = superUser
+        , security =
+            Security.policy
+                { access = \permission _ -> permission.read
+                , insert = \permission _ -> permission.create
+                , update = \permission _ -> permission.update
+                , remove = \permission _ -> permission.delete
+                }
         }
 
 
@@ -129,10 +163,10 @@ requireRole : ( UserID, OrganizationID ) -> Transaction Role
 requireRole ( userID, organizationID ) =
     let
         orgUser :=
-            access organizationUsers SuperUser
+            access organizationUsers readOnlyPermission
                 |> select
     in
-    access roles SuperUser
+    access roles readOnlyPermission
         |> filter (\role -> role.id == orgUser.roleID)
         |> select
 
@@ -162,11 +196,17 @@ organizationRowToOrganization org =
 type OrganizationID = OrganizationID Uuid
 
 
-organizations : Table SuperUser OrganizationRow
+organizations : Table Permission OrganizationRow
 organizations :=
     table
         { primary = .id
-        , security = superUser
+        , security =
+            Security.policy
+                { access = \permission _ -> permission.read
+                , insert = \permission _ -> permission.create
+                , update = \permission _ -> permission.update
+                , remove = \permission _ -> permission.delete
+                }
         }
 
 
@@ -177,16 +217,16 @@ type alias OrganizationUsers =
     }
 
 
-organizationUsers : Table SuperUser OrganizationUsers
+organizationUsers : Table Permission OrganizationUsers
 organizationUsers :=
     table
         { primary = \orgUser -> ( orgUser.organizationID, orgUser.userID )
         , security =
             Security.policy
-                { access = \_ _ -> True
-                , insert = \_ _ -> True
-                , update = \_ _ -> True
-                , remove = \_ _ -> True
+                { access = \permission _ -> permission.read
+                , insert = \permission _ -> permission.create
+                , update = \permission _ -> permission.update
+                , remove = \permission _ -> permission.delete
                 }
         }
 
@@ -196,19 +236,33 @@ createOrganization cookies newOrgData =
     let
         userID := requireUser cookies
 
-        id := Uuid.uuid |> Transaction.map OrganizationID
+        orgId := Uuid.uuid |> Transaction.map OrganizationID
 
         () :=
-            insert organizations SuperUser
-                { id = id
+            insert organizations { create = True, read = False, update = False, delete = False }
+                { id = orgId
                 , owner = userID
                 , name = newOrgData.name
                 }
+
+        roleId := Uuid.uuid |> Transaction.map RoleID
+
+        () :=
+            insert roles { create = True, read = False, update = False, delete = False }
+                (enableAllRoles roleId)
+
+        () :=
+            insert organizationUsers { create = True, read = False, update = False, delete = False }
+                { organizationID = orgId
+                , userID = userID
+                , roleID = roleId
+                }
     in
-    access organizations SuperUser
-        |> filter (\org -> org.id == id)
+    access organizations (readOnlyPermission)
+        |> filter (\org -> org.id == orgId)
         |> map organizationRowToOrganization
         |> select
+
 
 
 -- USERS TABLE
@@ -255,7 +309,7 @@ getUserSelf cookies =
                 |> select
 
         maybeOrgUser :=
-            access organizationUsers SuperUser
+            access organizationUsers readOnlyPermission
                 |> filter (\orgUsers -> orgUsers.userID == user.id)
                 |> limitBy .organizationID 1
                 |> selectMaybe
@@ -265,7 +319,7 @@ getUserSelf cookies =
             succeed ( userToUserRow user, Nothing )
 
         Just orgUser ->
-            access organizations SuperUser
+            access organizations readOnlyPermission
                 |> filter (\org -> org.id == orgUser.organizationID)
                 |> selectMaybe
                 |> Transaction.map (\organization -> ( userToUserRow user, Maybe.map organizationRowToOrganization organization))
@@ -329,7 +383,7 @@ authenticate _ authData =
         Just user ->
             let
                 organization :=
-                    access organizationUsers SuperUser
+                    access organizationUsers readOnlyPermission
                         |> filter (\orgUsers -> orgUsers.userID == user.id)
                         |> limitBy .organizationID 1
                         |> selectMaybe

@@ -13,7 +13,9 @@ module Pages.SignIn exposing
 import Acadia.Api
 import Acadia.Transaction
 import Authentication
+import Backend
 import Browser
+import Bytes.Encode
 import Dict
 import Effect exposing (Effect)
 import Form
@@ -92,6 +94,7 @@ type Msg
     | UserChangedPassword String
     | UserSubmittedAuthForm
     | UserAuthenticated (Result Http.Error (Result (Serialize.Error ()) ()))
+    | Carl (Result Http.Error ())
     | AuthenticationChanged
     | UserClickedSignUp
 
@@ -123,7 +126,24 @@ update { shared, route } msg model =
                 , onResponse = UserAuthenticated
                 , path = "/auth/authenticate"
                 }
+              -- , let
+              --     (Acadia.Transaction.Transaction enc dec) =
+              --         Backend.authenticate
+              --             { email = model.email
+              --             , password = model.password
+              --             }
+              --   in
+              --   Http.post
+              --     { url = "/_endpoints"
+              --     , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode enc)
+              --     , expect =
+              --         Http.expectBytes Carl dec
+              --     }
+              --     |> Effect.command
             )
+
+        Carl _ ->
+            ( model, Effect.none )
 
         UserClickedSignUp ->
             ( { model | submit = Submit.Submitting }
