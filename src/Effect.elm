@@ -3,8 +3,8 @@ module Effect exposing
     , none, batch, map
     , broadcast
     , CustomEffect(..)
-    , acadia
     , navigateTo
+    , endpoint
     )
 
 {-|
@@ -14,20 +14,19 @@ module Effect exposing
 @docs broadcast
 
 @docs CustomEffect
-@docs acadia
 
 @docs navigateTo
+@docs endpoint
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
-import Backend.Transaction
+import Bytes.Decode
 import Dict exposing (Dict)
 import ElmLand.Effect
+import Endpoints
+import Http.Extended
 import Route
 import Route.Path
-import Serialize
 import Subscription
 
 
@@ -64,25 +63,26 @@ broadcast event =
     ElmLand.Effect.broadcast event
 
 
-{-| Attempt to run an Acadia transaction
--}
-acadia :
-    { onResponse : Result Acadia.Api.Error (Result (Serialize.Error ()) value) -> msg
-    , transaction : Acadia.Transaction.Transaction (Result (Serialize.Error ()) value)
-    , path : String
+endpoint :
+    { onResponse : Result Http.Extended.Error value -> msg
+    , endpoint : Endpoints.Endpoint value
     }
     -> Effect msg
-acadia props =
+endpoint props =
     -- Strips the "value" type variable
     -- so things work nicely with "Effect msg"
     ElmLand.Effect.custom
-        (Acadia
-            { transaction =
-                Backend.Transaction.map
-                    (Ok >> props.onResponse)
-                    props.transaction
+        (EndpointRequest
+            { endpoint =
+                { method = props.endpoint.method
+                , path = props.endpoint.path
+                , request = props.endpoint.request
+                , response =
+                    Bytes.Decode.map
+                        (Ok >> props.onResponse)
+                        props.endpoint.response
+                }
             , onFailure = Err >> props.onResponse
-            , path = props.path
             }
         )
 
@@ -104,10 +104,9 @@ navigateTo { path, query } =
 {-| Any custom effects specific to this application
 -}
 type CustomEffect msg
-    = Acadia
-        { transaction : Acadia.Transaction.Transaction msg
-        , onFailure : Acadia.Api.Error -> msg
-        , path : String
+    = EndpointRequest
+        { endpoint : Endpoints.Endpoint msg
+        , onFailure : Http.Extended.Error -> msg
         }
 
 
@@ -127,9 +126,13 @@ map fn effect =
 mapCustomEffect : (msg1 -> msg2) -> CustomEffect msg1 -> CustomEffect msg2
 mapCustomEffect fn customEffect =
     case customEffect of
-        Acadia info ->
-            Acadia
-                { transaction = Backend.Transaction.map fn info.transaction
+        EndpointRequest info ->
+            EndpointRequest
+                { endpoint =
+                    { method = info.endpoint.method
+                    , path = info.endpoint.path
+                    , request = info.endpoint.request
+                    , response = Bytes.Decode.map fn info.endpoint.response
+                    }
                 , onFailure = info.onFailure >> fn
-                , path = info.path
                 }

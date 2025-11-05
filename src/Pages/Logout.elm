@@ -11,17 +11,16 @@ module Pages.Logout exposing
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
 import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
+import Endpoints.ApiAuthLogout
 import Html
+import Http.Extended
 import Icon
 import Route exposing (Route)
 import Route.Path
-import Serialize
 import Shared
 import Subscription exposing (Subscription)
 
@@ -47,14 +46,7 @@ type alias Model =
 init : Context -> ( Model, Effect Msg )
 init _ =
     ( {}
-    , Effect.acadia
-        { transaction =
-            Acadia.Transaction.Transaction
-                (Serialize.toBytesEncoder Acadia.Api.logoutCodec ())
-                (Serialize.toBytesDecoder Acadia.Api.logoutCodec)
-        , onResponse = UserLoggedOut
-        , path = "/auth/logout"
-        }
+    , Endpoints.ApiAuthLogout.post UserLoggedOut
     )
 
 
@@ -63,13 +55,13 @@ init _ =
 
 
 type Msg
-    = UserLoggedOut (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
+    = UserLoggedOut (Result Http.Extended.Error ())
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update _ msg model =
     case msg of
-        UserLoggedOut (Ok (Ok ())) ->
+        UserLoggedOut (Ok ()) ->
             ( model
             , Effect.batch
                 [ Effect.broadcast (Subscription.RefreshAuthentication Nothing)
@@ -77,7 +69,7 @@ update _ msg model =
                 ]
             )
 
-        UserLoggedOut _ ->
+        UserLoggedOut (Err _) ->
             ( model
             , Effect.none
             )

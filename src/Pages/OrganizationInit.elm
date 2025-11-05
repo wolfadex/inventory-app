@@ -11,19 +11,18 @@ module Pages.OrganizationInit exposing
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
 import Authentication
 import Backend
 import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
+import Endpoints.ApiOrganizations
 import Html
 import Html.Attributes
+import Http.Extended
 import Route exposing (Route)
 import Route.Path
-import Serialize
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
@@ -47,7 +46,7 @@ type alias Context =
 
 type alias Model =
     { name : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
 
 
@@ -76,7 +75,7 @@ type Msg
     = UserChangedName String
     | UserSubmittedForm
     | AuthenticationChanged
-    | OrganizationCreated (Result Acadia.Api.Error (Result (Serialize.Error ()) Backend.Organization))
+    | OrganizationCreated (Result Http.Extended.Error Backend.Organization)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -102,23 +101,15 @@ update { shared } msg model =
 
         UserSubmittedForm ->
             ( model
-            , Effect.acadia
-                { transaction =
-                    Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Acadia.Api.createOrganizationCodec
-                            { name = model.name
-                            }
-                        )
-                        (Serialize.toBytesDecoder Acadia.Api.organizationCodec)
-                , onResponse = OrganizationCreated
-                , path = "/organizations/create"
+            , Endpoints.ApiOrganizations.post OrganizationCreated
+                { name = model.name
                 }
             )
 
-        OrganizationCreated (Ok (Ok _)) ->
+        OrganizationCreated (Ok _) ->
             ( model, Effect.none )
 
-        OrganizationCreated _ ->
+        OrganizationCreated (Err _) ->
             ( model, Effect.none )
 
 

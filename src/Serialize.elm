@@ -1,7 +1,6 @@
 module Serialize exposing
     ( Codec
     , CustomTypeCodec
-    , Error(..)
     , RecordCodec
     , VariantEncoder
     , array
@@ -28,8 +27,6 @@ module Serialize exposing
     , lazy
     , list
     , map
-    , mapError
-    , mapValid
     , maybe
     , record
     , result
@@ -87,27 +84,11 @@ import Toop exposing (T4(..), T5(..), T6(..), T7(..), T8(..))
 
 {-| A value that knows how to encode and decode an Elm data structure.
 -}
-type Codec e a
+type Codec a
     = Codec
         { encoder : a -> BE.Encoder
-        , decoder : BD.Decoder (Result (Error e) a)
+        , decoder : BD.Decoder a
         }
-
-
-{-| Possible errors that can occur when decoding.
-
-  - `CustomError` - An error caused by `andThen` returning an Err value.
-  - `DataCorrupted` - This most likely will occur if you make breaking changes to your codec and try to decode old data\*. Have a look at `How do I change my codecs and still be able to decode old data?` in the readme for how to avoid introducing breaking changes.
-  - `SerializerOutOfDate` - When encoding, this package will include a version number. This makes it possible for me to make improvements to how data gets encoded without introducing breaking changes to your codecs. This error then, says that you're trying to decode data encoded with a newer version of elm-serialize.
-
-\*It's possible for corrupted data to still succeed in decoding (but with nonsense Elm values).
-This is because internally we're just encoding Elm values and not storing any kind of structural information.
-So if you encoded an Int and then a Float, and then tried decoding it as a Float and then an Int, there's no way for the decoder to know it read the data in the wrong order.
-
--}
-type Error e
-    = CustomError e
-    | DataCorrupted
 
 
 
@@ -121,19 +102,19 @@ endian =
 
 {-| Extracts the `Decoder` contained inside the `Codec`.
 -}
-toBytesDecoder : Codec e a -> BD.Decoder (Result (Error e) a)
+toBytesDecoder : Codec a -> BD.Decoder a
 toBytesDecoder (Codec m) =
     m.decoder
 
 
-decodeFromString : Codec e a -> String -> Result (Error e) a
+decodeFromString : Codec a -> String -> Maybe a
 decodeFromString codec base64 =
     case decode base64 of
         Just bytes_ ->
             decodeFromBytes codec bytes_
 
         Nothing ->
-            Err DataCorrupted
+            Nothing
 
 
 {-| Convert an Elm value into a string. This string contains only url safe characters, so you can do the following:
@@ -146,35 +127,20 @@ decodeFromString codec base64 =
 and not risk generating an invalid url.
 
 -}
-encodeToString : Codec e a -> a -> String
+encodeToString : Codec a -> a -> String
 encodeToString codec =
     encodeToBytes codec >> replaceBase64Chars
 
 
 {-| Run a `Codec` to turn a sequence of bytes into an Elm value.
 -}
-decodeFromBytes : Codec e a -> Bytes.Bytes -> Result (Error e) a
+decodeFromBytes : Codec a -> Bytes.Bytes -> Maybe a
 decodeFromBytes codec bytes_ =
     let
         decoder =
-            -- BD.unsignedInt8
-            --     |> BD.andThen
-            --         (\value ->
-            --             if value <= 0 then
-            --                 Err DataCorrupted |> BD.succeed
-            --             else if value == version then
             toBytesDecoder codec
-
-        --     else
-        --         Err SerializerOutOfDate |> BD.succeed
-        -- )
     in
-    case BD.decode decoder bytes_ of
-        Just value ->
-            value
-
-        Nothing ->
-            Err DataCorrupted
+    BD.decode decoder bytes_
 
 
 decode : String -> Maybe Bytes.Bytes
@@ -221,7 +187,7 @@ replaceFromUrl =
 
 {-| Extracts the encoding function contained inside the `Codec`.
 -}
-toBytesEncoder : Codec e a -> a -> BE.Encoder
+toBytesEncoder : Codec a -> a -> BE.Encoder
 toBytesEncoder (Codec m) =
     m.encoder
 
@@ -238,7 +204,7 @@ encodeSimple encoder =
 
 {-| Convert an Elm value into a sequence of bytes.
 -}
-encodeToBytes : Codec e a -> a -> Bytes.Bytes
+encodeToBytes : Codec a -> a -> Bytes.Bytes
 encodeToBytes codec value =
     BE.sequence
         [ -- BE.unsignedInt8 version
@@ -274,7 +240,7 @@ replaceForUrl =
 -- BASE
 
 
-build : (a -> BE.Encoder) -> BD.Decoder (Result (Error e) a) -> Codec e a
+build : (a -> BE.Encoder) -> BD.Decoder a -> Codec a
 build encoder_ decoder_ =
     Codec
         { encoder = encoder_
@@ -284,7 +250,7 @@ build encoder_ decoder_ =
 
 {-| Codec for serializing a `String`
 -}
-string : Codec e String
+string : Codec String
 string =
     build
         (\text ->
@@ -294,14 +260,13 @@ string =
                 ]
         )
         (BD.unsignedInt32 endian
-            |> BD.andThen
-                (\charCount -> BD.string charCount |> BD.map Ok)
+            |> BD.andThen BD.string
         )
 
 
 {-| Codec for serializing a `Bool`
 -}
-bool : Codec e Bool
+bool : Codec Bool
 bool =
     build
         (\value ->
@@ -312,108 +277,108 @@ bool =
                 BE.unsignedInt8 0
         )
         (BD.unsignedInt8
-            |> BD.map
+            |> BD.andThen
                 (\value ->
                     case value of
                         0 ->
-                            Ok False
+                            BD.succeed False
 
                         1 ->
-                            Ok True
+                            BD.succeed True
 
                         _ ->
-                            Err DataCorrupted
+                            BD.fail
                 )
         )
 
 
-int8 : Codec e Acadia.Int8.Int8
+int8 : Codec Acadia.Int8.Int8
 int8 =
     build
         Acadia.Int8.encode
-        (Acadia.Int8.decode |> BD.map Ok)
+        Acadia.Int8.decode
 
 
-int16 : Codec e Acadia.Int16.Int16
+int16 : Codec Acadia.Int16.Int16
 int16 =
     build
         Acadia.Int16.encodeBE
-        (Acadia.Int16.decodeBE |> BD.map Ok)
+        Acadia.Int16.decodeBE
 
 
-int32 : Codec e Acadia.Int32.Int32
+int32 : Codec Acadia.Int32.Int32
 int32 =
     build
         Acadia.Int32.encodeBE
-        (Acadia.Int32.decodeBE |> BD.map Ok)
+        Acadia.Int32.decodeBE
 
 
-int64 : Codec e Acadia.Int64.Int64
+int64 : Codec Acadia.Int64.Int64
 int64 =
     build
         Acadia.Int64.encodeBE
-        (Acadia.Int64.decodeBE |> BD.map Ok)
+        Acadia.Int64.decodeBE
 
 
-uint8 : Codec e Acadia.UInt8.UInt8
+uint8 : Codec Acadia.UInt8.UInt8
 uint8 =
     build
         Acadia.UInt8.encode
-        (Acadia.UInt8.decode |> BD.map Ok)
+        Acadia.UInt8.decode
 
 
-uint16 : Codec e Acadia.UInt16.UInt16
+uint16 : Codec Acadia.UInt16.UInt16
 uint16 =
     build
         Acadia.UInt16.encodeBE
-        (Acadia.UInt16.decodeBE |> BD.map Ok)
+        Acadia.UInt16.decodeBE
 
 
-uint32 : Codec e Acadia.UInt32.UInt32
+uint32 : Codec Acadia.UInt32.UInt32
 uint32 =
     build
         Acadia.UInt32.encodeBE
-        (Acadia.UInt32.decodeBE |> BD.map Ok)
+        Acadia.UInt32.decodeBE
 
 
-uint64 : Codec e Acadia.UInt64.UInt64
+uint64 : Codec Acadia.UInt64.UInt64
 uint64 =
     build
         Acadia.UInt64.encodeBE
-        (Acadia.UInt64.decodeBE |> BD.map Ok)
+        Acadia.UInt64.decodeBE
 
 
-float32 : Codec e Acadia.Float32.Float32
+float32 : Codec Acadia.Float32.Float32
 float32 =
     build
         Acadia.Float32.encodeBE
-        (Acadia.Float32.decodeBE |> BD.map Ok)
+        Acadia.Float32.decodeBE
 
 
-float64 : Codec e Acadia.Float64.Float64
+float64 : Codec Acadia.Float64.Float64
 float64 =
     build
         Acadia.Float64.encodeBE
-        (Acadia.Float64.decodeBE |> BD.map Ok)
+        Acadia.Float64.decodeBE
 
 
-time : Codec e Acadia.Time.Posix
+time : Codec Acadia.Time.Posix
 time =
     build
         Acadia.Time.encodeBE
-        (Acadia.Time.decodeBE |> BD.map Ok)
+        Acadia.Time.decodeBE
 
 
-uuid : Codec e Acadia.Uuid.Uuid
+uuid : Codec Acadia.Uuid.Uuid
 uuid =
     build
         Acadia.Uuid.encode
-        (Acadia.Uuid.decode |> BD.map Ok)
+        Acadia.Uuid.decode
 
 
 {-| Codec for serializing a `Char`
 -}
-char : Codec e Char
+char : Codec Char
 char =
     let
         charEncode text =
@@ -425,15 +390,15 @@ char =
     build
         (String.fromChar >> charEncode)
         (BD.unsignedInt32 endian
-            |> BD.andThen (\charCount -> BD.string charCount)
-            |> BD.map
+            |> BD.andThen BD.string
+            |> BD.andThen
                 (\text ->
-                    case String.toList text |> List.head of
-                        Just char_ ->
-                            Ok char_
+                    case String.uncons text of
+                        Just ( char_, _ ) ->
+                            BD.succeed char_
 
                         Nothing ->
-                            Err DataCorrupted
+                            BD.fail
                 )
         )
 
@@ -446,12 +411,12 @@ char =
 
     import Serialize as S
 
-    maybeIntCodec : S.Codec e (Maybe Int)
+    maybeIntCodec : S.Codec (Maybe Int)
     maybeIntCodec =
         S.maybe S.int
 
 -}
-maybe : Codec e a -> Codec e (Maybe a)
+maybe : Codec a -> Codec (Maybe a)
 maybe justCodec =
     customType
         (\nothingEncoder justEncoder value ->
@@ -471,18 +436,21 @@ maybe justCodec =
 
     import Serialize as S
 
-    listOfStringsCodec : S.Codec e (List String)
+    listOfStringsCodec : S.Codec (List String)
     listOfStringsCodec =
         S.list S.string
 
 -}
-list : Codec e a -> Codec e (List a)
+list : Codec a -> Codec (List a)
 list codec =
     build
         (listEncode (toBytesEncoder codec))
         (BD.unsignedInt32 endian
             |> BD.andThen
-                (\length -> BD.loop ( length, [] ) (listStep (toBytesDecoder codec)))
+                (\length ->
+                    BD.loop ( length, [] )
+                        (listStep (toBytesDecoder codec))
+                )
         )
 
 
@@ -494,29 +462,24 @@ listEncode encoder_ list_ =
         |> BE.sequence
 
 
-listStep : BD.Decoder (Result (Error e) a) -> ( Int, List a ) -> BD.Decoder (BD.Step ( Int, List a ) (Result (Error e) (List a)))
+listStep : BD.Decoder a -> ( Int, List a ) -> BD.Decoder (BD.Step ( Int, List a ) (List a))
 listStep decoder_ ( n, xs ) =
     if n <= 0 then
-        BD.succeed (BD.Done (xs |> List.reverse |> Ok))
+        BD.succeed (BD.Done (List.reverse xs))
 
     else
         BD.map
             (\x ->
-                case x of
-                    Ok ok ->
-                        BD.Loop ( n - 1, ok :: xs )
-
-                    Err err ->
-                        BD.Done (Err err)
+                BD.Loop ( n - 1, x :: xs )
             )
             decoder_
 
 
 {-| Codec for serializing an `Array`
 -}
-array : Codec e a -> Codec e (Array a)
+array : Codec a -> Codec (Array a)
 array codec =
-    list codec |> mapHelper (Result.map Array.fromList) Array.toList
+    list codec |> map Array.fromList Array.toList
 
 
 {-| Codec for serializing a `Dict`
@@ -526,43 +489,43 @@ array codec =
     type alias Name =
         String
 
-    peoplesAgeCodec : S.Codec e (Dict Name Int)
+    peoplesAgeCodec : S.Codec (Dict Name Int)
     peoplesAgeCodec =
         S.dict S.string S.int
 
 -}
-dict : Codec e comparable -> Codec e a -> Codec e (Dict comparable a)
+dict : Codec comparable -> Codec a -> Codec (Dict comparable a)
 dict keyCodec valueCodec =
     list (tuple keyCodec valueCodec)
-        |> mapHelper (Result.map Dict.fromList) Dict.toList
+        |> map Dict.fromList Dict.toList
 
 
 {-| Codec for serializing a `Set`
 -}
-set : Codec e comparable -> Codec e (Set comparable)
+set : Codec comparable -> Codec (Set comparable)
 set codec =
-    list codec |> mapHelper (Result.map Set.fromList) Set.toList
+    list codec |> map Set.fromList Set.toList
 
 
 {-| Codec for serializing `()` (aka `Unit`).
 -}
-unit : Codec e ()
+unit : Codec ()
 unit =
     build
         (always (BE.sequence []))
-        (BD.succeed (Ok ()))
+        (BD.succeed ())
 
 
 {-| Codec for serializing a tuple with 2 elements
 
     import Serialize as S
 
-    pointCodec : S.Codec e ( Float, Float )
+    pointCodec : S.Codec ( Float, Float )
     pointCodec =
         S.tuple S.float S.float
 
 -}
-tuple : Codec e a -> Codec e b -> Codec e ( a, b )
+tuple : Codec a -> Codec b -> Codec ( a, b )
 tuple codecFirst codecSecond =
     record Tuple.pair
         |> field Tuple.first codecFirst
@@ -572,7 +535,7 @@ tuple codecFirst codecSecond =
 
 {-| Codec for serializing a `Result`
 -}
-result : Codec e error -> Codec e value -> Codec e (Result error value)
+result : Codec error -> Codec value -> Codec (Result error value)
 result errorCodec valueCodec =
     customType
         (\errEncoder okEncoder value ->
@@ -602,7 +565,7 @@ This is useful in combination with `mapValid` for encoding and decoding data usi
                 Image.toPng
 
 -}
-bytes : Codec e Bytes.Bytes
+bytes : Codec Bytes.Bytes
 bytes =
     build
         (\bytes_ ->
@@ -611,7 +574,9 @@ bytes =
                 , BE.bytes bytes_
                 ]
         )
-        (BD.unsignedInt32 endian |> BD.andThen (\length -> BD.bytes length |> BD.map Ok))
+        (BD.unsignedInt32 endian
+            |> BD.andThen BD.bytes
+        )
 
 
 {-| Codec for serializing an integer ranging from 0 to 255.
@@ -625,7 +590,7 @@ This is useful if you have a small integer you want to serialize and not use up 
         , blue : Int
         }
 
-    color : S.Codec e Color
+    color : S.Codec Color
     color =
         Color.record Color
             |> S.field .red byte
@@ -637,11 +602,11 @@ This is useful if you have a small integer you want to serialize and not use up 
 So if you encode -1 you'll get back 255 and if you encode 257 you'll get back 1.
 
 -}
-byte : Codec e Int
+byte : Codec Int
 byte =
     build
         BE.unsignedInt8
-        (BD.unsignedInt8 |> BD.map Ok)
+        BD.unsignedInt8
 
 
 {-| A codec for serializing an item from a list of possible items.
@@ -658,7 +623,7 @@ If you try to encode an item that isn't in the list then the first item is defau
         | Saturday
         | Sunday
 
-    daysOfWeekCodec : S.Codec e DaysOfWeek
+    daysOfWeekCodec : S.Codec DaysOfWeek
     daysOfWeekCodec =
         S.enum Monday [ Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday ]
 
@@ -666,7 +631,7 @@ Note that inserting new items in the middle of the list or removing items is a b
 It's safe to add items to the end of the list though.
 
 -}
-enum : a -> List a -> Codec e a
+enum : a -> List a -> Codec a
 enum defaultItem items =
     let
         getIndex value =
@@ -677,17 +642,27 @@ enum defaultItem items =
 
         getItem index =
             if index < 0 then
-                Err DataCorrupted
+                Nothing
 
             else if index > List.length items then
-                Err DataCorrupted
+                Nothing
 
             else
-                getAt (index - 1) items |> Maybe.withDefault defaultItem |> Ok
+                getAt (index - 1) items |> Maybe.withDefault defaultItem |> Just
     in
     build
         (getIndex >> BE.unsignedInt32 endian)
-        (BD.unsignedInt32 endian |> BD.map getItem)
+        (BD.unsignedInt32 endian
+            |> BD.andThen
+                (\index ->
+                    case getItem index of
+                        Nothing ->
+                            BD.fail
+
+                        Just a ->
+                            BD.succeed a
+                )
+        )
 
 
 getAt : Int -> List a -> Maybe a
@@ -728,11 +703,10 @@ findIndexHelp index predicate list_ =
 
 {-| A partially built Codec for a record.
 -}
-type RecordCodec e a b
+type RecordCodec a b
     = RecordCodec
         { encoder : a -> List BE.Encoder
-        , decoder : BD.Decoder (Result (Error e) b)
-        , fieldIndex : Int
+        , decoder : BD.Decoder b
         }
 
 
@@ -745,7 +719,7 @@ type RecordCodec e a b
         , y : Int
         }
 
-    pointCodec : S.Codec e Point
+    pointCodec : S.Codec Point
     pointCodec =
         S.record Point
             -- Note that adding, removing, or reordering fields will prevent you from decoding any data you've previously encoded.
@@ -754,46 +728,35 @@ type RecordCodec e a b
             |> S.finishRecord
 
 -}
-record : b -> RecordCodec e a b
+record : b -> RecordCodec a b
 record ctor =
     RecordCodec
         { encoder = \_ -> []
-        , decoder = BD.succeed (Ok ctor)
-        , fieldIndex = 0
+        , decoder = BD.succeed ctor
         }
 
 
 {-| Add a field to the record we are creating a codec for.
 -}
-field : (a -> f) -> Codec e f -> RecordCodec e a (f -> b) -> RecordCodec e a b
+field : (a -> f) -> Codec f -> RecordCodec a (f -> b) -> RecordCodec a b
 field getter codec (RecordCodec recordCodec) =
     RecordCodec
         { encoder = \v -> (toBytesEncoder codec <| getter v) :: recordCodec.encoder v
         , decoder =
-            BD.map2
-                (\f x ->
-                    case ( f, x ) of
-                        ( Ok fOk, Ok xOk ) ->
-                            fOk xOk |> Ok
-
-                        ( Err err, _ ) ->
-                            Err err
-
-                        ( _, Err err ) ->
-                            Err err
-                )
+            BD.map2 (\cons fieldVal -> cons fieldVal)
                 recordCodec.decoder
                 (toBytesDecoder codec)
-        , fieldIndex = recordCodec.fieldIndex + 1
         }
 
 
 {-| Finish creating a codec for a record.
 -}
-finishRecord : RecordCodec e a a -> Codec e a
+finishRecord : RecordCodec a a -> Codec a
 finishRecord (RecordCodec codec) =
     Codec
-        { encoder = codec.encoder >> List.reverse >> BE.sequence
+        { encoder =
+            codec.encoder
+                >> BE.sequence
         , decoder = codec.decoder
         }
 
@@ -804,10 +767,10 @@ finishRecord (RecordCodec codec) =
 
 {-| A partially built codec for a custom type.
 -}
-type CustomTypeCodec a e match v
+type CustomTypeCodec a match v
     = CustomTypeCodec
         { match : match
-        , decoder : Int -> BD.Decoder (Result (Error e) v) -> BD.Decoder (Result (Error e) v)
+        , decoder : Int -> BD.Decoder v -> BD.Decoder v
         , idCounter : Int
         }
 
@@ -822,7 +785,7 @@ You need to pass a pattern matching function, see the FAQ for details.
         | Yellow Float
         | Green
 
-    semaphoreCodec : S.Codec e Semaphore
+    semaphoreCodec : S.Codec Semaphore
     semaphoreCodec =
         S.customType
             (\redEncoder yellowEncoder greenEncoder value ->
@@ -844,7 +807,7 @@ You need to pass a pattern matching function, see the FAQ for details.
             |> S.finishCustomType
 
 -}
-customType : match -> CustomTypeCodec { youNeedAtLeastOneVariant : () } e match value
+customType : match -> CustomTypeCodec { youNeedAtLeastOneVariant : () } match value
 customType match =
     CustomTypeCodec
         { match = match
@@ -860,9 +823,9 @@ type VariantEncoder
 
 variant :
     ((List BE.Encoder -> VariantEncoder) -> a)
-    -> BD.Decoder (Result (Error error) v)
-    -> CustomTypeCodec z error (a -> b) v
-    -> CustomTypeCodec () error b v
+    -> BD.Decoder v
+    -> CustomTypeCodec z (a -> b) v
+    -> CustomTypeCodec () b v
 variant matchPiece decoderPiece (CustomTypeCodec am) =
     let
         enc : List BE.Encoder -> VariantEncoder
@@ -872,7 +835,7 @@ variant matchPiece decoderPiece (CustomTypeCodec am) =
             )
                 |> VariantEncoder
 
-        decoder_ : Int -> BD.Decoder (Result (Error error) v) -> BD.Decoder (Result (Error error) v)
+        decoder_ : Int -> BD.Decoder v -> BD.Decoder v
         decoder_ tag orElse =
             if tag == am.idCounter then
                 decoderPiece
@@ -889,20 +852,20 @@ variant matchPiece decoderPiece (CustomTypeCodec am) =
 
 {-| Define a variant with 0 parameters for a custom type.
 -}
-variant0 : v -> CustomTypeCodec z e (VariantEncoder -> a) v -> CustomTypeCodec () e a v
+variant0 : v -> CustomTypeCodec z (VariantEncoder -> a) v -> CustomTypeCodec () a v
 variant0 ctor =
     variant
         (\c -> c [])
-        (BD.succeed (Ok ctor))
+        (BD.succeed ctor)
 
 
 {-| Define a variant with 1 parameters for a custom type.
 -}
 variant1 :
     (a -> v)
-    -> Codec error a
-    -> CustomTypeCodec z error ((a -> VariantEncoder) -> b) v
-    -> CustomTypeCodec () error b v
+    -> Codec a
+    -> CustomTypeCodec z ((a -> VariantEncoder) -> b) v
+    -> CustomTypeCodec () b v
 variant1 ctor m1 =
     variant
         (\c v ->
@@ -910,30 +873,17 @@ variant1 ctor m1 =
                 [ toBytesEncoder m1 v
                 ]
         )
-        (BD.map (result1 ctor) (toBytesDecoder m1))
-
-
-result1 :
-    (value -> a)
-    -> Result error value
-    -> Result error a
-result1 ctor value =
-    case value of
-        Ok ok ->
-            ctor ok |> Ok
-
-        Err err ->
-            Err err
+        (BD.map ctor (toBytesDecoder m1))
 
 
 {-| Define a variant with 2 parameters for a custom type.
 -}
 variant2 :
     (a -> b -> v)
-    -> Codec error a
-    -> Codec error b
-    -> CustomTypeCodec z error ((a -> b -> VariantEncoder) -> c) v
-    -> CustomTypeCodec () error c v
+    -> Codec a
+    -> Codec b
+    -> CustomTypeCodec z ((a -> b -> VariantEncoder) -> c) v
+    -> CustomTypeCodec () c v
 variant2 ctor m1 m2 =
     variant
         (\c v1 v2 ->
@@ -942,39 +892,21 @@ variant2 ctor m1 m2 =
             ]
                 |> c
         )
-        (BD.map2
-            (result2 ctor)
+        (BD.map2 ctor
             (toBytesDecoder m1)
             (toBytesDecoder m2)
         )
-
-
-result2 :
-    (value -> a -> b)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-result2 ctor v1 v2 =
-    case ( v1, v2 ) of
-        ( Ok ok1, Ok ok2 ) ->
-            ctor ok1 ok2 |> Ok
-
-        ( Err err, _ ) ->
-            Err err
-
-        ( _, Err err ) ->
-            Err err
 
 
 {-| Define a variant with 3 parameters for a custom type.
 -}
 variant3 :
     (a -> b -> c -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> CustomTypeCodec z error ((a -> b -> c -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> CustomTypeCodec z ((a -> b -> c -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant3 ctor m1 m2 m3 =
     variant
         (\c v1 v2 v3 ->
@@ -984,45 +916,23 @@ variant3 ctor m1 m2 m3 =
             ]
                 |> c
         )
-        (BD.map3
-            (result3 ctor)
+        (BD.map3 ctor
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (toBytesDecoder m3)
         )
 
 
-result3 :
-    (value -> a -> b -> c)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-    -> Result error c
-result3 ctor v1 v2 v3 =
-    case ( v1, v2, v3 ) of
-        ( Ok ok1, Ok ok2, Ok ok3 ) ->
-            ctor ok1 ok2 ok3 |> Ok
-
-        ( Err err, _, _ ) ->
-            Err err
-
-        ( _, Err err, _ ) ->
-            Err err
-
-        ( _, _, Err err ) ->
-            Err err
-
-
 {-| Define a variant with 4 parameters for a custom type.
 -}
 variant4 :
     (a -> b -> c -> d -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> Codec error d
-    -> CustomTypeCodec z error ((a -> b -> c -> d -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> Codec d
+    -> CustomTypeCodec z ((a -> b -> c -> d -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant4 ctor m1 m2 m3 m4 =
     variant
         (\c v1 v2 v3 v4 ->
@@ -1033,8 +943,7 @@ variant4 ctor m1 m2 m3 m4 =
             ]
                 |> c
         )
-        (BD.map4
-            (result4 ctor)
+        (BD.map4 ctor
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (toBytesDecoder m3)
@@ -1042,42 +951,17 @@ variant4 ctor m1 m2 m3 m4 =
         )
 
 
-result4 :
-    (value -> a -> b -> c -> d)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-    -> Result error c
-    -> Result error d
-result4 ctor v1 v2 v3 v4 =
-    case T4 v1 v2 v3 v4 of
-        T4 (Ok ok1) (Ok ok2) (Ok ok3) (Ok ok4) ->
-            ctor ok1 ok2 ok3 ok4 |> Ok
-
-        T4 (Err err) _ _ _ ->
-            Err err
-
-        T4 _ (Err err) _ _ ->
-            Err err
-
-        T4 _ _ (Err err) _ ->
-            Err err
-
-        T4 _ _ _ (Err err) ->
-            Err err
-
-
 {-| Define a variant with 5 parameters for a custom type.
 -}
 variant5 :
     (a -> b -> c -> d -> e -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> Codec error d
-    -> Codec error e
-    -> CustomTypeCodec z error ((a -> b -> c -> d -> e -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> Codec d
+    -> Codec e
+    -> CustomTypeCodec z ((a -> b -> c -> d -> e -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant5 ctor m1 m2 m3 m4 m5 =
     variant
         (\c v1 v2 v3 v4 v5 ->
@@ -1089,8 +973,7 @@ variant5 ctor m1 m2 m3 m4 m5 =
             ]
                 |> c
         )
-        (BD.map5
-            (result5 ctor)
+        (BD.map5 ctor
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (toBytesDecoder m3)
@@ -1099,47 +982,18 @@ variant5 ctor m1 m2 m3 m4 m5 =
         )
 
 
-result5 :
-    (value -> a -> b -> c -> d -> e)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-    -> Result error c
-    -> Result error d
-    -> Result error e
-result5 ctor v1 v2 v3 v4 v5 =
-    case T5 v1 v2 v3 v4 v5 of
-        T5 (Ok ok1) (Ok ok2) (Ok ok3) (Ok ok4) (Ok ok5) ->
-            ctor ok1 ok2 ok3 ok4 ok5 |> Ok
-
-        T5 (Err err) _ _ _ _ ->
-            Err err
-
-        T5 _ (Err err) _ _ _ ->
-            Err err
-
-        T5 _ _ (Err err) _ _ ->
-            Err err
-
-        T5 _ _ _ (Err err) _ ->
-            Err err
-
-        T5 _ _ _ _ (Err err) ->
-            Err err
-
-
 {-| Define a variant with 6 parameters for a custom type.
 -}
 variant6 :
     (a -> b -> c -> d -> e -> f -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> Codec error d
-    -> Codec error e
-    -> Codec error f
-    -> CustomTypeCodec z error ((a -> b -> c -> d -> e -> f -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> Codec d
+    -> Codec e
+    -> Codec f
+    -> CustomTypeCodec z ((a -> b -> c -> d -> e -> f -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant6 ctor m1 m2 m3 m4 m5 m6 =
     variant
         (\c v1 v2 v3 v4 v5 v6 ->
@@ -1153,7 +1007,7 @@ variant6 ctor m1 m2 m3 m4 m5 m6 =
                 |> c
         )
         (BD.map5
-            (result6 ctor)
+            (\a b c d ( e, f ) -> ctor a b c d e f)
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (toBytesDecoder m3)
@@ -1165,51 +1019,19 @@ variant6 ctor m1 m2 m3 m4 m5 m6 =
         )
 
 
-result6 :
-    (value -> a -> b -> c -> d -> e -> f)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-    -> Result error c
-    -> ( Result error d, Result error e )
-    -> Result error f
-result6 ctor v1 v2 v3 v4 ( v5, v6 ) =
-    case T6 v1 v2 v3 v4 v5 v6 of
-        T6 (Ok ok1) (Ok ok2) (Ok ok3) (Ok ok4) (Ok ok5) (Ok ok6) ->
-            ctor ok1 ok2 ok3 ok4 ok5 ok6 |> Ok
-
-        T6 (Err err) _ _ _ _ _ ->
-            Err err
-
-        T6 _ (Err err) _ _ _ _ ->
-            Err err
-
-        T6 _ _ (Err err) _ _ _ ->
-            Err err
-
-        T6 _ _ _ (Err err) _ _ ->
-            Err err
-
-        T6 _ _ _ _ (Err err) _ ->
-            Err err
-
-        T6 _ _ _ _ _ (Err err) ->
-            Err err
-
-
 {-| Define a variant with 7 parameters for a custom type.
 -}
 variant7 :
     (a -> b -> c -> d -> e -> f -> g -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> Codec error d
-    -> Codec error e
-    -> Codec error f
-    -> Codec error g
-    -> CustomTypeCodec z error ((a -> b -> c -> d -> e -> f -> g -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> Codec d
+    -> Codec e
+    -> Codec f
+    -> Codec g
+    -> CustomTypeCodec z ((a -> b -> c -> d -> e -> f -> g -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant7 ctor m1 m2 m3 m4 m5 m6 m7 =
     variant
         (\c v1 v2 v3 v4 v5 v6 v7 ->
@@ -1224,7 +1046,7 @@ variant7 ctor m1 m2 m3 m4 m5 m6 m7 =
                 |> c
         )
         (BD.map5
-            (result7 ctor)
+            (\a b c ( d, e ) ( f, g ) -> ctor a b c d e f g)
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (toBytesDecoder m3)
@@ -1239,55 +1061,20 @@ variant7 ctor m1 m2 m3 m4 m5 m6 m7 =
         )
 
 
-result7 :
-    (value -> a -> b -> c -> d -> e -> f -> g)
-    -> Result error value
-    -> Result error a
-    -> Result error b
-    -> ( Result error c, Result error d )
-    -> ( Result error e, Result error f )
-    -> Result error g
-result7 ctor v1 v2 v3 ( v4, v5 ) ( v6, v7 ) =
-    case T7 v1 v2 v3 v4 v5 v6 v7 of
-        T7 (Ok ok1) (Ok ok2) (Ok ok3) (Ok ok4) (Ok ok5) (Ok ok6) (Ok ok7) ->
-            ctor ok1 ok2 ok3 ok4 ok5 ok6 ok7 |> Ok
-
-        T7 (Err err) _ _ _ _ _ _ ->
-            Err err
-
-        T7 _ (Err err) _ _ _ _ _ ->
-            Err err
-
-        T7 _ _ (Err err) _ _ _ _ ->
-            Err err
-
-        T7 _ _ _ (Err err) _ _ _ ->
-            Err err
-
-        T7 _ _ _ _ (Err err) _ _ ->
-            Err err
-
-        T7 _ _ _ _ _ (Err err) _ ->
-            Err err
-
-        T7 _ _ _ _ _ _ (Err err) ->
-            Err err
-
-
 {-| Define a variant with 8 parameters for a custom type.
 -}
 variant8 :
     (a -> b -> c -> d -> e -> f -> g -> h -> v)
-    -> Codec error a
-    -> Codec error b
-    -> Codec error c
-    -> Codec error d
-    -> Codec error e
-    -> Codec error f
-    -> Codec error g
-    -> Codec error h
-    -> CustomTypeCodec z error ((a -> b -> c -> d -> e -> f -> g -> h -> VariantEncoder) -> partial) v
-    -> CustomTypeCodec () error partial v
+    -> Codec a
+    -> Codec b
+    -> Codec c
+    -> Codec d
+    -> Codec e
+    -> Codec f
+    -> Codec g
+    -> Codec h
+    -> CustomTypeCodec z ((a -> b -> c -> d -> e -> f -> g -> h -> VariantEncoder) -> partial) v
+    -> CustomTypeCodec () partial v
 variant8 ctor m1 m2 m3 m4 m5 m6 m7 m8 =
     variant
         (\c v1 v2 v3 v4 v5 v6 v7 v8 ->
@@ -1303,7 +1090,7 @@ variant8 ctor m1 m2 m3 m4 m5 m6 m7 m8 =
                 |> c
         )
         (BD.map5
-            (result8 ctor)
+            (\a b ( c, d ) ( e, f ) ( g, h ) -> ctor a b c d e f g h)
             (toBytesDecoder m1)
             (toBytesDecoder m2)
             (BD.map2 Tuple.pair
@@ -1321,54 +1108,16 @@ variant8 ctor m1 m2 m3 m4 m5 m6 m7 m8 =
         )
 
 
-result8 :
-    (value -> a -> b -> c -> d -> e -> f -> g -> h)
-    -> Result error value
-    -> Result error a
-    -> ( Result error b, Result error c )
-    -> ( Result error d, Result error e )
-    -> ( Result error f, Result error g )
-    -> Result error h
-result8 ctor v1 v2 ( v3, v4 ) ( v5, v6 ) ( v7, v8 ) =
-    case T8 v1 v2 v3 v4 v5 v6 v7 v8 of
-        T8 (Ok ok1) (Ok ok2) (Ok ok3) (Ok ok4) (Ok ok5) (Ok ok6) (Ok ok7) (Ok ok8) ->
-            ctor ok1 ok2 ok3 ok4 ok5 ok6 ok7 ok8 |> Ok
-
-        T8 (Err err) _ _ _ _ _ _ _ ->
-            Err err
-
-        T8 _ (Err err) _ _ _ _ _ _ ->
-            Err err
-
-        T8 _ _ (Err err) _ _ _ _ _ ->
-            Err err
-
-        T8 _ _ _ (Err err) _ _ _ _ ->
-            Err err
-
-        T8 _ _ _ _ (Err err) _ _ _ ->
-            Err err
-
-        T8 _ _ _ _ _ (Err err) _ _ ->
-            Err err
-
-        T8 _ _ _ _ _ _ (Err err) _ ->
-            Err err
-
-        T8 _ _ _ _ _ _ _ (Err err) ->
-            Err err
-
-
 {-| Finish creating a codec for a custom type.
 -}
-finishCustomType : CustomTypeCodec () e (a -> VariantEncoder) a -> Codec e a
+finishCustomType : CustomTypeCodec () (a -> VariantEncoder) a -> Codec a
 finishCustomType (CustomTypeCodec am) =
     build
         (am.match >> (\(VariantEncoder ( a, _ )) -> a))
         (BD.unsignedInt16 endian
             |> BD.andThen
                 (\tag ->
-                    am.decoder tag (BD.succeed (Err DataCorrupted))
+                    am.decoder tag BD.fail
                 )
         )
 
@@ -1393,92 +1142,11 @@ I recommend writing tests for Codecs that use `map` to make sure you get back th
 [Here's some helper functions to get you started.](https://github.com/MartinSStewart/elm-geometry-serialize/blob/6f2244c28631ede1b864cb43541d1573dc628904/tests/Tests.elm#L49-L74)
 
 -}
-map : (a -> b) -> (b -> a) -> Codec e a -> Codec e b
+map : (a -> b) -> (b -> a) -> Codec a -> Codec b
 map fromBytes_ toBytes_ codec =
-    mapHelper
-        (\value ->
-            case value of
-                Ok ok ->
-                    fromBytes_ ok |> Ok
-
-                Err err ->
-                    Err err
-        )
-        toBytes_
-        codec
-
-
-mapHelper : (Result (Error e) a -> Result (Error e) b) -> (b -> a) -> Codec e a -> Codec e b
-mapHelper fromBytes_ toBytes_ codec =
     build
         (\v -> toBytes_ v |> toBytesEncoder codec)
         (toBytesDecoder codec |> BD.map fromBytes_)
-
-
-{-| Map from one codec to another codec in a way that can potentially fail when decoding.
-
-    -- Email module is from https://package.elm-lang.org/packages/tricycle/elm-email/1.0.2/
-
-
-    import Email
-    import Serialize as S
-
-    emailCodec : S.Codec String Float
-    emailCodec =
-        S.string
-            |> S.mapValid
-                (\text ->
-                    case Email.fromString text of
-                        Just email ->
-                            Ok email
-
-                        Nothing ->
-                            Err "Invalid email"
-                )
-                Email.toString
-
-Note that there's nothing preventing you from encoding Elm values that will produce Err when you decode them.
-I recommend writing tests for Codecs that use `mapValid` to make sure you get back the same Elm value you put in.
-[Here's some helper functions to get you started.](https://github.com/MartinSStewart/elm-geometry-serialize/blob/6f2244c28631ede1b864cb43541d1573dc628904/tests/Tests.elm#L49-L74)
-
--}
-mapValid : (a -> Result e b) -> (b -> a) -> Codec e a -> Codec e b
-mapValid fromBytes_ toBytes_ codec =
-    build
-        (\v -> toBytes_ v |> toBytesEncoder codec)
-        (toBytesDecoder codec
-            |> BD.map
-                (\value ->
-                    case value of
-                        Ok ok ->
-                            fromBytes_ ok |> Result.mapError CustomError
-
-                        Err err ->
-                            Err err
-                )
-        )
-
-
-{-| Map errors generated by `mapValid`.
--}
-mapError : (e1 -> e2) -> Codec e1 a -> Codec e2 a
-mapError mapFunc codec =
-    build
-        (toBytesEncoder codec)
-        (toBytesDecoder codec |> BD.map (mapErrorHelper mapFunc))
-
-
-mapErrorHelper : (e -> a) -> Result (Error e) b -> Result (Error a) b
-mapErrorHelper mapFunc =
-    Result.mapError
-        (\error ->
-            case error of
-                CustomError custom ->
-                    mapFunc custom |> CustomError
-
-                DataCorrupted ->
-                    DataCorrupted
-        )
 
 
 
@@ -1511,7 +1179,7 @@ Even if you're translating your nested data into a list before encoding, you're 
 Be careful here, and test your codecs using elm-test with larger inputs than you ever expect to see in real life.
 
 -}
-lazy : (() -> Codec e a) -> Codec e a
+lazy : (() -> Codec a) -> Codec a
 lazy f =
     build
         (\value -> toBytesEncoder (f ()) value)

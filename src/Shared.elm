@@ -10,16 +10,15 @@ module Shared exposing
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
 import Authentication exposing (Authentication)
 import Backend
 import Dict
 import Effect exposing (Effect)
+import Endpoints.ApiAuthSelf
+import Http.Extended
 import Json.Decode as Json
 import Route exposing (Route)
 import Route.Path
-import Serialize
 import Subscription exposing (Subscription)
 
 
@@ -38,14 +37,7 @@ init _ _ =
     ( { currentUser = Authentication.Authenticating
       , currentOrganization = Nothing
       }
-    , Effect.acadia
-        { transaction =
-            Acadia.Transaction.Transaction
-                (Serialize.toBytesEncoder Serialize.unit ())
-                (Serialize.toBytesDecoder Acadia.Api.getUserSelfCodec)
-        , onResponse = GotCurrentUserAndOrg
-        , path = "/auth/self"
-        }
+    , Endpoints.ApiAuthSelf.post GotCurrentUserAndOrg
     )
 
 
@@ -54,15 +46,15 @@ init _ _ =
 
 
 type Msg
-    = GotCurrentUserAndOrg (Result Acadia.Api.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
+    = GotCurrentUserAndOrg (Result Http.Extended.Error ( Backend.User, Maybe Backend.Organization ))
     | AuthRefreshRequested (Maybe Route.Path.Path)
-    | RefreshedAuth (Maybe Route.Path.Path) (Result Acadia.Api.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
+    | RefreshedAuth (Maybe Route.Path.Path) (Result Http.Extended.Error ( Backend.User, Maybe Backend.Organization ))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
 update _ msg model =
     case msg of
-        GotCurrentUserAndOrg (Ok (Ok ( user, maybeOrg ))) ->
+        GotCurrentUserAndOrg (Ok ( user, maybeOrg )) ->
             ( { model
                 | currentUser = Authentication.Authenticated user
                 , currentOrganization = maybeOrg
@@ -70,24 +62,17 @@ update _ msg model =
             , Effect.broadcast Subscription.AuthenticationChanged
             )
 
-        GotCurrentUserAndOrg _ ->
+        GotCurrentUserAndOrg (Err _) ->
             ( { model | currentUser = Authentication.Unauthenticated }
             , Effect.broadcast Subscription.AuthenticationChanged
             )
 
         AuthRefreshRequested maybePath ->
             ( { model | currentUser = Authentication.Authenticating }
-            , Effect.acadia
-                { transaction =
-                    Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Serialize.unit ())
-                        (Serialize.toBytesDecoder Acadia.Api.getUserSelfCodec)
-                , onResponse = RefreshedAuth maybePath
-                , path = "/auth/self"
-                }
+            , Endpoints.ApiAuthSelf.post (RefreshedAuth maybePath)
             )
 
-        RefreshedAuth maybeRedirect (Ok (Ok ( user, maybeOrg ))) ->
+        RefreshedAuth maybeRedirect (Ok ( user, maybeOrg )) ->
             ( { model
                 | currentUser = Authentication.Authenticated user
                 , currentOrganization = maybeOrg
@@ -100,7 +85,7 @@ update _ msg model =
                     Effect.navigateTo { path = path, query = Dict.empty }
             )
 
-        RefreshedAuth _ _ ->
+        RefreshedAuth _ (Err _) ->
             ( { model | currentUser = Authentication.Unauthenticated }
             , Effect.broadcast Subscription.AuthenticationChanged
             )

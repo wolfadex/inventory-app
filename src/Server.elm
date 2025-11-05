@@ -2,7 +2,6 @@ port module Server exposing
     ( Headers
     , Model
     , Msg(..)
-    , Request
     , Response
     , main
     )
@@ -14,12 +13,18 @@ import Bytes exposing (Bytes)
 import Bytes.Decode
 import Bytes.Encode
 import Dict
+import Endpoints
 import Http
+import Http.Extended
+import Http.Method
+import Http.Status
+import Json.Decode
+import Json.Encode
 import Platform
 import Serialize
 
 
-main : Program Request Model Msg
+main : Program Json.Encode.Value Model Msg
 main =
     Platform.worker
         { init = init
@@ -36,14 +41,6 @@ type alias Headers =
     List ( String, String )
 
 
-type alias Request =
-    { path : String
-    , method : String
-    , headers : Headers
-    , body : String
-    }
-
-
 type alias Response =
     { status : Int
     , headers : Headers
@@ -51,75 +48,80 @@ type alias Response =
     }
 
 
-init : Request -> ( Model, Cmd Msg )
-init request =
+init : Json.Encode.Value -> ( Model, Cmd Msg )
+init requestJson =
     ( {}
-    , if request.method /= "POST" then
-        respond { status = 404, body = "Not Found", headers = [] }
+    , case Json.Decode.decodeValue Http.Extended.requestDecode requestJson |> Debug.log "req dec" of
+        Err _ ->
+            respond { status = Http.Status.NotFound, body = "Not Found", headers = [] }
 
-      else
-        case request.path of
-            "/api/auth/self" ->
-                acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
+        Ok request ->
+            if request.method /= Http.Method.Post then
+                respond { status = Http.Status.NotFound, body = "Not Found", headers = [] }
 
-            "/api/auth/logout" ->
-                acadiaRequest request.headers (AuthLogoutResponse Acadia.Api.logoutCodec) Backend.logout
+            else
+                case Endpoints.fromString request.path of
+                    Nothing ->
+                        acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
 
-            "/api/auth/login" ->
-                case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
-                    Err _ ->
-                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
+                    Just Endpoints.ApiAuthSelf ->
+                        acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
 
-                    Ok authInfo ->
-                        if String.length authInfo.email < 3 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "email", message = "Too short" } }
+                    Just Endpoints.ApiAuthLogout ->
+                        acadiaRequest request.headers (AuthLogoutResponse Acadia.Api.logoutCodec) Backend.logout
 
-                        else if String.length authInfo.password < 8 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "password", message = "Too short" } }
+                    Just Endpoints.ApiAuthLogin ->
+                        case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
+                            Nothing ->
+                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
-                        else
-                            acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login authInfo)
+                            Just loginInfo ->
+                                if String.length loginInfo.email < 3 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
 
-            "/api/auth/signup" ->
-                case Serialize.decodeFromString Acadia.Api.signUpInfoCodec request.body of
-                    Err _ ->
-                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
+                                else if String.length loginInfo.password < 8 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "password", message = "Too short" } }
 
-                    Ok authInfo ->
-                        if String.length authInfo.email < 3 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "email", message = "Too short" } }
+                                else
+                                    acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login loginInfo)
 
-                        else if String.length authInfo.password < 8 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "password", message = "Too short" } }
+                    Just Endpoints.ApiAuthSignup ->
+                        case Serialize.decodeFromString Acadia.Api.signUpInfoCodec request.body of
+                            Nothing ->
+                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
-                        else if String.length authInfo.name < 1 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "name", message = "Too short" } }
+                            Just signupInfo ->
+                                if String.length signupInfo.email < 3 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
 
-                        else
-                            acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup authInfo)
+                                else if String.length signupInfo.password < 8 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "password", message = "Too short" } }
 
-            "/api/organizations/create" ->
-                case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
-                    Err _ ->
-                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
+                                else if String.length signupInfo.name < 1 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
-                    Ok newOrg ->
-                        if String.length newOrg.name < 1 then
-                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "name", message = "Too short" } }
+                                else
+                                    acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup signupInfo)
 
-                        else
-                            acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.organizationCodec) (Backend.createOrganization newOrg)
+                    Just Endpoints.ApiOrganizations ->
+                        case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
+                            Nothing ->
+                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
-            _ ->
-                acadiaFailureResponse { status = 404, error = Acadia.Api.Generic "Not Found" }
+                            Just newOrg ->
+                                if String.length newOrg.name < 1 then
+                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
+
+                                else
+                                    acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.organizationCodec) (Backend.createOrganization newOrg)
     )
 
 
-acadiaFailureResponse : { status : Int, error : Acadia.Api.Error } -> Cmd msg
+acadiaFailureResponse : { status : Http.Status.Status, error : Http.Extended.Error } -> Cmd msg
 acadiaFailureResponse config =
     respond
         { status = config.status
-        , body = Serialize.encodeToString Acadia.Api.errorCodec config.error
+        , body = Serialize.encodeToString Http.Extended.errorCodec config.error
         , headers = []
         }
 
@@ -181,10 +183,10 @@ subscriptions _ =
 
 
 type Msg
-    = LoginResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
-    | AuthLogoutResponse (Serialize.Codec () ()) (Result Http.Error ( Headers, () ))
-    | AuthSelfResponse (Serialize.Codec () ( Backend.User, Maybe Backend.Organization )) (Result Http.Error ( Headers, ( Backend.User, Maybe Backend.Organization ) ))
-    | OrganizationCreateResponse (Serialize.Codec () Backend.Organization) (Result Http.Error ( Headers, Backend.Organization ))
+    = LoginResponse (Serialize.Codec ()) (Result Http.Error ( Headers, () ))
+    | AuthLogoutResponse (Serialize.Codec ()) (Result Http.Error ( Headers, () ))
+    | AuthSelfResponse (Serialize.Codec ( Backend.User, Maybe Backend.Organization )) (Result Http.Error ( Headers, ( Backend.User, Maybe Backend.Organization ) ))
+    | OrganizationCreateResponse (Serialize.Codec Backend.Organization) (Result Http.Error ( Headers, Backend.Organization ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -211,15 +213,15 @@ update msg model =
             )
 
 
-acadiaResponse : Serialize.Codec () a -> Result Http.Error ( Headers, a ) -> Cmd msg
+acadiaResponse : Serialize.Codec a -> Result Http.Error ( Headers, a ) -> Cmd msg
 acadiaResponse codec result =
     case result of
         Err _ ->
-            respond { status = 400, body = "Database error", headers = [] }
+            respond { status = Http.Status.BadRequest, body = "Database error", headers = [] }
 
         Ok ( headers, body ) ->
             respond
-                { status = 200
+                { status = Http.Status.StatusOk
                 , body = Serialize.encodeToString codec body
                 , headers =
                     List.filterMap
@@ -238,7 +240,15 @@ acadiaResponse codec result =
                 }
 
 
-port respond : Response -> Cmd msg
+port sendResponse : Json.Encode.Value -> Cmd msg
+
+
+respond : Http.Extended.Response -> Cmd msg
+respond response =
+    response
+        |> Debug.log "response"
+        |> Http.Extended.responseEncode
+        |> sendResponse
 
 
 setPathOnCookie : String -> String

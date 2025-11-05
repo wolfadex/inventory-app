@@ -793,6 +793,375 @@ var _List_sortWith = F2(function(f, xs)
 
 
 
+// TASKS
+
+function _Scheduler_succeed(value)
+{
+	return {
+		$: 0,
+		a: value
+	};
+}
+
+function _Scheduler_fail(error)
+{
+	return {
+		$: 1,
+		a: error
+	};
+}
+
+function _Scheduler_binding(callback)
+{
+	return {
+		$: 2,
+		b: callback,
+		c: null
+	};
+}
+
+var _Scheduler_andThen = F2(function(callback, task)
+{
+	return {
+		$: 3,
+		b: callback,
+		d: task
+	};
+});
+
+var _Scheduler_onError = F2(function(callback, task)
+{
+	return {
+		$: 4,
+		b: callback,
+		d: task
+	};
+});
+
+function _Scheduler_receive(callback)
+{
+	return {
+		$: 5,
+		b: callback
+	};
+}
+
+
+// PROCESSES
+
+var _Scheduler_guid = 0;
+
+function _Scheduler_rawSpawn(task)
+{
+	var proc = {
+		$: 0,
+		e: _Scheduler_guid++,
+		f: task,
+		g: null,
+		h: []
+	};
+
+	_Scheduler_enqueue(proc);
+
+	return proc;
+}
+
+function _Scheduler_spawn(task)
+{
+	return _Scheduler_binding(function(callback) {
+		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
+	});
+}
+
+function _Scheduler_rawSend(proc, msg)
+{
+	proc.h.push(msg);
+	_Scheduler_enqueue(proc);
+}
+
+var _Scheduler_send = F2(function(proc, msg)
+{
+	return _Scheduler_binding(function(callback) {
+		_Scheduler_rawSend(proc, msg);
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+});
+
+function _Scheduler_kill(proc)
+{
+	return _Scheduler_binding(function(callback) {
+		var task = proc.f;
+		if (task.$ === 2 && task.c)
+		{
+			task.c();
+		}
+
+		proc.f = null;
+
+		callback(_Scheduler_succeed(_Utils_Tuple0));
+	});
+}
+
+
+/* STEP PROCESSES
+
+type alias Process =
+  { $ : tag
+  , id : unique_id
+  , root : Task
+  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
+  , mailbox : [msg]
+  }
+
+*/
+
+
+var _Scheduler_working = false;
+var _Scheduler_queue = [];
+
+
+function _Scheduler_enqueue(proc)
+{
+	_Scheduler_queue.push(proc);
+	if (_Scheduler_working)
+	{
+		return;
+	}
+	_Scheduler_working = true;
+	while (proc = _Scheduler_queue.shift())
+	{
+		_Scheduler_step(proc);
+	}
+	_Scheduler_working = false;
+}
+
+
+function _Scheduler_step(proc)
+{
+	while (proc.f)
+	{
+		var rootTag = proc.f.$;
+		if (rootTag === 0 || rootTag === 1)
+		{
+			while (proc.g && proc.g.$ !== rootTag)
+			{
+				proc.g = proc.g.i;
+			}
+			if (!proc.g)
+			{
+				return;
+			}
+			proc.f = proc.g.b(proc.f.a);
+			proc.g = proc.g.i;
+		}
+		else if (rootTag === 2)
+		{
+			proc.f.c = proc.f.b(function(newRoot) {
+				proc.f = newRoot;
+				_Scheduler_enqueue(proc);
+			});
+			return;
+		}
+		else if (rootTag === 5)
+		{
+			if (proc.h.length === 0)
+			{
+				return;
+			}
+			proc.f = proc.f.b(proc.h.shift());
+		}
+		else // if (rootTag === 3 || rootTag === 4)
+		{
+			proc.g = {
+				$: rootTag === 3 ? 0 : 1,
+				b: proc.f.b,
+				i: proc.g
+			};
+			proc.f = proc.f.d;
+		}
+	}
+}
+
+
+// BYTES
+
+function _Bytes_width(bytes)
+{
+	return bytes.byteLength;
+}
+
+var _Bytes_getHostEndianness = F2(function(le, be)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
+	});
+});
+
+
+// ENCODERS
+
+function _Bytes_encode(encoder)
+{
+	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
+	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
+	return mutableBytes;
+}
+
+
+// SIGNED INTEGERS
+
+var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
+var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
+var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
+
+
+// UNSIGNED INTEGERS
+
+var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
+var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
+var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
+
+
+// FLOATS
+
+var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
+var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
+
+
+// BYTES
+
+var _Bytes_write_bytes = F3(function(mb, offset, bytes)
+{
+	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
+	{
+		mb.setUint32(offset + i, bytes.getUint32(i));
+	}
+	for (; i < len; i++)
+	{
+		mb.setUint8(offset + i, bytes.getUint8(i));
+	}
+	return offset + len;
+});
+
+
+// STRINGS
+
+function _Bytes_getStringWidth(string)
+{
+	for (var width = 0, i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		width +=
+			(code < 0x80) ? 1 :
+			(code < 0x800) ? 2 :
+			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
+	}
+	return width;
+}
+
+var _Bytes_write_string = F3(function(mb, offset, string)
+{
+	for (var i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		offset +=
+			(code < 0x80)
+				? (mb.setUint8(offset, code)
+				, 1
+				)
+				:
+			(code < 0x800)
+				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
+					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
+					| code & 0x3F /* 0b00111111 */)
+				, 2
+				)
+				:
+			(code < 0xD800 || 0xDBFF < code)
+				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
+					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
+					| code >>> 6 & 0x3F /* 0b00111111 */)
+				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
+					| code & 0x3F /* 0b00111111 */)
+				, 3
+				)
+				:
+			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
+			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
+				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
+				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
+				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
+				| code & 0x3F /* 0b00111111 */)
+			, 4
+			);
+	}
+	return offset;
+});
+
+
+// DECODER
+
+var _Bytes_decode = F2(function(decoder, bytes)
+{
+	try {
+		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
+	} catch(e) {
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
+var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
+var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
+var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
+var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
+var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
+var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
+var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
+
+var _Bytes_read_bytes = F3(function(len, bytes, offset)
+{
+	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
+});
+
+var _Bytes_read_string = F3(function(len, bytes, offset)
+{
+	var string = '';
+	var end = offset + len;
+	for (; offset < end;)
+	{
+		var byte = bytes.getUint8(offset++);
+		string +=
+			(byte < 128)
+				? String.fromCharCode(byte)
+				:
+			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
+				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
+				:
+			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
+				? String.fromCharCode(
+					(byte & 0xF /* 0b00001111 */) << 12
+					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+				)
+				:
+				(byte =
+					((byte & 0x7 /* 0b00000111 */) << 18
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+					) - 0x10000
+				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
+				);
+	}
+	return _Utils_Tuple2(offset, string);
+});
+
+var _Bytes_decodeFailure = F2(function() { throw 0; });
+
+
+
 // MATH
 
 var _Basics_add = F2(function(a, b) { return a + b; });
@@ -850,6 +1219,43 @@ function _Basics_not(bool) { return !bool; }
 var _Basics_and = F2(function(a, b) { return a && b; });
 var _Basics_or  = F2(function(a, b) { return a || b; });
 var _Basics_xor = F2(function(a, b) { return a !== b; });
+
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
 
 
 
@@ -1209,6 +1615,107 @@ function _Char_toLocaleLower(char)
 {
 	return _Utils_chr(char.toLocaleLowerCase());
 }
+
+
+// CREATE
+
+var _Regex_never = /.^/;
+
+var _Regex_fromStringWith = F2(function(options, string)
+{
+	var flags = 'g';
+	if (options.multiline) { flags += 'm'; }
+	if (options.caseInsensitive) { flags += 'i'; }
+
+	try
+	{
+		return $elm$core$Maybe$Just(new RegExp(string, flags));
+	}
+	catch(error)
+	{
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+
+// USE
+
+var _Regex_contains = F2(function(re, string)
+{
+	return string.match(re) !== null;
+});
+
+
+var _Regex_findAtMost = F3(function(n, re, str)
+{
+	var out = [];
+	var number = 0;
+	var string = str;
+	var lastIndex = re.lastIndex;
+	var prevLastIndex = -1;
+	var result;
+	while (number++ < n && (result = re.exec(string)))
+	{
+		if (prevLastIndex == re.lastIndex) break;
+		var i = result.length - 1;
+		var subs = new Array(i);
+		while (i > 0)
+		{
+			var submatch = result[i];
+			subs[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
+		prevLastIndex = re.lastIndex;
+	}
+	re.lastIndex = lastIndex;
+	return _List_fromArray(out);
+});
+
+
+var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
+{
+	var count = 0;
+	function jsReplacer(match)
+	{
+		if (count++ >= n)
+		{
+			return match;
+		}
+		var i = arguments.length - 3;
+		var submatches = new Array(i);
+		while (i > 0)
+		{
+			var submatch = arguments[i];
+			submatches[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
+	}
+	return string.replace(re, jsReplacer);
+});
+
+var _Regex_splitAtMost = F3(function(n, re, str)
+{
+	var string = str;
+	var out = [];
+	var start = re.lastIndex;
+	var restoreLastIndex = re.lastIndex;
+	while (n--)
+	{
+		var result = re.exec(string);
+		if (!result) break;
+		out.push(string.slice(start, result.index));
+		start = re.lastIndex;
+	}
+	out.push(string.slice(start));
+	re.lastIndex = restoreLastIndex;
+	return _List_fromArray(out);
+});
+
+var _Regex_infinity = Infinity;
 
 
 
@@ -1645,513 +2152,6 @@ function _Json_addEntry(func)
 }
 
 var _Json_encodeNull = _Json_wrap(null);
-
-
-
-// TASKS
-
-function _Scheduler_succeed(value)
-{
-	return {
-		$: 0,
-		a: value
-	};
-}
-
-function _Scheduler_fail(error)
-{
-	return {
-		$: 1,
-		a: error
-	};
-}
-
-function _Scheduler_binding(callback)
-{
-	return {
-		$: 2,
-		b: callback,
-		c: null
-	};
-}
-
-var _Scheduler_andThen = F2(function(callback, task)
-{
-	return {
-		$: 3,
-		b: callback,
-		d: task
-	};
-});
-
-var _Scheduler_onError = F2(function(callback, task)
-{
-	return {
-		$: 4,
-		b: callback,
-		d: task
-	};
-});
-
-function _Scheduler_receive(callback)
-{
-	return {
-		$: 5,
-		b: callback
-	};
-}
-
-
-// PROCESSES
-
-var _Scheduler_guid = 0;
-
-function _Scheduler_rawSpawn(task)
-{
-	var proc = {
-		$: 0,
-		e: _Scheduler_guid++,
-		f: task,
-		g: null,
-		h: []
-	};
-
-	_Scheduler_enqueue(proc);
-
-	return proc;
-}
-
-function _Scheduler_spawn(task)
-{
-	return _Scheduler_binding(function(callback) {
-		callback(_Scheduler_succeed(_Scheduler_rawSpawn(task)));
-	});
-}
-
-function _Scheduler_rawSend(proc, msg)
-{
-	proc.h.push(msg);
-	_Scheduler_enqueue(proc);
-}
-
-var _Scheduler_send = F2(function(proc, msg)
-{
-	return _Scheduler_binding(function(callback) {
-		_Scheduler_rawSend(proc, msg);
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-});
-
-function _Scheduler_kill(proc)
-{
-	return _Scheduler_binding(function(callback) {
-		var task = proc.f;
-		if (task.$ === 2 && task.c)
-		{
-			task.c();
-		}
-
-		proc.f = null;
-
-		callback(_Scheduler_succeed(_Utils_Tuple0));
-	});
-}
-
-
-/* STEP PROCESSES
-
-type alias Process =
-  { $ : tag
-  , id : unique_id
-  , root : Task
-  , stack : null | { $: SUCCEED | FAIL, a: callback, b: stack }
-  , mailbox : [msg]
-  }
-
-*/
-
-
-var _Scheduler_working = false;
-var _Scheduler_queue = [];
-
-
-function _Scheduler_enqueue(proc)
-{
-	_Scheduler_queue.push(proc);
-	if (_Scheduler_working)
-	{
-		return;
-	}
-	_Scheduler_working = true;
-	while (proc = _Scheduler_queue.shift())
-	{
-		_Scheduler_step(proc);
-	}
-	_Scheduler_working = false;
-}
-
-
-function _Scheduler_step(proc)
-{
-	while (proc.f)
-	{
-		var rootTag = proc.f.$;
-		if (rootTag === 0 || rootTag === 1)
-		{
-			while (proc.g && proc.g.$ !== rootTag)
-			{
-				proc.g = proc.g.i;
-			}
-			if (!proc.g)
-			{
-				return;
-			}
-			proc.f = proc.g.b(proc.f.a);
-			proc.g = proc.g.i;
-		}
-		else if (rootTag === 2)
-		{
-			proc.f.c = proc.f.b(function(newRoot) {
-				proc.f = newRoot;
-				_Scheduler_enqueue(proc);
-			});
-			return;
-		}
-		else if (rootTag === 5)
-		{
-			if (proc.h.length === 0)
-			{
-				return;
-			}
-			proc.f = proc.f.b(proc.h.shift());
-		}
-		else // if (rootTag === 3 || rootTag === 4)
-		{
-			proc.g = {
-				$: rootTag === 3 ? 0 : 1,
-				b: proc.f.b,
-				i: proc.g
-			};
-			proc.f = proc.f.d;
-		}
-	}
-}
-
-
-// BYTES
-
-function _Bytes_width(bytes)
-{
-	return bytes.byteLength;
-}
-
-var _Bytes_getHostEndianness = F2(function(le, be)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
-	});
-});
-
-
-// ENCODERS
-
-function _Bytes_encode(encoder)
-{
-	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
-	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
-	return mutableBytes;
-}
-
-
-// SIGNED INTEGERS
-
-var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
-var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
-var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
-
-
-// UNSIGNED INTEGERS
-
-var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
-var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
-var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
-
-
-// FLOATS
-
-var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
-var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
-
-
-// BYTES
-
-var _Bytes_write_bytes = F3(function(mb, offset, bytes)
-{
-	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
-	{
-		mb.setUint32(offset + i, bytes.getUint32(i));
-	}
-	for (; i < len; i++)
-	{
-		mb.setUint8(offset + i, bytes.getUint8(i));
-	}
-	return offset + len;
-});
-
-
-// STRINGS
-
-function _Bytes_getStringWidth(string)
-{
-	for (var width = 0, i = 0; i < string.length; i++)
-	{
-		var code = string.charCodeAt(i);
-		width +=
-			(code < 0x80) ? 1 :
-			(code < 0x800) ? 2 :
-			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
-	}
-	return width;
-}
-
-var _Bytes_write_string = F3(function(mb, offset, string)
-{
-	for (var i = 0; i < string.length; i++)
-	{
-		var code = string.charCodeAt(i);
-		offset +=
-			(code < 0x80)
-				? (mb.setUint8(offset, code)
-				, 1
-				)
-				:
-			(code < 0x800)
-				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
-					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
-					| code & 0x3F /* 0b00111111 */)
-				, 2
-				)
-				:
-			(code < 0xD800 || 0xDBFF < code)
-				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
-					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
-					| code >>> 6 & 0x3F /* 0b00111111 */)
-				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
-					| code & 0x3F /* 0b00111111 */)
-				, 3
-				)
-				:
-			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
-			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
-				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
-				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
-				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
-				| code & 0x3F /* 0b00111111 */)
-			, 4
-			);
-	}
-	return offset;
-});
-
-
-// DECODER
-
-var _Bytes_decode = F2(function(decoder, bytes)
-{
-	try {
-		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
-	} catch(e) {
-		return $elm$core$Maybe$Nothing;
-	}
-});
-
-var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
-var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
-var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
-var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
-var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
-var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
-var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
-var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
-
-var _Bytes_read_bytes = F3(function(len, bytes, offset)
-{
-	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
-});
-
-var _Bytes_read_string = F3(function(len, bytes, offset)
-{
-	var string = '';
-	var end = offset + len;
-	for (; offset < end;)
-	{
-		var byte = bytes.getUint8(offset++);
-		string +=
-			(byte < 128)
-				? String.fromCharCode(byte)
-				:
-			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
-				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
-				:
-			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
-				? String.fromCharCode(
-					(byte & 0xF /* 0b00001111 */) << 12
-					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
-					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
-				)
-				:
-				(byte =
-					((byte & 0x7 /* 0b00000111 */) << 18
-						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
-						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
-						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
-					) - 0x10000
-				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
-				);
-	}
-	return _Utils_Tuple2(offset, string);
-});
-
-var _Bytes_decodeFailure = F2(function() { throw 0; });
-
-
-
-var _Bitwise_and = F2(function(a, b)
-{
-	return a & b;
-});
-
-var _Bitwise_or = F2(function(a, b)
-{
-	return a | b;
-});
-
-var _Bitwise_xor = F2(function(a, b)
-{
-	return a ^ b;
-});
-
-function _Bitwise_complement(a)
-{
-	return ~a;
-};
-
-var _Bitwise_shiftLeftBy = F2(function(offset, a)
-{
-	return a << offset;
-});
-
-var _Bitwise_shiftRightBy = F2(function(offset, a)
-{
-	return a >> offset;
-});
-
-var _Bitwise_shiftRightZfBy = F2(function(offset, a)
-{
-	return a >>> offset;
-});
-
-
-// CREATE
-
-var _Regex_never = /.^/;
-
-var _Regex_fromStringWith = F2(function(options, string)
-{
-	var flags = 'g';
-	if (options.multiline) { flags += 'm'; }
-	if (options.caseInsensitive) { flags += 'i'; }
-
-	try
-	{
-		return $elm$core$Maybe$Just(new RegExp(string, flags));
-	}
-	catch(error)
-	{
-		return $elm$core$Maybe$Nothing;
-	}
-});
-
-
-// USE
-
-var _Regex_contains = F2(function(re, string)
-{
-	return string.match(re) !== null;
-});
-
-
-var _Regex_findAtMost = F3(function(n, re, str)
-{
-	var out = [];
-	var number = 0;
-	var string = str;
-	var lastIndex = re.lastIndex;
-	var prevLastIndex = -1;
-	var result;
-	while (number++ < n && (result = re.exec(string)))
-	{
-		if (prevLastIndex == re.lastIndex) break;
-		var i = result.length - 1;
-		var subs = new Array(i);
-		while (i > 0)
-		{
-			var submatch = result[i];
-			subs[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
-		prevLastIndex = re.lastIndex;
-	}
-	re.lastIndex = lastIndex;
-	return _List_fromArray(out);
-});
-
-
-var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
-{
-	var count = 0;
-	function jsReplacer(match)
-	{
-		if (count++ >= n)
-		{
-			return match;
-		}
-		var i = arguments.length - 3;
-		var submatches = new Array(i);
-		while (i > 0)
-		{
-			var submatch = arguments[i];
-			submatches[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
-	}
-	return string.replace(re, jsReplacer);
-});
-
-var _Regex_splitAtMost = F3(function(n, re, str)
-{
-	var string = str;
-	var out = [];
-	var start = re.lastIndex;
-	var restoreLastIndex = re.lastIndex;
-	while (n--)
-	{
-		var result = re.exec(string);
-		if (!result) break;
-		out.push(string.slice(start, result.index));
-		start = re.lastIndex;
-	}
-	out.push(string.slice(start));
-	re.lastIndex = restoreLastIndex;
-	return _List_fromArray(out);
-});
-
-var _Regex_infinity = Infinity;
 
 
 
@@ -2939,404 +2939,6 @@ var $elm$core$Set$toList = function (_v0) {
 var $elm$core$Basics$EQ = {$: 'EQ'};
 var $elm$core$Basics$GT = {$: 'GT'};
 var $elm$core$Basics$LT = {$: 'LT'};
-var $elm$core$Result$Err = function (a) {
-	return {$: 'Err', a: a};
-};
-var $elm$json$Json$Decode$Failure = F2(
-	function (a, b) {
-		return {$: 'Failure', a: a, b: b};
-	});
-var $elm$json$Json$Decode$Field = F2(
-	function (a, b) {
-		return {$: 'Field', a: a, b: b};
-	});
-var $elm$json$Json$Decode$Index = F2(
-	function (a, b) {
-		return {$: 'Index', a: a, b: b};
-	});
-var $elm$core$Result$Ok = function (a) {
-	return {$: 'Ok', a: a};
-};
-var $elm$json$Json$Decode$OneOf = function (a) {
-	return {$: 'OneOf', a: a};
-};
-var $elm$core$Basics$False = {$: 'False'};
-var $elm$core$Basics$add = _Basics_add;
-var $elm$core$Maybe$Just = function (a) {
-	return {$: 'Just', a: a};
-};
-var $elm$core$Maybe$Nothing = {$: 'Nothing'};
-var $elm$core$String$all = _String_all;
-var $elm$core$Basics$and = _Basics_and;
-var $elm$core$Basics$append = _Utils_append;
-var $elm$json$Json$Encode$encode = _Json_encode;
-var $elm$core$String$fromInt = _String_fromNumber;
-var $elm$core$String$join = F2(
-	function (sep, chunks) {
-		return A2(
-			_String_join,
-			sep,
-			_List_toArray(chunks));
-	});
-var $elm$core$String$split = F2(
-	function (sep, string) {
-		return _List_fromArray(
-			A2(_String_split, sep, string));
-	});
-var $elm$json$Json$Decode$indent = function (str) {
-	return A2(
-		$elm$core$String$join,
-		'\n    ',
-		A2($elm$core$String$split, '\n', str));
-};
-var $elm$core$List$foldl = F3(
-	function (func, acc, list) {
-		foldl:
-		while (true) {
-			if (!list.b) {
-				return acc;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				var $temp$func = func,
-					$temp$acc = A2(func, x, acc),
-					$temp$list = xs;
-				func = $temp$func;
-				acc = $temp$acc;
-				list = $temp$list;
-				continue foldl;
-			}
-		}
-	});
-var $elm$core$List$length = function (xs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, i) {
-				return i + 1;
-			}),
-		0,
-		xs);
-};
-var $elm$core$List$map2 = _List_map2;
-var $elm$core$Basics$le = _Utils_le;
-var $elm$core$Basics$sub = _Basics_sub;
-var $elm$core$List$rangeHelp = F3(
-	function (lo, hi, list) {
-		rangeHelp:
-		while (true) {
-			if (_Utils_cmp(lo, hi) < 1) {
-				var $temp$lo = lo,
-					$temp$hi = hi - 1,
-					$temp$list = A2($elm$core$List$cons, hi, list);
-				lo = $temp$lo;
-				hi = $temp$hi;
-				list = $temp$list;
-				continue rangeHelp;
-			} else {
-				return list;
-			}
-		}
-	});
-var $elm$core$List$range = F2(
-	function (lo, hi) {
-		return A3($elm$core$List$rangeHelp, lo, hi, _List_Nil);
-	});
-var $elm$core$List$indexedMap = F2(
-	function (f, xs) {
-		return A3(
-			$elm$core$List$map2,
-			f,
-			A2(
-				$elm$core$List$range,
-				0,
-				$elm$core$List$length(xs) - 1),
-			xs);
-	});
-var $elm$core$Char$toCode = _Char_toCode;
-var $elm$core$Char$isLower = function (_char) {
-	var code = $elm$core$Char$toCode(_char);
-	return (97 <= code) && (code <= 122);
-};
-var $elm$core$Char$isUpper = function (_char) {
-	var code = $elm$core$Char$toCode(_char);
-	return (code <= 90) && (65 <= code);
-};
-var $elm$core$Basics$or = _Basics_or;
-var $elm$core$Char$isAlpha = function (_char) {
-	return $elm$core$Char$isLower(_char) || $elm$core$Char$isUpper(_char);
-};
-var $elm$core$Char$isDigit = function (_char) {
-	var code = $elm$core$Char$toCode(_char);
-	return (code <= 57) && (48 <= code);
-};
-var $elm$core$Char$isAlphaNum = function (_char) {
-	return $elm$core$Char$isLower(_char) || ($elm$core$Char$isUpper(_char) || $elm$core$Char$isDigit(_char));
-};
-var $elm$core$List$reverse = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
-};
-var $elm$core$String$uncons = _String_uncons;
-var $elm$json$Json$Decode$errorOneOf = F2(
-	function (i, error) {
-		return '\n\n(' + ($elm$core$String$fromInt(i + 1) + (') ' + $elm$json$Json$Decode$indent(
-			$elm$json$Json$Decode$errorToString(error))));
-	});
-var $elm$json$Json$Decode$errorToString = function (error) {
-	return A2($elm$json$Json$Decode$errorToStringHelp, error, _List_Nil);
-};
-var $elm$json$Json$Decode$errorToStringHelp = F2(
-	function (error, context) {
-		errorToStringHelp:
-		while (true) {
-			switch (error.$) {
-				case 'Field':
-					var f = error.a;
-					var err = error.b;
-					var isSimple = function () {
-						var _v1 = $elm$core$String$uncons(f);
-						if (_v1.$ === 'Nothing') {
-							return false;
-						} else {
-							var _v2 = _v1.a;
-							var _char = _v2.a;
-							var rest = _v2.b;
-							return $elm$core$Char$isAlpha(_char) && A2($elm$core$String$all, $elm$core$Char$isAlphaNum, rest);
-						}
-					}();
-					var fieldName = isSimple ? ('.' + f) : ('[\'' + (f + '\']'));
-					var $temp$error = err,
-						$temp$context = A2($elm$core$List$cons, fieldName, context);
-					error = $temp$error;
-					context = $temp$context;
-					continue errorToStringHelp;
-				case 'Index':
-					var i = error.a;
-					var err = error.b;
-					var indexName = '[' + ($elm$core$String$fromInt(i) + ']');
-					var $temp$error = err,
-						$temp$context = A2($elm$core$List$cons, indexName, context);
-					error = $temp$error;
-					context = $temp$context;
-					continue errorToStringHelp;
-				case 'OneOf':
-					var errors = error.a;
-					if (!errors.b) {
-						return 'Ran into a Json.Decode.oneOf with no possibilities' + function () {
-							if (!context.b) {
-								return '!';
-							} else {
-								return ' at json' + A2(
-									$elm$core$String$join,
-									'',
-									$elm$core$List$reverse(context));
-							}
-						}();
-					} else {
-						if (!errors.b.b) {
-							var err = errors.a;
-							var $temp$error = err,
-								$temp$context = context;
-							error = $temp$error;
-							context = $temp$context;
-							continue errorToStringHelp;
-						} else {
-							var starter = function () {
-								if (!context.b) {
-									return 'Json.Decode.oneOf';
-								} else {
-									return 'The Json.Decode.oneOf at json' + A2(
-										$elm$core$String$join,
-										'',
-										$elm$core$List$reverse(context));
-								}
-							}();
-							var introduction = starter + (' failed in the following ' + ($elm$core$String$fromInt(
-								$elm$core$List$length(errors)) + ' ways:'));
-							return A2(
-								$elm$core$String$join,
-								'\n\n',
-								A2(
-									$elm$core$List$cons,
-									introduction,
-									A2($elm$core$List$indexedMap, $elm$json$Json$Decode$errorOneOf, errors)));
-						}
-					}
-				default:
-					var msg = error.a;
-					var json = error.b;
-					var introduction = function () {
-						if (!context.b) {
-							return 'Problem with the given value:\n\n';
-						} else {
-							return 'Problem with the value at json' + (A2(
-								$elm$core$String$join,
-								'',
-								$elm$core$List$reverse(context)) + ':\n\n    ');
-						}
-					}();
-					return introduction + ($elm$json$Json$Decode$indent(
-						A2($elm$json$Json$Encode$encode, 4, json)) + ('\n\n' + msg));
-			}
-		}
-	});
-var $elm$core$Array$branchFactor = 32;
-var $elm$core$Array$Array_elm_builtin = F4(
-	function (a, b, c, d) {
-		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
-	});
-var $elm$core$Elm$JsArray$empty = _JsArray_empty;
-var $elm$core$Basics$ceiling = _Basics_ceiling;
-var $elm$core$Basics$fdiv = _Basics_fdiv;
-var $elm$core$Basics$logBase = F2(
-	function (base, number) {
-		return _Basics_log(number) / _Basics_log(base);
-	});
-var $elm$core$Basics$toFloat = _Basics_toFloat;
-var $elm$core$Array$shiftStep = $elm$core$Basics$ceiling(
-	A2($elm$core$Basics$logBase, 2, $elm$core$Array$branchFactor));
-var $elm$core$Array$empty = A4($elm$core$Array$Array_elm_builtin, 0, $elm$core$Array$shiftStep, $elm$core$Elm$JsArray$empty, $elm$core$Elm$JsArray$empty);
-var $elm$core$Elm$JsArray$initialize = _JsArray_initialize;
-var $elm$core$Array$Leaf = function (a) {
-	return {$: 'Leaf', a: a};
-};
-var $elm$core$Basics$apL = F2(
-	function (f, x) {
-		return f(x);
-	});
-var $elm$core$Basics$apR = F2(
-	function (x, f) {
-		return f(x);
-	});
-var $elm$core$Basics$eq = _Utils_equal;
-var $elm$core$Basics$floor = _Basics_floor;
-var $elm$core$Elm$JsArray$length = _JsArray_length;
-var $elm$core$Basics$gt = _Utils_gt;
-var $elm$core$Basics$max = F2(
-	function (x, y) {
-		return (_Utils_cmp(x, y) > 0) ? x : y;
-	});
-var $elm$core$Basics$mul = _Basics_mul;
-var $elm$core$Array$SubTree = function (a) {
-	return {$: 'SubTree', a: a};
-};
-var $elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
-var $elm$core$Array$compressNodes = F2(
-	function (nodes, acc) {
-		compressNodes:
-		while (true) {
-			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodes);
-			var node = _v0.a;
-			var remainingNodes = _v0.b;
-			var newAcc = A2(
-				$elm$core$List$cons,
-				$elm$core$Array$SubTree(node),
-				acc);
-			if (!remainingNodes.b) {
-				return $elm$core$List$reverse(newAcc);
-			} else {
-				var $temp$nodes = remainingNodes,
-					$temp$acc = newAcc;
-				nodes = $temp$nodes;
-				acc = $temp$acc;
-				continue compressNodes;
-			}
-		}
-	});
-var $elm$core$Tuple$first = function (_v0) {
-	var x = _v0.a;
-	return x;
-};
-var $elm$core$Array$treeFromBuilder = F2(
-	function (nodeList, nodeListSize) {
-		treeFromBuilder:
-		while (true) {
-			var newNodeSize = $elm$core$Basics$ceiling(nodeListSize / $elm$core$Array$branchFactor);
-			if (newNodeSize === 1) {
-				return A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodeList).a;
-			} else {
-				var $temp$nodeList = A2($elm$core$Array$compressNodes, nodeList, _List_Nil),
-					$temp$nodeListSize = newNodeSize;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue treeFromBuilder;
-			}
-		}
-	});
-var $elm$core$Array$builderToArray = F2(
-	function (reverseNodeList, builder) {
-		if (!builder.nodeListSize) {
-			return A4(
-				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.tail),
-				$elm$core$Array$shiftStep,
-				$elm$core$Elm$JsArray$empty,
-				builder.tail);
-		} else {
-			var treeLen = builder.nodeListSize * $elm$core$Array$branchFactor;
-			var depth = $elm$core$Basics$floor(
-				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
-			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.nodeList) : builder.nodeList;
-			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
-			return A4(
-				$elm$core$Array$Array_elm_builtin,
-				$elm$core$Elm$JsArray$length(builder.tail) + treeLen,
-				A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep),
-				tree,
-				builder.tail);
-		}
-	});
-var $elm$core$Basics$idiv = _Basics_idiv;
-var $elm$core$Basics$lt = _Utils_lt;
-var $elm$core$Array$initializeHelp = F5(
-	function (fn, fromIndex, len, nodeList, tail) {
-		initializeHelp:
-		while (true) {
-			if (fromIndex < 0) {
-				return A2(
-					$elm$core$Array$builderToArray,
-					false,
-					{nodeList: nodeList, nodeListSize: (len / $elm$core$Array$branchFactor) | 0, tail: tail});
-			} else {
-				var leaf = $elm$core$Array$Leaf(
-					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
-				var $temp$fn = fn,
-					$temp$fromIndex = fromIndex - $elm$core$Array$branchFactor,
-					$temp$len = len,
-					$temp$nodeList = A2($elm$core$List$cons, leaf, nodeList),
-					$temp$tail = tail;
-				fn = $temp$fn;
-				fromIndex = $temp$fromIndex;
-				len = $temp$len;
-				nodeList = $temp$nodeList;
-				tail = $temp$tail;
-				continue initializeHelp;
-			}
-		}
-	});
-var $elm$core$Basics$remainderBy = _Basics_remainderBy;
-var $elm$core$Array$initialize = F2(
-	function (len, fn) {
-		if (len <= 0) {
-			return $elm$core$Array$empty;
-		} else {
-			var tailLen = len % $elm$core$Array$branchFactor;
-			var tail = A3($elm$core$Elm$JsArray$initialize, tailLen, len - tailLen, fn);
-			var initialFromIndex = (len - tailLen) - $elm$core$Array$branchFactor;
-			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
-		}
-	});
-var $elm$core$Basics$True = {$: 'True'};
-var $elm$core$Result$isOk = function (result) {
-	if (result.$ === 'Ok') {
-		return true;
-	} else {
-		return false;
-	}
-};
-var $elm$json$Json$Decode$andThen = _Json_andThen;
-var $elm$json$Json$Decode$field = _Json_decodeField;
-var $elm$json$Json$Decode$index = _Json_decodeIndex;
 var $author$project$Server$AuthLogoutResponse = F2(
 	function (a, b) {
 		return {$: 'AuthLogoutResponse', a: a, b: b};
@@ -3345,25 +2947,36 @@ var $author$project$Server$AuthSelfResponse = F2(
 	function (a, b) {
 		return {$: 'AuthSelfResponse', a: a, b: b};
 	});
-var $author$project$Acadia$Api$Field = function (a) {
+var $author$project$Http$Status$BadRequest = {$: 'BadRequest'};
+var $author$project$Http$Extended$Field = function (a) {
 	return {$: 'Field', a: a};
 };
-var $author$project$Acadia$Api$Generic = function (a) {
+var $author$project$Http$Extended$Generic = function (a) {
 	return {$: 'Generic', a: a};
 };
 var $author$project$Server$LoginResponse = F2(
 	function (a, b) {
 		return {$: 'LoginResponse', a: a, b: b};
 	});
+var $author$project$Http$Status$NotFound = {$: 'NotFound'};
 var $author$project$Server$OrganizationCreateResponse = F2(
 	function (a, b) {
 		return {$: 'OrganizationCreateResponse', a: a, b: b};
 	});
+var $author$project$Http$Method$Post = {$: 'Post'};
 var $elm$core$Basics$composeR = F3(
 	function (f, g, x) {
 		return g(
 			f(x));
 	});
+var $elm$core$Basics$apR = F2(
+	function (x, f) {
+		return f(x);
+	});
+var $elm$core$Maybe$Just = function (a) {
+	return {$: 'Just', a: a};
+};
+var $elm$core$Maybe$Nothing = {$: 'Nothing'};
 var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
 	switch (builder.$) {
 		case 'I8':
@@ -3394,6 +3007,7 @@ var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
 	}
 };
 var $elm$bytes$Bytes$LE = {$: 'LE'};
+var $elm$core$Basics$eq = _Utils_equal;
 var $elm$bytes$Bytes$Encode$write = F3(
 	function (builder, mb, offset) {
 		switch (builder.$) {
@@ -3492,6 +3106,7 @@ var $elm$bytes$Bytes$Encode$Seq = F2(
 	function (a, b) {
 		return {$: 'Seq', a: a, b: b};
 	});
+var $elm$core$Basics$add = _Basics_add;
 var $elm$bytes$Bytes$Encode$getWidths = F2(
 	function (width, builders) {
 		getWidths:
@@ -3576,6 +3191,7 @@ var $elm$bytes$Bytes$Decode$Done = function (a) {
 var $elm$bytes$Bytes$Decode$Loop = function (a) {
 	return {$: 'Loop', a: a};
 };
+var $elm$core$Basics$append = _Utils_append;
 var $elm$core$Bitwise$and = _Bitwise_and;
 var $elm$core$String$cons = _String_cons;
 var $elm$core$String$fromChar = function (_char) {
@@ -3584,6 +3200,8 @@ var $elm$core$String$fromChar = function (_char) {
 var $danfishgold$base64_bytes$Decode$lowest6BitsMask = 63;
 var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var $elm$core$Char$fromCode = _Char_fromCode;
+var $elm$core$Basics$le = _Utils_le;
+var $elm$core$Basics$sub = _Basics_sub;
 var $danfishgold$base64_bytes$Decode$unsafeToChar = function (n) {
 	if (n <= 25) {
 		return $elm$core$Char$fromCode(65 + n);
@@ -3706,6 +3324,10 @@ var $danfishgold$base64_bytes$Decode$decode18Help = F5(
 			combined2,
 			combined1,
 			A4($danfishgold$base64_bytes$Decode$bitsToCharSpecialized, combined6, combined5, combined4, ''));
+	});
+var $elm$core$Basics$apL = F2(
+	function (f, x) {
+		return f(x);
 	});
 var $elm$bytes$Bytes$Decode$map5 = F6(
 	function (func, _v0, _v1, _v2, _v3, _v4) {
@@ -3892,6 +3514,7 @@ var $elm$regex$Regex$Match = F4(
 		return {index: index, match: match, number: number, submatches: submatches};
 	});
 var $elm$regex$Regex$replace = _Regex_replaceAtMost(_Regex_infinity);
+var $elm$core$Basics$False = {$: 'False'};
 var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
 var $elm$regex$Regex$fromString = function (string) {
 	return A2(
@@ -3967,22 +3590,8 @@ var $author$project$Serialize$field = F3(
 				decoder: A3(
 					$elm$bytes$Bytes$Decode$map2,
 					F2(
-						function (f, x) {
-							var _v1 = _Utils_Tuple2(f, x);
-							if (_v1.a.$ === 'Ok') {
-								if (_v1.b.$ === 'Ok') {
-									var fOk = _v1.a.a;
-									var xOk = _v1.b.a;
-									return $elm$core$Result$Ok(
-										fOk(xOk));
-								} else {
-									var err = _v1.b.a;
-									return $elm$core$Result$Err(err);
-								}
-							} else {
-								var err = _v1.a.a;
-								return $elm$core$Result$Err(err);
-							}
+						function (cons, fieldVal) {
+							return cons(fieldVal);
 						}),
 					recordCodec.decoder,
 					$author$project$Serialize$toBytesDecoder(codec)),
@@ -3994,8 +3603,7 @@ var $author$project$Serialize$field = F3(
 							codec,
 							getter(v)),
 						recordCodec.encoder(v));
-				},
-				fieldIndex: recordCodec.fieldIndex + 1
+				}
 			});
 	});
 var $author$project$Serialize$Codec = function (a) {
@@ -4006,21 +3614,16 @@ var $author$project$Serialize$finishRecord = function (_v0) {
 	return $author$project$Serialize$Codec(
 		{
 			decoder: codec.decoder,
-			encoder: A2(
-				$elm$core$Basics$composeR,
-				codec.encoder,
-				A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence))
+			encoder: A2($elm$core$Basics$composeR, codec.encoder, $elm$bytes$Bytes$Encode$sequence)
 		});
 };
 var $author$project$Serialize$record = function (ctor) {
 	return $author$project$Serialize$RecordCodec(
 		{
-			decoder: $elm$bytes$Bytes$Decode$succeed(
-				$elm$core$Result$Ok(ctor)),
+			decoder: $elm$bytes$Bytes$Decode$succeed(ctor),
 			encoder: function (_v0) {
 				return _List_Nil;
-			},
-			fieldIndex: 0
+			}
 		});
 };
 var $elm$bytes$Bytes$Decode$andThen = F2(
@@ -4078,14 +3681,9 @@ var $author$project$Serialize$string = A2(
 	},
 	A2(
 		$elm$bytes$Bytes$Decode$andThen,
-		function (charCount) {
-			return A2(
-				$elm$bytes$Bytes$Decode$map,
-				$elm$core$Result$Ok,
-				$elm$bytes$Bytes$Decode$string(charCount));
-		},
+		$elm$bytes$Bytes$Decode$string,
 		$elm$bytes$Bytes$Decode$unsignedInt32($author$project$Serialize$endian)));
-var $author$project$Acadia$Api$fieldErrorCodec = $author$project$Serialize$finishRecord(
+var $author$project$Http$Extended$fieldErrorCodec = $author$project$Serialize$finishRecord(
 	A3(
 		$author$project$Serialize$field,
 		function ($) {
@@ -4103,7 +3701,7 @@ var $author$project$Acadia$Api$fieldErrorCodec = $author$project$Serialize$finis
 					function (name, message) {
 						return {message: message, name: name};
 					})))));
-var $author$project$Serialize$DataCorrupted = {$: 'DataCorrupted'};
+var $elm$bytes$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$Decoder(_Bytes_decodeFailure);
 var $author$project$Serialize$finishCustomType = function (_v0) {
 	var am = _v0.a;
 	return A2(
@@ -4119,27 +3717,389 @@ var $author$project$Serialize$finishCustomType = function (_v0) {
 		A2(
 			$elm$bytes$Bytes$Decode$andThen,
 			function (tag) {
-				return A2(
-					am.decoder,
-					tag,
-					$elm$bytes$Bytes$Decode$succeed(
-						$elm$core$Result$Err($author$project$Serialize$DataCorrupted)));
+				return A2(am.decoder, tag, $elm$bytes$Bytes$Decode$fail);
 			},
 			$elm$bytes$Bytes$Decode$unsignedInt16($author$project$Serialize$endian)));
 };
-var $author$project$Serialize$result1 = F2(
-	function (ctor, value) {
-		if (value.$ === 'Ok') {
-			var ok = value.a;
-			return $elm$core$Result$Ok(
-				ctor(ok));
-		} else {
-			var err = value.a;
-			return $elm$core$Result$Err(err);
-		}
-	});
 var $author$project$Serialize$VariantEncoder = function (a) {
 	return {$: 'VariantEncoder', a: a};
+};
+var $elm$core$Result$Err = function (a) {
+	return {$: 'Err', a: a};
+};
+var $elm$json$Json$Decode$Failure = F2(
+	function (a, b) {
+		return {$: 'Failure', a: a, b: b};
+	});
+var $elm$json$Json$Decode$Field = F2(
+	function (a, b) {
+		return {$: 'Field', a: a, b: b};
+	});
+var $elm$json$Json$Decode$Index = F2(
+	function (a, b) {
+		return {$: 'Index', a: a, b: b};
+	});
+var $elm$core$Result$Ok = function (a) {
+	return {$: 'Ok', a: a};
+};
+var $elm$json$Json$Decode$OneOf = function (a) {
+	return {$: 'OneOf', a: a};
+};
+var $elm$core$String$all = _String_all;
+var $elm$core$Basics$and = _Basics_and;
+var $elm$json$Json$Encode$encode = _Json_encode;
+var $elm$core$String$fromInt = _String_fromNumber;
+var $elm$core$String$join = F2(
+	function (sep, chunks) {
+		return A2(
+			_String_join,
+			sep,
+			_List_toArray(chunks));
+	});
+var $elm$core$String$split = F2(
+	function (sep, string) {
+		return _List_fromArray(
+			A2(_String_split, sep, string));
+	});
+var $elm$json$Json$Decode$indent = function (str) {
+	return A2(
+		$elm$core$String$join,
+		'\n    ',
+		A2($elm$core$String$split, '\n', str));
+};
+var $elm$core$List$foldl = F3(
+	function (func, acc, list) {
+		foldl:
+		while (true) {
+			if (!list.b) {
+				return acc;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				var $temp$func = func,
+					$temp$acc = A2(func, x, acc),
+					$temp$list = xs;
+				func = $temp$func;
+				acc = $temp$acc;
+				list = $temp$list;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$List$length = function (xs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, i) {
+				return i + 1;
+			}),
+		0,
+		xs);
+};
+var $elm$core$List$map2 = _List_map2;
+var $elm$core$List$rangeHelp = F3(
+	function (lo, hi, list) {
+		rangeHelp:
+		while (true) {
+			if (_Utils_cmp(lo, hi) < 1) {
+				var $temp$lo = lo,
+					$temp$hi = hi - 1,
+					$temp$list = A2($elm$core$List$cons, hi, list);
+				lo = $temp$lo;
+				hi = $temp$hi;
+				list = $temp$list;
+				continue rangeHelp;
+			} else {
+				return list;
+			}
+		}
+	});
+var $elm$core$List$range = F2(
+	function (lo, hi) {
+		return A3($elm$core$List$rangeHelp, lo, hi, _List_Nil);
+	});
+var $elm$core$List$indexedMap = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$map2,
+			f,
+			A2(
+				$elm$core$List$range,
+				0,
+				$elm$core$List$length(xs) - 1),
+			xs);
+	});
+var $elm$core$Char$toCode = _Char_toCode;
+var $elm$core$Char$isLower = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (97 <= code) && (code <= 122);
+};
+var $elm$core$Char$isUpper = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (code <= 90) && (65 <= code);
+};
+var $elm$core$Basics$or = _Basics_or;
+var $elm$core$Char$isAlpha = function (_char) {
+	return $elm$core$Char$isLower(_char) || $elm$core$Char$isUpper(_char);
+};
+var $elm$core$Char$isDigit = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return (code <= 57) && (48 <= code);
+};
+var $elm$core$Char$isAlphaNum = function (_char) {
+	return $elm$core$Char$isLower(_char) || ($elm$core$Char$isUpper(_char) || $elm$core$Char$isDigit(_char));
+};
+var $elm$core$List$reverse = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
+};
+var $elm$core$String$uncons = _String_uncons;
+var $elm$json$Json$Decode$errorOneOf = F2(
+	function (i, error) {
+		return '\n\n(' + ($elm$core$String$fromInt(i + 1) + (') ' + $elm$json$Json$Decode$indent(
+			$elm$json$Json$Decode$errorToString(error))));
+	});
+var $elm$json$Json$Decode$errorToString = function (error) {
+	return A2($elm$json$Json$Decode$errorToStringHelp, error, _List_Nil);
+};
+var $elm$json$Json$Decode$errorToStringHelp = F2(
+	function (error, context) {
+		errorToStringHelp:
+		while (true) {
+			switch (error.$) {
+				case 'Field':
+					var f = error.a;
+					var err = error.b;
+					var isSimple = function () {
+						var _v1 = $elm$core$String$uncons(f);
+						if (_v1.$ === 'Nothing') {
+							return false;
+						} else {
+							var _v2 = _v1.a;
+							var _char = _v2.a;
+							var rest = _v2.b;
+							return $elm$core$Char$isAlpha(_char) && A2($elm$core$String$all, $elm$core$Char$isAlphaNum, rest);
+						}
+					}();
+					var fieldName = isSimple ? ('.' + f) : ('[\'' + (f + '\']'));
+					var $temp$error = err,
+						$temp$context = A2($elm$core$List$cons, fieldName, context);
+					error = $temp$error;
+					context = $temp$context;
+					continue errorToStringHelp;
+				case 'Index':
+					var i = error.a;
+					var err = error.b;
+					var indexName = '[' + ($elm$core$String$fromInt(i) + ']');
+					var $temp$error = err,
+						$temp$context = A2($elm$core$List$cons, indexName, context);
+					error = $temp$error;
+					context = $temp$context;
+					continue errorToStringHelp;
+				case 'OneOf':
+					var errors = error.a;
+					if (!errors.b) {
+						return 'Ran into a Json.Decode.oneOf with no possibilities' + function () {
+							if (!context.b) {
+								return '!';
+							} else {
+								return ' at json' + A2(
+									$elm$core$String$join,
+									'',
+									$elm$core$List$reverse(context));
+							}
+						}();
+					} else {
+						if (!errors.b.b) {
+							var err = errors.a;
+							var $temp$error = err,
+								$temp$context = context;
+							error = $temp$error;
+							context = $temp$context;
+							continue errorToStringHelp;
+						} else {
+							var starter = function () {
+								if (!context.b) {
+									return 'Json.Decode.oneOf';
+								} else {
+									return 'The Json.Decode.oneOf at json' + A2(
+										$elm$core$String$join,
+										'',
+										$elm$core$List$reverse(context));
+								}
+							}();
+							var introduction = starter + (' failed in the following ' + ($elm$core$String$fromInt(
+								$elm$core$List$length(errors)) + ' ways:'));
+							return A2(
+								$elm$core$String$join,
+								'\n\n',
+								A2(
+									$elm$core$List$cons,
+									introduction,
+									A2($elm$core$List$indexedMap, $elm$json$Json$Decode$errorOneOf, errors)));
+						}
+					}
+				default:
+					var msg = error.a;
+					var json = error.b;
+					var introduction = function () {
+						if (!context.b) {
+							return 'Problem with the given value:\n\n';
+						} else {
+							return 'Problem with the value at json' + (A2(
+								$elm$core$String$join,
+								'',
+								$elm$core$List$reverse(context)) + ':\n\n    ');
+						}
+					}();
+					return introduction + ($elm$json$Json$Decode$indent(
+						A2($elm$json$Json$Encode$encode, 4, json)) + ('\n\n' + msg));
+			}
+		}
+	});
+var $elm$core$Array$branchFactor = 32;
+var $elm$core$Array$Array_elm_builtin = F4(
+	function (a, b, c, d) {
+		return {$: 'Array_elm_builtin', a: a, b: b, c: c, d: d};
+	});
+var $elm$core$Elm$JsArray$empty = _JsArray_empty;
+var $elm$core$Basics$ceiling = _Basics_ceiling;
+var $elm$core$Basics$fdiv = _Basics_fdiv;
+var $elm$core$Basics$logBase = F2(
+	function (base, number) {
+		return _Basics_log(number) / _Basics_log(base);
+	});
+var $elm$core$Basics$toFloat = _Basics_toFloat;
+var $elm$core$Array$shiftStep = $elm$core$Basics$ceiling(
+	A2($elm$core$Basics$logBase, 2, $elm$core$Array$branchFactor));
+var $elm$core$Array$empty = A4($elm$core$Array$Array_elm_builtin, 0, $elm$core$Array$shiftStep, $elm$core$Elm$JsArray$empty, $elm$core$Elm$JsArray$empty);
+var $elm$core$Elm$JsArray$initialize = _JsArray_initialize;
+var $elm$core$Array$Leaf = function (a) {
+	return {$: 'Leaf', a: a};
+};
+var $elm$core$Basics$floor = _Basics_floor;
+var $elm$core$Elm$JsArray$length = _JsArray_length;
+var $elm$core$Basics$gt = _Utils_gt;
+var $elm$core$Basics$max = F2(
+	function (x, y) {
+		return (_Utils_cmp(x, y) > 0) ? x : y;
+	});
+var $elm$core$Basics$mul = _Basics_mul;
+var $elm$core$Array$SubTree = function (a) {
+	return {$: 'SubTree', a: a};
+};
+var $elm$core$Elm$JsArray$initializeFromList = _JsArray_initializeFromList;
+var $elm$core$Array$compressNodes = F2(
+	function (nodes, acc) {
+		compressNodes:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodes);
+			var node = _v0.a;
+			var remainingNodes = _v0.b;
+			var newAcc = A2(
+				$elm$core$List$cons,
+				$elm$core$Array$SubTree(node),
+				acc);
+			if (!remainingNodes.b) {
+				return $elm$core$List$reverse(newAcc);
+			} else {
+				var $temp$nodes = remainingNodes,
+					$temp$acc = newAcc;
+				nodes = $temp$nodes;
+				acc = $temp$acc;
+				continue compressNodes;
+			}
+		}
+	});
+var $elm$core$Tuple$first = function (_v0) {
+	var x = _v0.a;
+	return x;
+};
+var $elm$core$Array$treeFromBuilder = F2(
+	function (nodeList, nodeListSize) {
+		treeFromBuilder:
+		while (true) {
+			var newNodeSize = $elm$core$Basics$ceiling(nodeListSize / $elm$core$Array$branchFactor);
+			if (newNodeSize === 1) {
+				return A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, nodeList).a;
+			} else {
+				var $temp$nodeList = A2($elm$core$Array$compressNodes, nodeList, _List_Nil),
+					$temp$nodeListSize = newNodeSize;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue treeFromBuilder;
+			}
+		}
+	});
+var $elm$core$Array$builderToArray = F2(
+	function (reverseNodeList, builder) {
+		if (!builder.nodeListSize) {
+			return A4(
+				$elm$core$Array$Array_elm_builtin,
+				$elm$core$Elm$JsArray$length(builder.tail),
+				$elm$core$Array$shiftStep,
+				$elm$core$Elm$JsArray$empty,
+				builder.tail);
+		} else {
+			var treeLen = builder.nodeListSize * $elm$core$Array$branchFactor;
+			var depth = $elm$core$Basics$floor(
+				A2($elm$core$Basics$logBase, $elm$core$Array$branchFactor, treeLen - 1));
+			var correctNodeList = reverseNodeList ? $elm$core$List$reverse(builder.nodeList) : builder.nodeList;
+			var tree = A2($elm$core$Array$treeFromBuilder, correctNodeList, builder.nodeListSize);
+			return A4(
+				$elm$core$Array$Array_elm_builtin,
+				$elm$core$Elm$JsArray$length(builder.tail) + treeLen,
+				A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep),
+				tree,
+				builder.tail);
+		}
+	});
+var $elm$core$Basics$idiv = _Basics_idiv;
+var $elm$core$Basics$lt = _Utils_lt;
+var $elm$core$Array$initializeHelp = F5(
+	function (fn, fromIndex, len, nodeList, tail) {
+		initializeHelp:
+		while (true) {
+			if (fromIndex < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					false,
+					{nodeList: nodeList, nodeListSize: (len / $elm$core$Array$branchFactor) | 0, tail: tail});
+			} else {
+				var leaf = $elm$core$Array$Leaf(
+					A3($elm$core$Elm$JsArray$initialize, $elm$core$Array$branchFactor, fromIndex, fn));
+				var $temp$fn = fn,
+					$temp$fromIndex = fromIndex - $elm$core$Array$branchFactor,
+					$temp$len = len,
+					$temp$nodeList = A2($elm$core$List$cons, leaf, nodeList),
+					$temp$tail = tail;
+				fn = $temp$fn;
+				fromIndex = $temp$fromIndex;
+				len = $temp$len;
+				nodeList = $temp$nodeList;
+				tail = $temp$tail;
+				continue initializeHelp;
+			}
+		}
+	});
+var $elm$core$Basics$remainderBy = _Basics_remainderBy;
+var $elm$core$Array$initialize = F2(
+	function (len, fn) {
+		if (len <= 0) {
+			return $elm$core$Array$empty;
+		} else {
+			var tailLen = len % $elm$core$Array$branchFactor;
+			var tail = A3($elm$core$Elm$JsArray$initialize, tailLen, len - tailLen, fn);
+			var initialFromIndex = (len - tailLen) - $elm$core$Array$branchFactor;
+			return A5($elm$core$Array$initializeHelp, fn, initialFromIndex, len, _List_Nil, tail);
+		}
+	});
+var $elm$core$Basics$True = {$: 'True'};
+var $elm$core$Result$isOk = function (result) {
+	if (result.$ === 'Ok') {
+		return true;
+	} else {
+		return false;
+	}
 };
 var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $elm$bytes$Bytes$Encode$U16 = F2(
@@ -4186,18 +4146,18 @@ var $author$project$Serialize$variant1 = F2(
 				}),
 			A2(
 				$elm$bytes$Bytes$Decode$map,
-				$author$project$Serialize$result1(ctor),
+				ctor,
 				$author$project$Serialize$toBytesDecoder(m1)));
 	});
-var $author$project$Acadia$Api$errorCodec = $author$project$Serialize$finishCustomType(
+var $author$project$Http$Extended$errorCodec = $author$project$Serialize$finishCustomType(
 	A3(
 		$author$project$Serialize$variant1,
-		$author$project$Acadia$Api$Generic,
+		$author$project$Http$Extended$Generic,
 		$author$project$Serialize$string,
 		A3(
 			$author$project$Serialize$variant1,
-			$author$project$Acadia$Api$Field,
-			$author$project$Acadia$Api$fieldErrorCodec,
+			$author$project$Http$Extended$Field,
+			$author$project$Http$Extended$fieldErrorCodec,
 			$author$project$Serialize$customType(
 				F3(
 					function (fieldEncoder, genericEncoder, value) {
@@ -4209,6 +4169,7 @@ var $author$project$Acadia$Api$errorCodec = $author$project$Serialize$finishCust
 							return genericEncoder(v);
 						}
 					})))));
+var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -4233,39 +4194,176 @@ var $elm$json$Json$Encode$object = function (pairs) {
 			pairs));
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Server$respond = _Platform_outgoingPort(
-	'respond',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'body',
-					$elm$json$Json$Encode$string($.body)),
-					_Utils_Tuple2(
-					'headers',
-					$elm$json$Json$Encode$list(
-						function ($) {
-							var a = $.a;
-							var b = $.b;
-							return A2(
-								$elm$json$Json$Encode$list,
-								$elm$core$Basics$identity,
-								_List_fromArray(
-									[
-										$elm$json$Json$Encode$string(a),
-										$elm$json$Json$Encode$string(b)
-									]));
-						})($.headers)),
-					_Utils_Tuple2(
-					'status',
-					$elm$json$Json$Encode$int($.status))
-				]));
-	});
+var $author$project$Http$Status$toInt = function (status) {
+	switch (status.$) {
+		case 'Continue':
+			return 100;
+		case 'SwitchingProtocols':
+			return 101;
+		case 'Processing':
+			return 102;
+		case 'EarlyHints':
+			return 103;
+		case 'StatusOk':
+			return 200;
+		case 'Created':
+			return 201;
+		case 'Accepted':
+			return 202;
+		case 'NonAuthoritativeInformation':
+			return 203;
+		case 'NoContent':
+			return 204;
+		case 'ResetContent':
+			return 205;
+		case 'PartialContent':
+			return 206;
+		case 'MultiStatus':
+			return 207;
+		case 'AlreadyReported':
+			return 208;
+		case 'IMUsed':
+			return 226;
+		case 'MultipleChoices':
+			return 300;
+		case 'MovedPermanently':
+			return 301;
+		case 'Found':
+			return 302;
+		case 'SeeOther':
+			return 303;
+		case 'NotModified':
+			return 304;
+		case 'UseProxy':
+			return 305;
+		case 'SwitchProxy':
+			return 306;
+		case 'TemporaryRedirect':
+			return 307;
+		case 'PermanentRedirect':
+			return 308;
+		case 'BadRequest':
+			return 400;
+		case 'Unauthorized':
+			return 401;
+		case 'PaymentRequired':
+			return 402;
+		case 'Forbidden':
+			return 403;
+		case 'NotFound':
+			return 404;
+		case 'MethodNotAllowed':
+			return 405;
+		case 'NotAcceptable':
+			return 406;
+		case 'ProxyAuthenticationRequired':
+			return 407;
+		case 'RequestTimeout':
+			return 408;
+		case 'Conflict':
+			return 409;
+		case 'Gone':
+			return 410;
+		case 'LengthRequired':
+			return 411;
+		case 'PreconditionFailed':
+			return 412;
+		case 'PayloadTooLarge':
+			return 413;
+		case 'URITooLong':
+			return 414;
+		case 'UnsupportedMediaType':
+			return 415;
+		case 'RangeNotSatisfiable':
+			return 416;
+		case 'ExpectationFailed':
+			return 417;
+		case 'ImATeapot':
+			return 418;
+		case 'MisdirectedRequest':
+			return 421;
+		case 'UnprocessableEntity':
+			return 422;
+		case 'Locked':
+			return 423;
+		case 'FailedDependency':
+			return 424;
+		case 'TooEarly':
+			return 425;
+		case 'UpgradeRequired':
+			return 426;
+		case 'PreconditionRequired':
+			return 428;
+		case 'TooManyRequests':
+			return 429;
+		case 'RequestHeaderFieldsTooLarge':
+			return 431;
+		case 'UnavailableForLegalReasons':
+			return 451;
+		case 'InternalServerError':
+			return 500;
+		case 'NotImplemented':
+			return 501;
+		case 'BadGateway':
+			return 502;
+		case 'ServiceUnavailable':
+			return 503;
+		case 'GatewayTimeout':
+			return 504;
+		case 'HTTPVersionNotSupported':
+			return 505;
+		case 'VariantAlsoNegotiates':
+			return 506;
+		case 'InsufficientStorage':
+			return 507;
+		case 'LoopDetected':
+			return 508;
+		case 'NotExtended':
+			return 510;
+		case 'NetworkAuthenticationRequired':
+			return 511;
+		default:
+			var code = status.a;
+			return code;
+	}
+};
+var $author$project$Http$Extended$responseEncode = function (response) {
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'status',
+				$elm$json$Json$Encode$int(
+					$author$project$Http$Status$toInt(response.status))),
+				_Utils_Tuple2(
+				'headers',
+				A2(
+					$elm$json$Json$Encode$list,
+					function (_v0) {
+						var key = _v0.a;
+						var value = _v0.b;
+						return A2(
+							$elm$json$Json$Encode$list,
+							$elm$json$Json$Encode$string,
+							_List_fromArray(
+								[key, value]));
+					},
+					response.headers)),
+				_Utils_Tuple2(
+				'body',
+				$elm$json$Json$Encode$string(response.body))
+			]));
+};
+var $author$project$Server$sendResponse = _Platform_outgoingPort('sendResponse', $elm$core$Basics$identity);
+var $author$project$Server$respond = function (response) {
+	return $author$project$Server$sendResponse(
+		$author$project$Http$Extended$responseEncode(
+			A2($elm$core$Debug$log, 'response', response)));
+};
 var $author$project$Server$acadiaFailureResponse = function (config) {
 	return $author$project$Server$respond(
 		{
-			body: A2($author$project$Serialize$encodeToString, $author$project$Acadia$Api$errorCodec, config.error),
+			body: A2($author$project$Serialize$encodeToString, $author$project$Http$Extended$errorCodec, config.error),
 			headers: _List_Nil,
 			status: config.status
 		});
@@ -5181,7 +5279,6 @@ var $author$project$Acadia$Transaction$Transaction = F2(
 		return {$: 'Transaction', a: a, b: b};
 	});
 var $author$project$Acadia$Bytes$Decode$andThen = $elm$bytes$Bytes$Decode$andThen;
-var $elm$bytes$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$Decoder(_Bytes_decodeFailure);
 var $author$project$Acadia$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$fail;
 var $author$project$Acadia$UInt32$UInt32 = function (a) {
 	return {$: 'UInt32', a: a};
@@ -5597,13 +5694,7 @@ var $author$project$Serialize$decode = function (base64text) {
 var $author$project$Serialize$decodeFromBytes = F2(
 	function (codec, bytes_) {
 		var decoder = $author$project$Serialize$toBytesDecoder(codec);
-		var _v0 = A2($elm$bytes$Bytes$Decode$decode, decoder, bytes_);
-		if (_v0.$ === 'Just') {
-			var value = _v0.a;
-			return value;
-		} else {
-			return $elm$core$Result$Err($author$project$Serialize$DataCorrupted);
-		}
+		return A2($elm$bytes$Bytes$Decode$decode, decoder, bytes_);
 	});
 var $author$project$Serialize$decodeFromString = F2(
 	function (codec, base64) {
@@ -5612,9 +5703,31 @@ var $author$project$Serialize$decodeFromString = F2(
 			var bytes_ = _v0.a;
 			return A2($author$project$Serialize$decodeFromBytes, codec, bytes_);
 		} else {
-			return $elm$core$Result$Err($author$project$Serialize$DataCorrupted);
+			return $elm$core$Maybe$Nothing;
 		}
 	});
+var $elm$json$Json$Decode$decodeValue = _Json_run;
+var $author$project$Endpoints$ApiAuthLogin = {$: 'ApiAuthLogin'};
+var $author$project$Endpoints$ApiAuthLogout = {$: 'ApiAuthLogout'};
+var $author$project$Endpoints$ApiAuthSelf = {$: 'ApiAuthSelf'};
+var $author$project$Endpoints$ApiAuthSignup = {$: 'ApiAuthSignup'};
+var $author$project$Endpoints$ApiOrganizations = {$: 'ApiOrganizations'};
+var $author$project$Endpoints$fromString = function (str) {
+	switch (str) {
+		case '/api/auth/login':
+			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogin);
+		case '/api/auth/signup':
+			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSignup);
+		case '/api/auth/logout':
+			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogout);
+		case '/api/auth/self':
+			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSelf);
+		case '/api/organizations':
+			return $elm$core$Maybe$Just($author$project$Endpoints$ApiOrganizations);
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
 var $author$project$Backend$UserID = function (a) {
 	return {$: 'UserID', a: a};
 };
@@ -5719,8 +5832,7 @@ var $author$project$Serialize$variant0 = function (ctor) {
 		function (c) {
 			return c(_List_Nil);
 		},
-		$elm$bytes$Bytes$Decode$succeed(
-			$elm$core$Result$Ok(ctor)));
+		$elm$bytes$Bytes$Decode$succeed(ctor));
 };
 var $author$project$Serialize$maybe = function (justCodec) {
 	return $author$project$Serialize$finishCustomType(
@@ -5760,10 +5872,7 @@ var $author$project$Acadia$Uuid$encode = function (_v0) {
 				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, d)
 			]));
 };
-var $author$project$Serialize$uuid = A2(
-	$author$project$Serialize$build,
-	$author$project$Acadia$Uuid$encode,
-	A2($elm$bytes$Bytes$Decode$map, $elm$core$Result$Ok, $author$project$Acadia$Uuid$decode));
+var $author$project$Serialize$uuid = A2($author$project$Serialize$build, $author$project$Acadia$Uuid$encode, $author$project$Acadia$Uuid$decode);
 var $author$project$Acadia$Api$organizationIdCodec = $author$project$Serialize$finishCustomType(
 	A3(
 		$author$project$Serialize$variant1,
@@ -5891,8 +6000,7 @@ var $author$project$Serialize$unit = A2(
 	$author$project$Serialize$build,
 	$elm$core$Basics$always(
 		$elm$bytes$Bytes$Encode$sequence(_List_Nil)),
-	$elm$bytes$Bytes$Decode$succeed(
-		$elm$core$Result$Ok(_Utils_Tuple0)));
+	$elm$bytes$Bytes$Decode$succeed(_Utils_Tuple0));
 var $author$project$Acadia$Api$loginCodec = $author$project$Serialize$unit;
 var $author$project$Backend$logout = A2(
 	$author$project$Acadia$Transaction$Transaction,
@@ -5906,6 +6014,87 @@ var $author$project$Backend$logout = A2(
 			])),
 	$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 var $author$project$Acadia$Api$logoutCodec = $author$project$Serialize$unit;
+var $author$project$Http$Extended$Request = F4(
+	function (path, method, headers, body) {
+		return {body: body, headers: headers, method: method, path: path};
+	});
+var $elm$json$Json$Decode$andThen = _Json_andThen;
+var $elm$json$Json$Decode$fail = _Json_fail;
+var $elm$json$Json$Decode$field = _Json_decodeField;
+var $author$project$Http$Method$Connect = {$: 'Connect'};
+var $author$project$Http$Method$Delete = {$: 'Delete'};
+var $author$project$Http$Method$Get = {$: 'Get'};
+var $author$project$Http$Method$Head = {$: 'Head'};
+var $author$project$Http$Method$Options = {$: 'Options'};
+var $author$project$Http$Method$Patch = {$: 'Patch'};
+var $author$project$Http$Method$Put = {$: 'Put'};
+var $author$project$Http$Method$Trace = {$: 'Trace'};
+var $author$project$Http$Method$fromString = function (str) {
+	switch (str) {
+		case 'GET':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Get);
+		case 'HEAD':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Head);
+		case 'POST':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Post);
+		case 'PUT':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Put);
+		case 'DELETE':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Delete);
+		case 'CONNECT':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Connect);
+		case 'OPTIONS':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Options);
+		case 'TRACE':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Trace);
+		case 'PATCH':
+			return $elm$core$Maybe$Just($author$project$Http$Method$Patch);
+		default:
+			return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $elm$json$Json$Decode$map4 = _Json_map4;
+var $elm$json$Json$Decode$string = _Json_decodeString;
+var $elm$json$Json$Decode$succeed = _Json_succeed;
+var $author$project$Http$Extended$requestDecode = A5(
+	$elm$json$Json$Decode$map4,
+	$author$project$Http$Extended$Request,
+	A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string),
+	A2(
+		$elm$json$Json$Decode$field,
+		'method',
+		A2(
+			$elm$json$Json$Decode$andThen,
+			function (methodStr) {
+				var _v0 = $author$project$Http$Method$fromString(methodStr);
+				if (_v0.$ === 'Just') {
+					var method = _v0.a;
+					return $elm$json$Json$Decode$succeed(method);
+				} else {
+					return $elm$json$Json$Decode$fail('Unknown method: ' + methodStr);
+				}
+			},
+			$elm$json$Json$Decode$string)),
+	A2(
+		$elm$json$Json$Decode$field,
+		'headers',
+		$elm$json$Json$Decode$list(
+			A2(
+				$elm$json$Json$Decode$andThen,
+				function (vals) {
+					if ((vals.b && vals.b.b) && (!vals.b.b.b)) {
+						var key = vals.a;
+						var _v2 = vals.b;
+						var value = _v2.a;
+						return $elm$json$Json$Decode$succeed(
+							_Utils_Tuple2(key, value));
+					} else {
+						return $elm$json$Json$Decode$fail('Invalid header');
+					}
+				},
+				$elm$json$Json$Decode$list($elm$json$Json$Decode$string)))),
+	A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
 var $author$project$Backend$SignUpInfo = F3(
 	function (name, email, password) {
 		return {email: email, name: name, password: password};
@@ -5972,124 +6161,139 @@ var $author$project$Backend$signup = function (v0) {
 				])),
 		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 };
-var $author$project$Server$init = function (request) {
+var $author$project$Server$init = function (requestJson) {
 	return _Utils_Tuple2(
 		{},
 		function () {
-			if (request.method !== 'POST') {
+			var _v0 = A2(
+				$elm$core$Debug$log,
+				'req dec',
+				A2($elm$json$Json$Decode$decodeValue, $author$project$Http$Extended$requestDecode, requestJson));
+			if (_v0.$ === 'Err') {
 				return $author$project$Server$respond(
-					{body: 'Not Found', headers: _List_Nil, status: 404});
+					{body: 'Not Found', headers: _List_Nil, status: $author$project$Http$Status$NotFound});
 			} else {
-				var _v0 = request.path;
-				switch (_v0) {
-					case '/api/auth/self':
-						return A3(
-							$author$project$Server$acadiaRequest,
-							request.headers,
-							$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfCodec),
-							$author$project$Backend$getUserSelf);
-					case '/api/auth/logout':
-						return A3(
-							$author$project$Server$acadiaRequest,
-							request.headers,
-							$author$project$Server$AuthLogoutResponse($author$project$Acadia$Api$logoutCodec),
-							$author$project$Backend$logout);
-					case '/api/auth/login':
-						var _v1 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
-						if (_v1.$ === 'Err') {
-							return $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Generic('Server error'),
-									status: 400
-								});
-						} else {
-							var authInfo = _v1.a;
-							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'email'}),
-									status: 400
-								}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'password'}),
-									status: 400
-								}) : A3(
-								$author$project$Server$acadiaRequest,
-								request.headers,
-								$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
-								$author$project$Backend$login(authInfo)));
-						}
-					case '/api/auth/signup':
-						var _v2 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$signUpInfoCodec, request.body);
-						if (_v2.$ === 'Err') {
-							return $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Generic('Server error'),
-									status: 400
-								});
-						} else {
-							var authInfo = _v2.a;
-							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'email'}),
-									status: 400
-								}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'password'}),
-									status: 400
-								}) : (($elm$core$String$length(authInfo.name) < 1) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'name'}),
-									status: 400
-								}) : A3(
-								$author$project$Server$acadiaRequest,
-								request.headers,
-								$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
-								$author$project$Backend$signup(authInfo))));
-						}
-					case '/api/organizations/create':
-						var _v3 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
-						if (_v3.$ === 'Err') {
-							return $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Generic('Server error'),
-									status: 400
-								});
-						} else {
-							var newOrg = _v3.a;
-							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$acadiaFailureResponse(
-								{
-									error: $author$project$Acadia$Api$Field(
-										{message: 'Too short', name: 'name'}),
-									status: 400
-								}) : A3(
-								$author$project$Server$acadiaRequest,
-								request.headers,
-								$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
-								$author$project$Backend$createOrganization(newOrg));
-						}
-					default:
+				var request = _v0.a;
+				if (!_Utils_eq(request.method, $author$project$Http$Method$Post)) {
+					return $author$project$Server$respond(
+						{body: 'Not Found', headers: _List_Nil, status: $author$project$Http$Status$NotFound});
+				} else {
+					var _v1 = $author$project$Endpoints$fromString(request.path);
+					if (_v1.$ === 'Nothing') {
 						return $author$project$Server$acadiaFailureResponse(
 							{
-								error: $author$project$Acadia$Api$Generic('Not Found'),
-								status: 404
+								error: $author$project$Http$Extended$Generic('Not Found'),
+								status: $author$project$Http$Status$NotFound
 							});
+					} else {
+						switch (_v1.a.$) {
+							case 'ApiAuthSelf':
+								var _v2 = _v1.a;
+								return A3(
+									$author$project$Server$acadiaRequest,
+									request.headers,
+									$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfCodec),
+									$author$project$Backend$getUserSelf);
+							case 'ApiAuthLogout':
+								var _v3 = _v1.a;
+								return A3(
+									$author$project$Server$acadiaRequest,
+									request.headers,
+									$author$project$Server$AuthLogoutResponse($author$project$Acadia$Api$logoutCodec),
+									$author$project$Backend$logout);
+							case 'ApiAuthLogin':
+								var _v4 = _v1.a;
+								var _v5 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
+								if (_v5.$ === 'Nothing') {
+									return $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Generic('Server error'),
+											status: $author$project$Http$Status$BadRequest
+										});
+								} else {
+									var loginInfo = _v5.a;
+									return ($elm$core$String$length(loginInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'email'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : (($elm$core$String$length(loginInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'password'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : A3(
+										$author$project$Server$acadiaRequest,
+										request.headers,
+										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
+										$author$project$Backend$login(loginInfo)));
+								}
+							case 'ApiAuthSignup':
+								var _v6 = _v1.a;
+								var _v7 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$signUpInfoCodec, request.body);
+								if (_v7.$ === 'Nothing') {
+									return $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Generic('Server error'),
+											status: $author$project$Http$Status$BadRequest
+										});
+								} else {
+									var signupInfo = _v7.a;
+									return ($elm$core$String$length(signupInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'email'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : (($elm$core$String$length(signupInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'password'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : (($elm$core$String$length(signupInfo.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'name'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : A3(
+										$author$project$Server$acadiaRequest,
+										request.headers,
+										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
+										$author$project$Backend$signup(signupInfo))));
+								}
+							default:
+								var _v8 = _v1.a;
+								var _v9 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
+								if (_v9.$ === 'Nothing') {
+									return $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Generic('Server error'),
+											status: $author$project$Http$Status$BadRequest
+										});
+								} else {
+									var newOrg = _v9.a;
+									return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'name'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : A3(
+										$author$project$Server$acadiaRequest,
+										request.headers,
+										$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
+										$author$project$Backend$createOrganization(newOrg));
+								}
+						}
+					}
 				}
 			}
 		}());
 };
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $elm$json$Json$Decode$string = _Json_decodeString;
 var $elm$core$Platform$Sub$batch = _Platform_batch;
 var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Server$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
-var $elm$json$Json$Decode$succeed = _Json_succeed;
+var $author$project$Http$Status$StatusOk = {$: 'StatusOk'};
 var $author$project$Server$setPathOnCookie = function (cookie) {
 	return cookie + '; Path=/api';
 };
@@ -6097,7 +6301,7 @@ var $author$project$Server$acadiaResponse = F2(
 	function (codec, result) {
 		if (result.$ === 'Err') {
 			return $author$project$Server$respond(
-				{body: 'Database error', headers: _List_Nil, status: 400});
+				{body: 'Database error', headers: _List_Nil, status: $author$project$Http$Status$BadRequest});
 		} else {
 			var _v1 = result.a;
 			var headers = _v1.a;
@@ -6125,7 +6329,7 @@ var $author$project$Server$acadiaResponse = F2(
 							}
 						},
 						headers),
-					status: 200
+					status: $author$project$Http$Status$StatusOk
 				});
 		}
 	});
@@ -6158,85 +6362,12 @@ var $author$project$Server$update = F2(
 					A2($author$project$Server$acadiaResponse, codec, result));
 		}
 	});
+var $elm$json$Json$Decode$value = _Json_decodeValue;
 var $elm$core$Platform$worker = _Platform_worker;
 var $author$project$Server$main = $elm$core$Platform$worker(
 	{init: $author$project$Server$init, subscriptions: $author$project$Server$subscriptions, update: $author$project$Server$update});
 /*
-_Platform_export({'Server':{'init':$author$project$Server$main(
-	A2(
-		$elm$json$Json$Decode$andThen,
-		function (path) {
-			return A2(
-				$elm$json$Json$Decode$andThen,
-				function (method) {
-					return A2(
-						$elm$json$Json$Decode$andThen,
-						function (headers) {
-							return A2(
-								$elm$json$Json$Decode$andThen,
-								function (body) {
-									return $elm$json$Json$Decode$succeed(
-										{body: body, headers: headers, method: method, path: path});
-								},
-								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
-						},
-						A2(
-							$elm$json$Json$Decode$field,
-							'headers',
-							$elm$json$Json$Decode$list(
-								A2(
-									$elm$json$Json$Decode$andThen,
-									function (_v0) {
-										return A2(
-											$elm$json$Json$Decode$andThen,
-											function (_v1) {
-												return $elm$json$Json$Decode$succeed(
-													_Utils_Tuple2(_v0, _v1));
-											},
-											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
-									},
-									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
-				},
-				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
-		},
-		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}});}(this));
+_Platform_export({'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}});}(this));
 */
-export const Elm = {'Server':{'init':$author$project$Server$main(
-	A2(
-		$elm$json$Json$Decode$andThen,
-		function (path) {
-			return A2(
-				$elm$json$Json$Decode$andThen,
-				function (method) {
-					return A2(
-						$elm$json$Json$Decode$andThen,
-						function (headers) {
-							return A2(
-								$elm$json$Json$Decode$andThen,
-								function (body) {
-									return $elm$json$Json$Decode$succeed(
-										{body: body, headers: headers, method: method, path: path});
-								},
-								A2($elm$json$Json$Decode$field, 'body', $elm$json$Json$Decode$string));
-						},
-						A2(
-							$elm$json$Json$Decode$field,
-							'headers',
-							$elm$json$Json$Decode$list(
-								A2(
-									$elm$json$Json$Decode$andThen,
-									function (_v0) {
-										return A2(
-											$elm$json$Json$Decode$andThen,
-											function (_v1) {
-												return $elm$json$Json$Decode$succeed(
-													_Utils_Tuple2(_v0, _v1));
-											},
-											A2($elm$json$Json$Decode$index, 1, $elm$json$Json$Decode$string));
-									},
-									A2($elm$json$Json$Decode$index, 0, $elm$json$Json$Decode$string)))));
-				},
-				A2($elm$json$Json$Decode$field, 'method', $elm$json$Json$Decode$string));
-		},
-		A2($elm$json$Json$Decode$field, 'path', $elm$json$Json$Decode$string)))(0)}};
+export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
   

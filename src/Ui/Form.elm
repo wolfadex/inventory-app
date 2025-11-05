@@ -1,9 +1,9 @@
 module Ui.Form exposing (view)
 
-import Acadia.Api
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Http.Extended
 import Submit exposing (Submit)
 import Ui.Button
 
@@ -14,7 +14,7 @@ view :
     , title : String
     , fields : List (Html msg)
     , submitLabel : String
-    , submit : Submit a Acadia.Api.Error
+    , submit : Submit a Http.Extended.Error
     , additionalButtons : List { onClick : msg, label : String }
     }
     -> Html msg
@@ -31,7 +31,7 @@ view ({ onSubmit, title, fields, submitLabel, submit, additionalButtons } as con
             Submit.Submitting ->
                 Html.Attributes.disabled True
 
-            Submit.Failed (Acadia.Api.Generic _) ->
+            Submit.Failed (Http.Extended.Generic _) ->
                 Html.Attributes.attribute "aria-invalid" "true"
 
             _ ->
@@ -42,7 +42,7 @@ view ({ onSubmit, title, fields, submitLabel, submit, additionalButtons } as con
             [ Html.text title ]
             :: fields
             ++ [ case submit of
-                    Submit.Failed (Acadia.Api.Generic errorMessage) ->
+                    Submit.Failed (Http.Extended.Generic errorMessage) ->
                         Html.small [ Html.Attributes.id describeByName ]
                             [ Html.text errorMessage ]
 

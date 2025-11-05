@@ -11,19 +11,18 @@ module Pages.Login exposing
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
 import Authentication
 import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
+import Endpoints.ApiAuthLogin
 import Html
 import Html.Attributes
+import Http.Extended
 import Icon
 import Route exposing (Route)
 import Route.Path
-import Serialize
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
@@ -49,7 +48,7 @@ type alias Model =
     { pathAfterAuth : Route.Path.Path
     , email : String
     , password : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
 
 
@@ -93,7 +92,7 @@ type Msg
     = UserChangedEmail String
     | UserChangedPassword String
     | UserSubmittedAuthForm
-    | UserLoggedIn (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
+    | UserLoggedIn (Result Http.Extended.Error ())
     | AuthenticationChanged
 
 
@@ -112,28 +111,15 @@ update { shared } msg model =
 
         UserSubmittedAuthForm ->
             ( { model | submit = Submit.Submitting }
-            , Effect.acadia
-                { transaction =
-                    Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Acadia.Api.authInfoCodec
-                            { email = model.email
-                            , password = model.password
-                            }
-                        )
-                        (Serialize.toBytesDecoder Acadia.Api.loginCodec)
-                , onResponse = UserLoggedIn
-                , path = "/auth/login"
+            , Endpoints.ApiAuthLogin.post UserLoggedIn
+                { email = model.email
+                , password = model.password
                 }
             )
 
-        UserLoggedIn (Ok (Ok ())) ->
+        UserLoggedIn (Ok ()) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication (Just model.pathAfterAuth))
-            )
-
-        UserLoggedIn (Ok (Err _)) ->
-            ( { model | submit = Submit.Failed (Acadia.Api.Generic "Error") }
-            , Effect.none
             )
 
         UserLoggedIn (Err err) ->
@@ -150,7 +136,7 @@ update { shared } msg model =
                                 Submit.Fresh
 
                             else
-                                Submit.Failed (Acadia.Api.Generic "Failed to login")
+                                Submit.Failed (Http.Extended.Generic "Failed to login")
                       }
                     , Effect.none
                     )

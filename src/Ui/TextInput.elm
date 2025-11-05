@@ -4,10 +4,10 @@ module Ui.TextInput exposing
     , password
     )
 
-import Acadia.Api
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
+import Http.Extended
 import Submit exposing (Submit)
 
 
@@ -16,7 +16,7 @@ basic :
     , value : String
     , onInput : String -> msg
     , label : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
     -> List (Html.Attribute msg)
     -> Html msg
@@ -29,7 +29,7 @@ email :
     , value : String
     , onInput : String -> msg
     , label : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
     -> List (Html.Attribute msg)
     -> Html msg
@@ -42,7 +42,7 @@ password :
     , value : String
     , onInput : String -> msg
     , label : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
     -> List (Html.Attribute msg)
     -> Html msg
@@ -55,7 +55,7 @@ common :
     , value : String
     , onInput : String -> msg
     , label : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
     -> List (Html.Attribute msg)
     -> Html msg
@@ -75,7 +75,7 @@ common config attributes =
                 Submit.Submitting ->
                     Html.Attributes.disabled True
 
-                Submit.Failed (Acadia.Api.Field error) ->
+                Submit.Failed (Http.Extended.Field error) ->
                     if error.name == config.name then
                         Html.Attributes.attribute "aria-invalid" "true"
 
@@ -89,7 +89,7 @@ common config attributes =
             )
             []
         , case config.submit of
-            Submit.Failed (Acadia.Api.Field error) ->
+            Submit.Failed (Http.Extended.Field error) ->
                 if error.name == config.name then
                     Html.small [ Html.Attributes.id describeByName ]
                         [ Html.text error.message ]

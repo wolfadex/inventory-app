@@ -21,7 +21,7 @@ http
         flags: elmRequest,
       });
 
-      handler.ports.respond.subscribe(function (response) {
+      handler.ports.sendResponse.subscribe(function (response) {
         const headers = {};
 
         for (const header of response.headers) {
@@ -34,7 +34,7 @@ http
         res.write(respBody);
         res.end();
 
-        handler.ports.respond.unsubscribe();
+        handler.ports.sendResponse.unsubscribe();
       });
     } catch (error) {
       console.error(error);

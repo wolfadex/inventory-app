@@ -23,14 +23,16 @@ I use [mise](https://mise.jdx.dev/) for dependency management. If you want to do
 
 - `just dev` - start various dev servers in watch mode
 
-### Colors
-
-#5C4B51
-#8CBEB2
-#F2EBBF
-#F3B562
-#F06060
-
 ### Building for prod
 
-TODO
+- `just build` - I haven't tested this yet
+
+### Notes
+
+Colors:
+
+- #5C4B51
+- #8CBEB2
+- #F2EBBF
+- #F3B562
+- #F06060

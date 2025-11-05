@@ -11,19 +11,18 @@ module Pages.SignUp exposing
 
 -}
 
-import Acadia.Api
-import Acadia.Transaction
 import Authentication
 import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
+import Endpoints.ApiAuthSignup
 import Html
 import Html.Attributes
+import Http.Extended
 import Icon
 import Route exposing (Route)
 import Route.Path
-import Serialize
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
@@ -49,7 +48,7 @@ type alias Model =
     { email : String
     , password : String
     , name : String
-    , submit : Submit String Acadia.Api.Error
+    , submit : Submit String Http.Extended.Error
     }
 
 
@@ -73,7 +72,7 @@ type Msg
     | UserChangedPassword String
     | UserChangedName String
     | UserSubmittedAuthForm
-    | UserSignedUp (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
+    | UserSignedUp (Result Http.Extended.Error ())
     | AuthenticationChanged
 
 
@@ -97,29 +96,16 @@ update { shared } msg model =
 
         UserSubmittedAuthForm ->
             ( { model | submit = Submit.Submitting }
-            , Effect.acadia
-                { transaction =
-                    Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Acadia.Api.signUpInfoCodec
-                            { email = model.email
-                            , password = model.password
-                            , name = model.name
-                            }
-                        )
-                        (Serialize.toBytesDecoder Acadia.Api.loginCodec)
-                , onResponse = UserSignedUp
-                , path = "/auth/signup"
+            , Endpoints.ApiAuthSignup.post UserSignedUp
+                { email = model.email
+                , password = model.password
+                , name = model.name
                 }
             )
 
-        UserSignedUp (Ok (Ok ())) ->
+        UserSignedUp (Ok ()) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication Nothing)
-            )
-
-        UserSignedUp (Ok (Err _)) ->
-            ( { model | submit = Submit.Failed (Acadia.Api.Generic "Error") }
-            , Effect.none
             )
 
         UserSignedUp (Err err) ->
@@ -136,7 +122,7 @@ update { shared } msg model =
                                 Submit.Fresh
 
                             else
-                                Submit.Failed (Acadia.Api.Generic "Failed to sign up")
+                                Submit.Failed (Http.Extended.Generic "Failed to sign up")
                       }
                     , Effect.none
                     )

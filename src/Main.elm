@@ -1,14 +1,16 @@
 module Main exposing (main)
 
-import Acadia.Api
-import Acadia.Transaction
 import Browser.Navigation exposing (Key)
 import Bytes.Decode
+import Bytes.Encode
 import Effect
 import ElmLand.Effect
 import ElmLand.Program exposing (Msg, Program)
 import ElmLand.Subscription
+import Endpoints
 import Http
+import Http.Extended
+import Http.Method
 import Serialize
 import Shared
 import Subscription
@@ -35,15 +37,12 @@ onCustomEffect :
     -> ( Shared.Model, Cmd Msg )
 onCustomEffect customEffect _ _ shared =
     case customEffect of
-        Effect.Acadia info ->
-            let
-                (Acadia.Transaction.Transaction encoder decoder) =
-                    info.transaction
-            in
+        Effect.EndpointRequest info ->
             ( shared
-            , Http.post
-                { url = "/api" ++ info.path
-                , body = Http.bytesBody "application/octet-stream" (Serialize.encodeSimple encoder)
+            , Http.request
+                { method = Http.Method.toString info.endpoint.method
+                , url = Endpoints.toString info.endpoint.path
+                , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode info.endpoint.request)
                 , expect =
                     Http.expectBytesResponse
                         (\result ->
@@ -57,30 +56,33 @@ onCustomEffect customEffect _ _ shared =
                         (\response ->
                             case response of
                                 Http.BadUrl_ _ ->
-                                    Err <| Acadia.Api.Generic "Invalid URL"
+                                    Err <| Http.Extended.Generic "Invalid URL"
 
                                 Http.Timeout_ ->
-                                    Err <| Acadia.Api.Generic "Timeout"
+                                    Err <| Http.Extended.Generic "Timeout"
 
                                 Http.NetworkError_ ->
-                                    Err <| Acadia.Api.Generic "Network error"
+                                    Err <| Http.Extended.Generic "Network error"
 
                                 Http.BadStatus_ _ body ->
-                                    case Serialize.decodeFromBytes Acadia.Api.errorCodec body of
-                                        Ok error ->
+                                    case Serialize.decodeFromBytes Http.Extended.errorCodec body of
+                                        Just error ->
                                             Err error
 
-                                        Err _ ->
-                                            Err <| Acadia.Api.Generic "Error"
+                                        Nothing ->
+                                            Err <| Http.Extended.Generic "Error"
 
                                 Http.GoodStatus_ _ body ->
-                                    case Bytes.Decode.decode decoder body of
+                                    case Bytes.Decode.decode info.endpoint.response body of
                                         Just a ->
                                             Ok a
 
                                         Nothing ->
-                                            Err <| Acadia.Api.Generic "Failed to read response"
+                                            Err <| Http.Extended.Generic "Failed to read response"
                         )
+                , headers = []
+                , timeout = Nothing
+                , tracker = Nothing
                 }
             )
 
