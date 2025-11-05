@@ -1838,6 +1838,322 @@ function _Scheduler_step(proc)
 }
 
 
+// BYTES
+
+function _Bytes_width(bytes)
+{
+	return bytes.byteLength;
+}
+
+var _Bytes_getHostEndianness = F2(function(le, be)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
+	});
+});
+
+
+// ENCODERS
+
+function _Bytes_encode(encoder)
+{
+	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
+	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
+	return mutableBytes;
+}
+
+
+// SIGNED INTEGERS
+
+var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
+var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
+var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
+
+
+// UNSIGNED INTEGERS
+
+var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
+var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
+var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
+
+
+// FLOATS
+
+var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
+var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
+
+
+// BYTES
+
+var _Bytes_write_bytes = F3(function(mb, offset, bytes)
+{
+	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
+	{
+		mb.setUint32(offset + i, bytes.getUint32(i));
+	}
+	for (; i < len; i++)
+	{
+		mb.setUint8(offset + i, bytes.getUint8(i));
+	}
+	return offset + len;
+});
+
+
+// STRINGS
+
+function _Bytes_getStringWidth(string)
+{
+	for (var width = 0, i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		width +=
+			(code < 0x80) ? 1 :
+			(code < 0x800) ? 2 :
+			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
+	}
+	return width;
+}
+
+var _Bytes_write_string = F3(function(mb, offset, string)
+{
+	for (var i = 0; i < string.length; i++)
+	{
+		var code = string.charCodeAt(i);
+		offset +=
+			(code < 0x80)
+				? (mb.setUint8(offset, code)
+				, 1
+				)
+				:
+			(code < 0x800)
+				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
+					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
+					| code & 0x3F /* 0b00111111 */)
+				, 2
+				)
+				:
+			(code < 0xD800 || 0xDBFF < code)
+				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
+					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
+					| code >>> 6 & 0x3F /* 0b00111111 */)
+				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
+					| code & 0x3F /* 0b00111111 */)
+				, 3
+				)
+				:
+			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
+			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
+				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
+				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
+				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
+				| code & 0x3F /* 0b00111111 */)
+			, 4
+			);
+	}
+	return offset;
+});
+
+
+// DECODER
+
+var _Bytes_decode = F2(function(decoder, bytes)
+{
+	try {
+		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
+	} catch(e) {
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
+var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
+var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
+var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
+var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
+var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
+var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
+var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
+
+var _Bytes_read_bytes = F3(function(len, bytes, offset)
+{
+	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
+});
+
+var _Bytes_read_string = F3(function(len, bytes, offset)
+{
+	var string = '';
+	var end = offset + len;
+	for (; offset < end;)
+	{
+		var byte = bytes.getUint8(offset++);
+		string +=
+			(byte < 128)
+				? String.fromCharCode(byte)
+				:
+			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
+				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
+				:
+			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
+				? String.fromCharCode(
+					(byte & 0xF /* 0b00001111 */) << 12
+					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+				)
+				:
+				(byte =
+					((byte & 0x7 /* 0b00000111 */) << 18
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
+						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
+						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
+					) - 0x10000
+				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
+				);
+	}
+	return _Utils_Tuple2(offset, string);
+});
+
+var _Bytes_decodeFailure = F2(function() { throw 0; });
+
+
+
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+// CREATE
+
+var _Regex_never = /.^/;
+
+var _Regex_fromStringWith = F2(function(options, string)
+{
+	var flags = 'g';
+	if (options.multiline) { flags += 'm'; }
+	if (options.caseInsensitive) { flags += 'i'; }
+
+	try
+	{
+		return $elm$core$Maybe$Just(new RegExp(string, flags));
+	}
+	catch(error)
+	{
+		return $elm$core$Maybe$Nothing;
+	}
+});
+
+
+// USE
+
+var _Regex_contains = F2(function(re, string)
+{
+	return string.match(re) !== null;
+});
+
+
+var _Regex_findAtMost = F3(function(n, re, str)
+{
+	var out = [];
+	var number = 0;
+	var string = str;
+	var lastIndex = re.lastIndex;
+	var prevLastIndex = -1;
+	var result;
+	while (number++ < n && (result = re.exec(string)))
+	{
+		if (prevLastIndex == re.lastIndex) break;
+		var i = result.length - 1;
+		var subs = new Array(i);
+		while (i > 0)
+		{
+			var submatch = result[i];
+			subs[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
+		prevLastIndex = re.lastIndex;
+	}
+	re.lastIndex = lastIndex;
+	return _List_fromArray(out);
+});
+
+
+var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
+{
+	var count = 0;
+	function jsReplacer(match)
+	{
+		if (count++ >= n)
+		{
+			return match;
+		}
+		var i = arguments.length - 3;
+		var submatches = new Array(i);
+		while (i > 0)
+		{
+			var submatch = arguments[i];
+			submatches[--i] = submatch
+				? $elm$core$Maybe$Just(submatch)
+				: $elm$core$Maybe$Nothing;
+		}
+		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
+	}
+	return string.replace(re, jsReplacer);
+});
+
+var _Regex_splitAtMost = F3(function(n, re, str)
+{
+	var string = str;
+	var out = [];
+	var start = re.lastIndex;
+	var restoreLastIndex = re.lastIndex;
+	while (n--)
+	{
+		var result = re.exec(string);
+		if (!result) break;
+		out.push(string.slice(start, result.index));
+		start = re.lastIndex;
+	}
+	out.push(string.slice(start));
+	re.lastIndex = restoreLastIndex;
+	return _List_fromArray(out);
+});
+
+var _Regex_infinity = Infinity;
+
+
 
 function _Process_sleep(time)
 {
@@ -2543,323 +2859,7 @@ function _Http_track(router, xhr, tracker)
 			size: event.lengthComputable ? $elm$core$Maybe$Just(event.total) : $elm$core$Maybe$Nothing
 		}))));
 	});
-}
-
-// BYTES
-
-function _Bytes_width(bytes)
-{
-	return bytes.byteLength;
-}
-
-var _Bytes_getHostEndianness = F2(function(le, be)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		callback(_Scheduler_succeed(new Uint8Array(new Uint32Array([1]))[0] === 1 ? le : be));
-	});
-});
-
-
-// ENCODERS
-
-function _Bytes_encode(encoder)
-{
-	var mutableBytes = new DataView(new ArrayBuffer($elm$bytes$Bytes$Encode$getWidth(encoder)));
-	$elm$bytes$Bytes$Encode$write(encoder)(mutableBytes)(0);
-	return mutableBytes;
-}
-
-
-// SIGNED INTEGERS
-
-var _Bytes_write_i8  = F3(function(mb, i, n) { mb.setInt8(i, n); return i + 1; });
-var _Bytes_write_i16 = F4(function(mb, i, n, isLE) { mb.setInt16(i, n, isLE); return i + 2; });
-var _Bytes_write_i32 = F4(function(mb, i, n, isLE) { mb.setInt32(i, n, isLE); return i + 4; });
-
-
-// UNSIGNED INTEGERS
-
-var _Bytes_write_u8  = F3(function(mb, i, n) { mb.setUint8(i, n); return i + 1 ;});
-var _Bytes_write_u16 = F4(function(mb, i, n, isLE) { mb.setUint16(i, n, isLE); return i + 2; });
-var _Bytes_write_u32 = F4(function(mb, i, n, isLE) { mb.setUint32(i, n, isLE); return i + 4; });
-
-
-// FLOATS
-
-var _Bytes_write_f32 = F4(function(mb, i, n, isLE) { mb.setFloat32(i, n, isLE); return i + 4; });
-var _Bytes_write_f64 = F4(function(mb, i, n, isLE) { mb.setFloat64(i, n, isLE); return i + 8; });
-
-
-// BYTES
-
-var _Bytes_write_bytes = F3(function(mb, offset, bytes)
-{
-	for (var i = 0, len = bytes.byteLength, limit = len - 4; i <= limit; i += 4)
-	{
-		mb.setUint32(offset + i, bytes.getUint32(i));
-	}
-	for (; i < len; i++)
-	{
-		mb.setUint8(offset + i, bytes.getUint8(i));
-	}
-	return offset + len;
-});
-
-
-// STRINGS
-
-function _Bytes_getStringWidth(string)
-{
-	for (var width = 0, i = 0; i < string.length; i++)
-	{
-		var code = string.charCodeAt(i);
-		width +=
-			(code < 0x80) ? 1 :
-			(code < 0x800) ? 2 :
-			(code < 0xD800 || 0xDBFF < code) ? 3 : (i++, 4);
-	}
-	return width;
-}
-
-var _Bytes_write_string = F3(function(mb, offset, string)
-{
-	for (var i = 0; i < string.length; i++)
-	{
-		var code = string.charCodeAt(i);
-		offset +=
-			(code < 0x80)
-				? (mb.setUint8(offset, code)
-				, 1
-				)
-				:
-			(code < 0x800)
-				? (mb.setUint16(offset, 0xC080 /* 0b1100000010000000 */
-					| (code >>> 6 & 0x1F /* 0b00011111 */) << 8
-					| code & 0x3F /* 0b00111111 */)
-				, 2
-				)
-				:
-			(code < 0xD800 || 0xDBFF < code)
-				? (mb.setUint16(offset, 0xE080 /* 0b1110000010000000 */
-					| (code >>> 12 & 0xF /* 0b00001111 */) << 8
-					| code >>> 6 & 0x3F /* 0b00111111 */)
-				, mb.setUint8(offset + 2, 0x80 /* 0b10000000 */
-					| code & 0x3F /* 0b00111111 */)
-				, 3
-				)
-				:
-			(code = (code - 0xD800) * 0x400 + string.charCodeAt(++i) - 0xDC00 + 0x10000
-			, mb.setUint32(offset, 0xF0808080 /* 0b11110000100000001000000010000000 */
-				| (code >>> 18 & 0x7 /* 0b00000111 */) << 24
-				| (code >>> 12 & 0x3F /* 0b00111111 */) << 16
-				| (code >>> 6 & 0x3F /* 0b00111111 */) << 8
-				| code & 0x3F /* 0b00111111 */)
-			, 4
-			);
-	}
-	return offset;
-});
-
-
-// DECODER
-
-var _Bytes_decode = F2(function(decoder, bytes)
-{
-	try {
-		return $elm$core$Maybe$Just(A2(decoder, bytes, 0).b);
-	} catch(e) {
-		return $elm$core$Maybe$Nothing;
-	}
-});
-
-var _Bytes_read_i8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getInt8(offset)); });
-var _Bytes_read_i16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getInt16(offset, isLE)); });
-var _Bytes_read_i32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getInt32(offset, isLE)); });
-var _Bytes_read_u8  = F2(function(      bytes, offset) { return _Utils_Tuple2(offset + 1, bytes.getUint8(offset)); });
-var _Bytes_read_u16 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 2, bytes.getUint16(offset, isLE)); });
-var _Bytes_read_u32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getUint32(offset, isLE)); });
-var _Bytes_read_f32 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 4, bytes.getFloat32(offset, isLE)); });
-var _Bytes_read_f64 = F3(function(isLE, bytes, offset) { return _Utils_Tuple2(offset + 8, bytes.getFloat64(offset, isLE)); });
-
-var _Bytes_read_bytes = F3(function(len, bytes, offset)
-{
-	return _Utils_Tuple2(offset + len, new DataView(bytes.buffer, bytes.byteOffset + offset, len));
-});
-
-var _Bytes_read_string = F3(function(len, bytes, offset)
-{
-	var string = '';
-	var end = offset + len;
-	for (; offset < end;)
-	{
-		var byte = bytes.getUint8(offset++);
-		string +=
-			(byte < 128)
-				? String.fromCharCode(byte)
-				:
-			((byte & 0xE0 /* 0b11100000 */) === 0xC0 /* 0b11000000 */)
-				? String.fromCharCode((byte & 0x1F /* 0b00011111 */) << 6 | bytes.getUint8(offset++) & 0x3F /* 0b00111111 */)
-				:
-			((byte & 0xF0 /* 0b11110000 */) === 0xE0 /* 0b11100000 */)
-				? String.fromCharCode(
-					(byte & 0xF /* 0b00001111 */) << 12
-					| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
-					| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
-				)
-				:
-				(byte =
-					((byte & 0x7 /* 0b00000111 */) << 18
-						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 12
-						| (bytes.getUint8(offset++) & 0x3F /* 0b00111111 */) << 6
-						| bytes.getUint8(offset++) & 0x3F /* 0b00111111 */
-					) - 0x10000
-				, String.fromCharCode(Math.floor(byte / 0x400) + 0xD800, byte % 0x400 + 0xDC00)
-				);
-	}
-	return _Utils_Tuple2(offset, string);
-});
-
-var _Bytes_decodeFailure = F2(function() { throw 0; });
-
-
-
-var _Bitwise_and = F2(function(a, b)
-{
-	return a & b;
-});
-
-var _Bitwise_or = F2(function(a, b)
-{
-	return a | b;
-});
-
-var _Bitwise_xor = F2(function(a, b)
-{
-	return a ^ b;
-});
-
-function _Bitwise_complement(a)
-{
-	return ~a;
-};
-
-var _Bitwise_shiftLeftBy = F2(function(offset, a)
-{
-	return a << offset;
-});
-
-var _Bitwise_shiftRightBy = F2(function(offset, a)
-{
-	return a >> offset;
-});
-
-var _Bitwise_shiftRightZfBy = F2(function(offset, a)
-{
-	return a >>> offset;
-});
-
-
-// CREATE
-
-var _Regex_never = /.^/;
-
-var _Regex_fromStringWith = F2(function(options, string)
-{
-	var flags = 'g';
-	if (options.multiline) { flags += 'm'; }
-	if (options.caseInsensitive) { flags += 'i'; }
-
-	try
-	{
-		return $elm$core$Maybe$Just(new RegExp(string, flags));
-	}
-	catch(error)
-	{
-		return $elm$core$Maybe$Nothing;
-	}
-});
-
-
-// USE
-
-var _Regex_contains = F2(function(re, string)
-{
-	return string.match(re) !== null;
-});
-
-
-var _Regex_findAtMost = F3(function(n, re, str)
-{
-	var out = [];
-	var number = 0;
-	var string = str;
-	var lastIndex = re.lastIndex;
-	var prevLastIndex = -1;
-	var result;
-	while (number++ < n && (result = re.exec(string)))
-	{
-		if (prevLastIndex == re.lastIndex) break;
-		var i = result.length - 1;
-		var subs = new Array(i);
-		while (i > 0)
-		{
-			var submatch = result[i];
-			subs[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		out.push(A4($elm$regex$Regex$Match, result[0], result.index, number, _List_fromArray(subs)));
-		prevLastIndex = re.lastIndex;
-	}
-	re.lastIndex = lastIndex;
-	return _List_fromArray(out);
-});
-
-
-var _Regex_replaceAtMost = F4(function(n, re, replacer, string)
-{
-	var count = 0;
-	function jsReplacer(match)
-	{
-		if (count++ >= n)
-		{
-			return match;
-		}
-		var i = arguments.length - 3;
-		var submatches = new Array(i);
-		while (i > 0)
-		{
-			var submatch = arguments[i];
-			submatches[--i] = submatch
-				? $elm$core$Maybe$Just(submatch)
-				: $elm$core$Maybe$Nothing;
-		}
-		return replacer(A4($elm$regex$Regex$Match, match, arguments[arguments.length - 2], count, _List_fromArray(submatches)));
-	}
-	return string.replace(re, jsReplacer);
-});
-
-var _Regex_splitAtMost = F3(function(n, re, str)
-{
-	var string = str;
-	var out = [];
-	var start = re.lastIndex;
-	var restoreLastIndex = re.lastIndex;
-	while (n--)
-	{
-		var result = re.exec(string);
-		if (!result) break;
-		out.push(string.slice(start, result.index));
-		start = re.lastIndex;
-	}
-	out.push(string.slice(start));
-	re.lastIndex = restoreLastIndex;
-	return _List_fromArray(out);
-});
-
-var _Regex_infinity = Infinity;
-var $elm$core$List$cons = _List_cons;
+}var $elm$core$List$cons = _List_cons;
 var $elm$core$Elm$JsArray$foldr = _JsArray_foldr;
 var $elm$core$Array$foldr = F3(
 	function (func, baseCase, _v0) {
@@ -3345,6 +3345,12 @@ var $author$project$Server$AuthSelfResponse = F2(
 	function (a, b) {
 		return {$: 'AuthSelfResponse', a: a, b: b};
 	});
+var $author$project$Acadia$Api$Field = function (a) {
+	return {$: 'Field', a: a};
+};
+var $author$project$Acadia$Api$Generic = function (a) {
+	return {$: 'Generic', a: a};
+};
 var $author$project$Server$LoginResponse = F2(
 	function (a, b) {
 		return {$: 'LoginResponse', a: a, b: b};
@@ -3353,6 +3359,917 @@ var $author$project$Server$OrganizationCreateResponse = F2(
 	function (a, b) {
 		return {$: 'OrganizationCreateResponse', a: a, b: b};
 	});
+var $elm$core$Basics$composeR = F3(
+	function (f, g, x) {
+		return g(
+			f(x));
+	});
+var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
+	switch (builder.$) {
+		case 'I8':
+			return 1;
+		case 'I16':
+			return 2;
+		case 'I32':
+			return 4;
+		case 'U8':
+			return 1;
+		case 'U16':
+			return 2;
+		case 'U32':
+			return 4;
+		case 'F32':
+			return 4;
+		case 'F64':
+			return 8;
+		case 'Seq':
+			var w = builder.a;
+			return w;
+		case 'Utf8':
+			var w = builder.a;
+			return w;
+		default:
+			var bs = builder.a;
+			return _Bytes_width(bs);
+	}
+};
+var $elm$bytes$Bytes$LE = {$: 'LE'};
+var $elm$bytes$Bytes$Encode$write = F3(
+	function (builder, mb, offset) {
+		switch (builder.$) {
+			case 'I8':
+				var n = builder.a;
+				return A3(_Bytes_write_i8, mb, offset, n);
+			case 'I16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'I32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_i32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U8':
+				var n = builder.a;
+				return A3(_Bytes_write_u8, mb, offset, n);
+			case 'U16':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u16,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'U32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_u32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F32':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f32,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'F64':
+				var e = builder.a;
+				var n = builder.b;
+				return A4(
+					_Bytes_write_f64,
+					mb,
+					offset,
+					n,
+					_Utils_eq(e, $elm$bytes$Bytes$LE));
+			case 'Seq':
+				var bs = builder.b;
+				return A3($elm$bytes$Bytes$Encode$writeSequence, bs, mb, offset);
+			case 'Utf8':
+				var s = builder.b;
+				return A3(_Bytes_write_string, mb, offset, s);
+			default:
+				var bs = builder.a;
+				return A3(_Bytes_write_bytes, mb, offset, bs);
+		}
+	});
+var $elm$bytes$Bytes$Encode$writeSequence = F3(
+	function (builders, mb, offset) {
+		writeSequence:
+		while (true) {
+			if (!builders.b) {
+				return offset;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$builders = bs,
+					$temp$mb = mb,
+					$temp$offset = A3($elm$bytes$Bytes$Encode$write, b, mb, offset);
+				builders = $temp$builders;
+				mb = $temp$mb;
+				offset = $temp$offset;
+				continue writeSequence;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Encode$encode = _Bytes_encode;
+var $elm$bytes$Bytes$Encode$Seq = F2(
+	function (a, b) {
+		return {$: 'Seq', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$getWidths = F2(
+	function (width, builders) {
+		getWidths:
+		while (true) {
+			if (!builders.b) {
+				return width;
+			} else {
+				var b = builders.a;
+				var bs = builders.b;
+				var $temp$width = width + $elm$bytes$Bytes$Encode$getWidth(b),
+					$temp$builders = bs;
+				width = $temp$width;
+				builders = $temp$builders;
+				continue getWidths;
+			}
+		}
+	});
+var $elm$bytes$Bytes$Encode$sequence = function (builders) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Seq,
+		A2($elm$bytes$Bytes$Encode$getWidths, 0, builders),
+		builders);
+};
+var $author$project$Serialize$toBytesEncoder = function (_v0) {
+	var m = _v0.a;
+	return m.encoder;
+};
+var $author$project$Serialize$encodeToBytes = F2(
+	function (codec, value) {
+		return $elm$bytes$Bytes$Encode$encode(
+			$elm$bytes$Bytes$Encode$sequence(
+				_List_fromArray(
+					[
+						A2($author$project$Serialize$toBytesEncoder, codec, value)
+					])));
+	});
+var $elm$bytes$Bytes$Decode$decode = F2(
+	function (_v0, bs) {
+		var decoder = _v0.a;
+		return A2(_Bytes_decode, decoder, bs);
+	});
+var $elm$core$Basics$identity = function (x) {
+	return x;
+};
+var $elm$bytes$Bytes$Decode$Decoder = function (a) {
+	return {$: 'Decoder', a: a};
+};
+var $elm$bytes$Bytes$Decode$loopHelp = F4(
+	function (state, callback, bites, offset) {
+		loopHelp:
+		while (true) {
+			var _v0 = callback(state);
+			var decoder = _v0.a;
+			var _v1 = A2(decoder, bites, offset);
+			var newOffset = _v1.a;
+			var step = _v1.b;
+			if (step.$ === 'Loop') {
+				var newState = step.a;
+				var $temp$state = newState,
+					$temp$callback = callback,
+					$temp$bites = bites,
+					$temp$offset = newOffset;
+				state = $temp$state;
+				callback = $temp$callback;
+				bites = $temp$bites;
+				offset = $temp$offset;
+				continue loopHelp;
+			} else {
+				var result = step.a;
+				return _Utils_Tuple2(newOffset, result);
+			}
+		}
+	});
+var $elm$bytes$Bytes$Decode$loop = F2(
+	function (state, callback) {
+		return $elm$bytes$Bytes$Decode$Decoder(
+			A2($elm$bytes$Bytes$Decode$loopHelp, state, callback));
+	});
+var $elm$bytes$Bytes$Decode$Done = function (a) {
+	return {$: 'Done', a: a};
+};
+var $elm$bytes$Bytes$Decode$Loop = function (a) {
+	return {$: 'Loop', a: a};
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$String$cons = _String_cons;
+var $elm$core$String$fromChar = function (_char) {
+	return A2($elm$core$String$cons, _char, '');
+};
+var $danfishgold$base64_bytes$Decode$lowest6BitsMask = 63;
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$core$Char$fromCode = _Char_fromCode;
+var $danfishgold$base64_bytes$Decode$unsafeToChar = function (n) {
+	if (n <= 25) {
+		return $elm$core$Char$fromCode(65 + n);
+	} else {
+		if (n <= 51) {
+			return $elm$core$Char$fromCode(97 + (n - 26));
+		} else {
+			if (n <= 61) {
+				return $elm$core$Char$fromCode(48 + (n - 52));
+			} else {
+				switch (n) {
+					case 62:
+						return _Utils_chr('+');
+					case 63:
+						return _Utils_chr('/');
+					default:
+						return _Utils_chr('\u0000');
+				}
+			}
+		}
+	}
+};
+var $danfishgold$base64_bytes$Decode$bitsToChars = F2(
+	function (bits, missing) {
+		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits >>> 18);
+		switch (missing) {
+			case 0:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2(
+						$elm$core$String$cons,
+						q,
+						A2(
+							$elm$core$String$cons,
+							r,
+							$elm$core$String$fromChar(s))));
+			case 1:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2(
+						$elm$core$String$cons,
+						q,
+						A2($elm$core$String$cons, r, '=')));
+			case 2:
+				return A2(
+					$elm$core$String$cons,
+					p,
+					A2($elm$core$String$cons, q, '=='));
+			default:
+				return '';
+		}
+	});
+var $danfishgold$base64_bytes$Decode$bitsToCharSpecialized = F4(
+	function (bits1, bits2, bits3, accum) {
+		var z = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var y = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var x = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 >>> 18);
+		var w = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 >>> 18);
+		var d = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var c = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var b = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
+		var a = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 >>> 18);
+		return A2(
+			$elm$core$String$cons,
+			x,
+			A2(
+				$elm$core$String$cons,
+				y,
+				A2(
+					$elm$core$String$cons,
+					z,
+					A2(
+						$elm$core$String$cons,
+						w,
+						A2(
+							$elm$core$String$cons,
+							a,
+							A2(
+								$elm$core$String$cons,
+								b,
+								A2(
+									$elm$core$String$cons,
+									c,
+									A2(
+										$elm$core$String$cons,
+										d,
+										A2(
+											$elm$core$String$cons,
+											p,
+											A2(
+												$elm$core$String$cons,
+												q,
+												A2(
+													$elm$core$String$cons,
+													r,
+													A2($elm$core$String$cons, s, accum))))))))))));
+	});
+var $elm$core$Bitwise$or = _Bitwise_or;
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $danfishgold$base64_bytes$Decode$decode18Help = F5(
+	function (a, b, c, d, e) {
+		var combined6 = ((255 & d) << 16) | e;
+		var combined5 = d >>> 8;
+		var combined4 = 16777215 & c;
+		var combined3 = ((65535 & b) << 8) | (c >>> 24);
+		var combined2 = ((255 & a) << 16) | (b >>> 16);
+		var combined1 = a >>> 8;
+		return A4(
+			$danfishgold$base64_bytes$Decode$bitsToCharSpecialized,
+			combined3,
+			combined2,
+			combined1,
+			A4($danfishgold$base64_bytes$Decode$bitsToCharSpecialized, combined6, combined5, combined4, ''));
+	});
+var $elm$bytes$Bytes$Decode$map5 = F6(
+	function (func, _v0, _v1, _v2, _v3, _v4) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		var decodeD = _v3.a;
+		var decodeE = _v4.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v5 = A2(decodeA, bites, offset);
+					var aOffset = _v5.a;
+					var a = _v5.b;
+					var _v6 = A2(decodeB, bites, aOffset);
+					var bOffset = _v6.a;
+					var b = _v6.b;
+					var _v7 = A2(decodeC, bites, bOffset);
+					var cOffset = _v7.a;
+					var c = _v7.b;
+					var _v8 = A2(decodeD, bites, cOffset);
+					var dOffset = _v8.a;
+					var d = _v8.b;
+					var _v9 = A2(decodeE, bites, dOffset);
+					var eOffset = _v9.a;
+					var e = _v9.b;
+					return _Utils_Tuple2(
+						eOffset,
+						A5(func, a, b, c, d, e));
+				}));
+	});
+var $elm$bytes$Bytes$BE = {$: 'BE'};
+var $elm$bytes$Bytes$Decode$unsignedInt16 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_u16(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $danfishgold$base64_bytes$Decode$u16BE = $elm$bytes$Bytes$Decode$unsignedInt16($elm$bytes$Bytes$BE);
+var $elm$bytes$Bytes$Decode$unsignedInt32 = function (endianness) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_u32(
+			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
+};
+var $danfishgold$base64_bytes$Decode$u32BE = $elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE);
+var $danfishgold$base64_bytes$Decode$decode18Bytes = A6($elm$bytes$Bytes$Decode$map5, $danfishgold$base64_bytes$Decode$decode18Help, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u16BE);
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$bytes$Bytes$Decode$map = F2(
+	function (func, _v0) {
+		var decodeA = _v0.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v1 = A2(decodeA, bites, offset);
+					var aOffset = _v1.a;
+					var a = _v1.b;
+					return _Utils_Tuple2(
+						aOffset,
+						func(a));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$map2 = F3(
+	function (func, _v0, _v1) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v2 = A2(decodeA, bites, offset);
+					var aOffset = _v2.a;
+					var a = _v2.b;
+					var _v3 = A2(decodeB, bites, aOffset);
+					var bOffset = _v3.a;
+					var b = _v3.b;
+					return _Utils_Tuple2(
+						bOffset,
+						A2(func, a, b));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$map3 = F4(
+	function (func, _v0, _v1, _v2) {
+		var decodeA = _v0.a;
+		var decodeB = _v1.a;
+		var decodeC = _v2.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v3 = A2(decodeA, bites, offset);
+					var aOffset = _v3.a;
+					var a = _v3.b;
+					var _v4 = A2(decodeB, bites, aOffset);
+					var bOffset = _v4.a;
+					var b = _v4.b;
+					var _v5 = A2(decodeC, bites, bOffset);
+					var cOffset = _v5.a;
+					var c = _v5.b;
+					return _Utils_Tuple2(
+						cOffset,
+						A3(func, a, b, c));
+				}));
+	});
+var $elm$bytes$Bytes$Decode$succeed = function (a) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		F2(
+			function (_v0, offset) {
+				return _Utils_Tuple2(offset, a);
+			}));
+};
+var $elm$bytes$Bytes$Decode$unsignedInt8 = $elm$bytes$Bytes$Decode$Decoder(_Bytes_read_u8);
+var $danfishgold$base64_bytes$Decode$loopHelp = function (_v0) {
+	var remaining = _v0.remaining;
+	var string = _v0.string;
+	if (remaining >= 18) {
+		return A2(
+			$elm$bytes$Bytes$Decode$map,
+			function (result) {
+				return $elm$bytes$Bytes$Decode$Loop(
+					{
+						remaining: remaining - 18,
+						string: _Utils_ap(string, result)
+					});
+			},
+			$danfishgold$base64_bytes$Decode$decode18Bytes);
+	} else {
+		if (remaining >= 3) {
+			var helper = F3(
+				function (a, b, c) {
+					var combined = ((a << 16) | (b << 8)) | c;
+					return $elm$bytes$Bytes$Decode$Loop(
+						{
+							remaining: remaining - 3,
+							string: _Utils_ap(
+								string,
+								A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 0))
+						});
+				});
+			return A4($elm$bytes$Bytes$Decode$map3, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
+		} else {
+			if (!remaining) {
+				return $elm$bytes$Bytes$Decode$succeed(
+					$elm$bytes$Bytes$Decode$Done(string));
+			} else {
+				if (remaining === 2) {
+					var helper = F2(
+						function (a, b) {
+							var combined = (a << 16) | (b << 8);
+							return $elm$bytes$Bytes$Decode$Done(
+								_Utils_ap(
+									string,
+									A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 1)));
+						});
+					return A3($elm$bytes$Bytes$Decode$map2, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
+				} else {
+					return A2(
+						$elm$bytes$Bytes$Decode$map,
+						function (a) {
+							return $elm$bytes$Bytes$Decode$Done(
+								_Utils_ap(
+									string,
+									A2($danfishgold$base64_bytes$Decode$bitsToChars, a << 16, 2)));
+						},
+						$elm$bytes$Bytes$Decode$unsignedInt8);
+				}
+			}
+		}
+	}
+};
+var $danfishgold$base64_bytes$Decode$decoder = function (width) {
+	return A2(
+		$elm$bytes$Bytes$Decode$loop,
+		{remaining: width, string: ''},
+		$danfishgold$base64_bytes$Decode$loopHelp);
+};
+var $elm$bytes$Bytes$width = _Bytes_width;
+var $danfishgold$base64_bytes$Decode$fromBytes = function (bytes) {
+	return A2(
+		$elm$bytes$Bytes$Decode$decode,
+		$danfishgold$base64_bytes$Decode$decoder(
+			$elm$bytes$Bytes$width(bytes)),
+		bytes);
+};
+var $danfishgold$base64_bytes$Base64$fromBytes = $danfishgold$base64_bytes$Decode$fromBytes;
+var $elm$regex$Regex$Match = F4(
+	function (match, index, number, submatches) {
+		return {index: index, match: match, number: number, submatches: submatches};
+	});
+var $elm$regex$Regex$replace = _Regex_replaceAtMost(_Regex_infinity);
+var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
+var $elm$regex$Regex$fromString = function (string) {
+	return A2(
+		$elm$regex$Regex$fromStringWith,
+		{caseInsensitive: false, multiline: false},
+		string);
+};
+var $elm$regex$Regex$never = _Regex_never;
+var $elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var $author$project$Serialize$replaceForUrl = A2(
+	$elm$core$Maybe$withDefault,
+	$elm$regex$Regex$never,
+	$elm$regex$Regex$fromString('[\\+/=]'));
+var $author$project$Serialize$replaceBase64Chars = function () {
+	var replaceChar = function (rematch) {
+		var _v0 = rematch.match;
+		switch (_v0) {
+			case '+':
+				return '-';
+			case '/':
+				return '_';
+			default:
+				return '';
+		}
+	};
+	return A2(
+		$elm$core$Basics$composeR,
+		$danfishgold$base64_bytes$Base64$fromBytes,
+		A2(
+			$elm$core$Basics$composeR,
+			$elm$core$Maybe$withDefault(''),
+			A2($elm$regex$Regex$replace, $author$project$Serialize$replaceForUrl, replaceChar)));
+}();
+var $author$project$Serialize$encodeToString = function (codec) {
+	return A2(
+		$elm$core$Basics$composeR,
+		$author$project$Serialize$encodeToBytes(codec),
+		$author$project$Serialize$replaceBase64Chars);
+};
+var $author$project$Serialize$CustomTypeCodec = function (a) {
+	return {$: 'CustomTypeCodec', a: a};
+};
+var $author$project$Serialize$customType = function (match) {
+	return $author$project$Serialize$CustomTypeCodec(
+		{
+			decoder: function (_v0) {
+				return $elm$core$Basics$identity;
+			},
+			idCounter: 0,
+			match: match
+		});
+};
+var $author$project$Serialize$RecordCodec = function (a) {
+	return {$: 'RecordCodec', a: a};
+};
+var $author$project$Serialize$toBytesDecoder = function (_v0) {
+	var m = _v0.a;
+	return m.decoder;
+};
+var $author$project$Serialize$field = F3(
+	function (getter, codec, _v0) {
+		var recordCodec = _v0.a;
+		return $author$project$Serialize$RecordCodec(
+			{
+				decoder: A3(
+					$elm$bytes$Bytes$Decode$map2,
+					F2(
+						function (f, x) {
+							var _v1 = _Utils_Tuple2(f, x);
+							if (_v1.a.$ === 'Ok') {
+								if (_v1.b.$ === 'Ok') {
+									var fOk = _v1.a.a;
+									var xOk = _v1.b.a;
+									return $elm$core$Result$Ok(
+										fOk(xOk));
+								} else {
+									var err = _v1.b.a;
+									return $elm$core$Result$Err(err);
+								}
+							} else {
+								var err = _v1.a.a;
+								return $elm$core$Result$Err(err);
+							}
+						}),
+					recordCodec.decoder,
+					$author$project$Serialize$toBytesDecoder(codec)),
+				encoder: function (v) {
+					return A2(
+						$elm$core$List$cons,
+						A2(
+							$author$project$Serialize$toBytesEncoder,
+							codec,
+							getter(v)),
+						recordCodec.encoder(v));
+				},
+				fieldIndex: recordCodec.fieldIndex + 1
+			});
+	});
+var $author$project$Serialize$Codec = function (a) {
+	return {$: 'Codec', a: a};
+};
+var $author$project$Serialize$finishRecord = function (_v0) {
+	var codec = _v0.a;
+	return $author$project$Serialize$Codec(
+		{
+			decoder: codec.decoder,
+			encoder: A2(
+				$elm$core$Basics$composeR,
+				codec.encoder,
+				A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence))
+		});
+};
+var $author$project$Serialize$record = function (ctor) {
+	return $author$project$Serialize$RecordCodec(
+		{
+			decoder: $elm$bytes$Bytes$Decode$succeed(
+				$elm$core$Result$Ok(ctor)),
+			encoder: function (_v0) {
+				return _List_Nil;
+			},
+			fieldIndex: 0
+		});
+};
+var $elm$bytes$Bytes$Decode$andThen = F2(
+	function (callback, _v0) {
+		var decodeA = _v0.a;
+		return $elm$bytes$Bytes$Decode$Decoder(
+			F2(
+				function (bites, offset) {
+					var _v1 = A2(decodeA, bites, offset);
+					var newOffset = _v1.a;
+					var a = _v1.b;
+					var _v2 = callback(a);
+					var decodeB = _v2.a;
+					return A2(decodeB, bites, newOffset);
+				}));
+	});
+var $author$project$Serialize$build = F2(
+	function (encoder_, decoder_) {
+		return $author$project$Serialize$Codec(
+			{decoder: decoder_, encoder: encoder_});
+	});
+var $author$project$Serialize$endian = $elm$bytes$Bytes$BE;
+var $elm$bytes$Bytes$Encode$getStringWidth = _Bytes_getStringWidth;
+var $elm$bytes$Bytes$Decode$string = function (n) {
+	return $elm$bytes$Bytes$Decode$Decoder(
+		_Bytes_read_string(n));
+};
+var $elm$bytes$Bytes$Encode$Utf8 = F2(
+	function (a, b) {
+		return {$: 'Utf8', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$string = function (str) {
+	return A2(
+		$elm$bytes$Bytes$Encode$Utf8,
+		_Bytes_getStringWidth(str),
+		str);
+};
+var $elm$bytes$Bytes$Encode$U32 = F2(
+	function (a, b) {
+		return {$: 'U32', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$unsignedInt32 = $elm$bytes$Bytes$Encode$U32;
+var $author$project$Serialize$string = A2(
+	$author$project$Serialize$build,
+	function (text) {
+		return $elm$bytes$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					A2(
+					$elm$bytes$Bytes$Encode$unsignedInt32,
+					$author$project$Serialize$endian,
+					$elm$bytes$Bytes$Encode$getStringWidth(text)),
+					$elm$bytes$Bytes$Encode$string(text)
+				]));
+	},
+	A2(
+		$elm$bytes$Bytes$Decode$andThen,
+		function (charCount) {
+			return A2(
+				$elm$bytes$Bytes$Decode$map,
+				$elm$core$Result$Ok,
+				$elm$bytes$Bytes$Decode$string(charCount));
+		},
+		$elm$bytes$Bytes$Decode$unsignedInt32($author$project$Serialize$endian)));
+var $author$project$Acadia$Api$fieldErrorCodec = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.message;
+		},
+		$author$project$Serialize$string,
+		A3(
+			$author$project$Serialize$field,
+			function ($) {
+				return $.name;
+			},
+			$author$project$Serialize$string,
+			$author$project$Serialize$record(
+				F2(
+					function (name, message) {
+						return {message: message, name: name};
+					})))));
+var $author$project$Serialize$DataCorrupted = {$: 'DataCorrupted'};
+var $author$project$Serialize$finishCustomType = function (_v0) {
+	var am = _v0.a;
+	return A2(
+		$author$project$Serialize$build,
+		A2(
+			$elm$core$Basics$composeR,
+			am.match,
+			function (_v1) {
+				var _v2 = _v1.a;
+				var a = _v2.a;
+				return a;
+			}),
+		A2(
+			$elm$bytes$Bytes$Decode$andThen,
+			function (tag) {
+				return A2(
+					am.decoder,
+					tag,
+					$elm$bytes$Bytes$Decode$succeed(
+						$elm$core$Result$Err($author$project$Serialize$DataCorrupted)));
+			},
+			$elm$bytes$Bytes$Decode$unsignedInt16($author$project$Serialize$endian)));
+};
+var $author$project$Serialize$result1 = F2(
+	function (ctor, value) {
+		if (value.$ === 'Ok') {
+			var ok = value.a;
+			return $elm$core$Result$Ok(
+				ctor(ok));
+		} else {
+			var err = value.a;
+			return $elm$core$Result$Err(err);
+		}
+	});
+var $author$project$Serialize$VariantEncoder = function (a) {
+	return {$: 'VariantEncoder', a: a};
+};
+var $elm$json$Json$Encode$null = _Json_encodeNull;
+var $elm$bytes$Bytes$Encode$U16 = F2(
+	function (a, b) {
+		return {$: 'U16', a: a, b: b};
+	});
+var $elm$bytes$Bytes$Encode$unsignedInt16 = $elm$bytes$Bytes$Encode$U16;
+var $author$project$Serialize$variant = F3(
+	function (matchPiece, decoderPiece, _v0) {
+		var am = _v0.a;
+		var enc = function (v) {
+			return $author$project$Serialize$VariantEncoder(
+				_Utils_Tuple2(
+					$elm$bytes$Bytes$Encode$sequence(
+						A2(
+							$elm$core$List$cons,
+							A2($elm$bytes$Bytes$Encode$unsignedInt16, $author$project$Serialize$endian, am.idCounter),
+							v)),
+					$elm$json$Json$Encode$null));
+		};
+		var decoder_ = F2(
+			function (tag, orElse) {
+				return _Utils_eq(tag, am.idCounter) ? decoderPiece : A2(am.decoder, tag, orElse);
+			});
+		return $author$project$Serialize$CustomTypeCodec(
+			{
+				decoder: decoder_,
+				idCounter: am.idCounter + 1,
+				match: am.match(
+					matchPiece(enc))
+			});
+	});
+var $author$project$Serialize$variant1 = F2(
+	function (ctor, m1) {
+		return A2(
+			$author$project$Serialize$variant,
+			F2(
+				function (c, v) {
+					return c(
+						_List_fromArray(
+							[
+								A2($author$project$Serialize$toBytesEncoder, m1, v)
+							]));
+				}),
+			A2(
+				$elm$bytes$Bytes$Decode$map,
+				$author$project$Serialize$result1(ctor),
+				$author$project$Serialize$toBytesDecoder(m1)));
+	});
+var $author$project$Acadia$Api$errorCodec = $author$project$Serialize$finishCustomType(
+	A3(
+		$author$project$Serialize$variant1,
+		$author$project$Acadia$Api$Generic,
+		$author$project$Serialize$string,
+		A3(
+			$author$project$Serialize$variant1,
+			$author$project$Acadia$Api$Field,
+			$author$project$Acadia$Api$fieldErrorCodec,
+			$author$project$Serialize$customType(
+				F3(
+					function (fieldEncoder, genericEncoder, value) {
+						if (value.$ === 'Field') {
+							var v = value.a;
+							return fieldEncoder(v);
+						} else {
+							var v = value.a;
+							return genericEncoder(v);
+						}
+					})))));
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Server$respond = _Platform_outgoingPort(
+	'respond',
+	function ($) {
+		return $elm$json$Json$Encode$object(
+			_List_fromArray(
+				[
+					_Utils_Tuple2(
+					'body',
+					$elm$json$Json$Encode$string($.body)),
+					_Utils_Tuple2(
+					'headers',
+					$elm$json$Json$Encode$list(
+						function ($) {
+							var a = $.a;
+							var b = $.b;
+							return A2(
+								$elm$json$Json$Encode$list,
+								$elm$core$Basics$identity,
+								_List_fromArray(
+									[
+										$elm$json$Json$Encode$string(a),
+										$elm$json$Json$Encode$string(b)
+									]));
+						})($.headers)),
+					_Utils_Tuple2(
+					'status',
+					$elm$json$Json$Encode$int($.status))
+				]));
+	});
+var $author$project$Server$acadiaFailureResponse = function (config) {
+	return $author$project$Server$respond(
+		{
+			body: A2($author$project$Serialize$encodeToString, $author$project$Acadia$Api$errorCodec, config.error),
+			headers: _List_Nil,
+			status: config.status
+		});
+};
 var $elm$http$Http$BadStatus_ = F2(
 	function (a, b) {
 		return {$: 'BadStatus_', a: a, b: b};
@@ -3907,134 +4824,6 @@ var $elm$http$Http$BadUrl = function (a) {
 };
 var $elm$http$Http$NetworkError = {$: 'NetworkError'};
 var $elm$http$Http$Timeout = {$: 'Timeout'};
-var $elm$bytes$Bytes$Encode$getWidth = function (builder) {
-	switch (builder.$) {
-		case 'I8':
-			return 1;
-		case 'I16':
-			return 2;
-		case 'I32':
-			return 4;
-		case 'U8':
-			return 1;
-		case 'U16':
-			return 2;
-		case 'U32':
-			return 4;
-		case 'F32':
-			return 4;
-		case 'F64':
-			return 8;
-		case 'Seq':
-			var w = builder.a;
-			return w;
-		case 'Utf8':
-			var w = builder.a;
-			return w;
-		default:
-			var bs = builder.a;
-			return _Bytes_width(bs);
-	}
-};
-var $elm$bytes$Bytes$LE = {$: 'LE'};
-var $elm$bytes$Bytes$Encode$write = F3(
-	function (builder, mb, offset) {
-		switch (builder.$) {
-			case 'I8':
-				var n = builder.a;
-				return A3(_Bytes_write_i8, mb, offset, n);
-			case 'I16':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_i16,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'I32':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_i32,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'U8':
-				var n = builder.a;
-				return A3(_Bytes_write_u8, mb, offset, n);
-			case 'U16':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_u16,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'U32':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_u32,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'F32':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_f32,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'F64':
-				var e = builder.a;
-				var n = builder.b;
-				return A4(
-					_Bytes_write_f64,
-					mb,
-					offset,
-					n,
-					_Utils_eq(e, $elm$bytes$Bytes$LE));
-			case 'Seq':
-				var bs = builder.b;
-				return A3($elm$bytes$Bytes$Encode$writeSequence, bs, mb, offset);
-			case 'Utf8':
-				var s = builder.b;
-				return A3(_Bytes_write_string, mb, offset, s);
-			default:
-				var bs = builder.a;
-				return A3(_Bytes_write_bytes, mb, offset, bs);
-		}
-	});
-var $elm$bytes$Bytes$Encode$writeSequence = F3(
-	function (builders, mb, offset) {
-		writeSequence:
-		while (true) {
-			if (!builders.b) {
-				return offset;
-			} else {
-				var b = builders.a;
-				var bs = builders.b;
-				var $temp$builders = bs,
-					$temp$mb = mb,
-					$temp$offset = A3($elm$bytes$Bytes$Encode$write, b, mb, offset);
-				builders = $temp$builders;
-				mb = $temp$mb;
-				offset = $temp$offset;
-				continue writeSequence;
-			}
-		}
-	});
-var $elm$bytes$Bytes$Decode$decode = F2(
-	function (_v0, bs) {
-		var decoder = _v0.a;
-		return A2(_Bytes_decode, decoder, bs);
-	});
 var $author$project$Server$bytesResponseWithHeaders = F2(
 	function (dec, response) {
 		switch (response.$) {
@@ -4066,12 +4855,6 @@ var $author$project$Server$bytesResponseWithHeaders = F2(
 							data));
 				}
 		}
-	});
-var $elm$bytes$Bytes$Encode$encode = _Bytes_encode;
-var $elm$core$Basics$composeR = F3(
-	function (f, g, x) {
-		return g(
-			f(x));
 	});
 var $elm$http$Http$expectBytesResponse = F2(
 	function (toMsg, toResult) {
@@ -4380,221 +5163,6 @@ var $author$project$Backend$AuthInfo = F2(
 	function (email, password) {
 		return {email: email, password: password};
 	});
-var $elm$core$Basics$identity = function (x) {
-	return x;
-};
-var $author$project$Serialize$RecordCodec = function (a) {
-	return {$: 'RecordCodec', a: a};
-};
-var $elm$bytes$Bytes$Decode$Decoder = function (a) {
-	return {$: 'Decoder', a: a};
-};
-var $elm$bytes$Bytes$Decode$map2 = F3(
-	function (func, _v0, _v1) {
-		var decodeA = _v0.a;
-		var decodeB = _v1.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v2 = A2(decodeA, bites, offset);
-					var aOffset = _v2.a;
-					var a = _v2.b;
-					var _v3 = A2(decodeB, bites, aOffset);
-					var bOffset = _v3.a;
-					var b = _v3.b;
-					return _Utils_Tuple2(
-						bOffset,
-						A2(func, a, b));
-				}));
-	});
-var $author$project$Serialize$toBytesDecoder = function (_v0) {
-	var m = _v0.a;
-	return m.decoder;
-};
-var $author$project$Serialize$toBytesEncoder = function (_v0) {
-	var m = _v0.a;
-	return m.encoder;
-};
-var $author$project$Serialize$field = F3(
-	function (getter, codec, _v0) {
-		var recordCodec = _v0.a;
-		return $author$project$Serialize$RecordCodec(
-			{
-				decoder: A3(
-					$elm$bytes$Bytes$Decode$map2,
-					F2(
-						function (f, x) {
-							var _v1 = _Utils_Tuple2(f, x);
-							if (_v1.a.$ === 'Ok') {
-								if (_v1.b.$ === 'Ok') {
-									var fOk = _v1.a.a;
-									var xOk = _v1.b.a;
-									return $elm$core$Result$Ok(
-										fOk(xOk));
-								} else {
-									var err = _v1.b.a;
-									return $elm$core$Result$Err(err);
-								}
-							} else {
-								var err = _v1.a.a;
-								return $elm$core$Result$Err(err);
-							}
-						}),
-					recordCodec.decoder,
-					$author$project$Serialize$toBytesDecoder(codec)),
-				encoder: function (v) {
-					return A2(
-						$elm$core$List$cons,
-						A2(
-							$author$project$Serialize$toBytesEncoder,
-							codec,
-							getter(v)),
-						recordCodec.encoder(v));
-				},
-				fieldIndex: recordCodec.fieldIndex + 1
-			});
-	});
-var $author$project$Serialize$Codec = function (a) {
-	return {$: 'Codec', a: a};
-};
-var $elm$bytes$Bytes$Encode$Seq = F2(
-	function (a, b) {
-		return {$: 'Seq', a: a, b: b};
-	});
-var $elm$bytes$Bytes$Encode$getWidths = F2(
-	function (width, builders) {
-		getWidths:
-		while (true) {
-			if (!builders.b) {
-				return width;
-			} else {
-				var b = builders.a;
-				var bs = builders.b;
-				var $temp$width = width + $elm$bytes$Bytes$Encode$getWidth(b),
-					$temp$builders = bs;
-				width = $temp$width;
-				builders = $temp$builders;
-				continue getWidths;
-			}
-		}
-	});
-var $elm$bytes$Bytes$Encode$sequence = function (builders) {
-	return A2(
-		$elm$bytes$Bytes$Encode$Seq,
-		A2($elm$bytes$Bytes$Encode$getWidths, 0, builders),
-		builders);
-};
-var $author$project$Serialize$finishRecord = function (_v0) {
-	var codec = _v0.a;
-	return $author$project$Serialize$Codec(
-		{
-			decoder: codec.decoder,
-			encoder: A2(
-				$elm$core$Basics$composeR,
-				codec.encoder,
-				A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence))
-		});
-};
-var $elm$bytes$Bytes$Decode$succeed = function (a) {
-	return $elm$bytes$Bytes$Decode$Decoder(
-		F2(
-			function (_v0, offset) {
-				return _Utils_Tuple2(offset, a);
-			}));
-};
-var $author$project$Serialize$record = function (ctor) {
-	return $author$project$Serialize$RecordCodec(
-		{
-			decoder: $elm$bytes$Bytes$Decode$succeed(
-				$elm$core$Result$Ok(ctor)),
-			encoder: function (_v0) {
-				return _List_Nil;
-			},
-			fieldIndex: 0
-		});
-};
-var $elm$bytes$Bytes$Decode$andThen = F2(
-	function (callback, _v0) {
-		var decodeA = _v0.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v1 = A2(decodeA, bites, offset);
-					var newOffset = _v1.a;
-					var a = _v1.b;
-					var _v2 = callback(a);
-					var decodeB = _v2.a;
-					return A2(decodeB, bites, newOffset);
-				}));
-	});
-var $author$project$Serialize$build = F2(
-	function (encoder_, decoder_) {
-		return $author$project$Serialize$Codec(
-			{decoder: decoder_, encoder: encoder_});
-	});
-var $elm$bytes$Bytes$BE = {$: 'BE'};
-var $author$project$Serialize$endian = $elm$bytes$Bytes$BE;
-var $elm$bytes$Bytes$Encode$getStringWidth = _Bytes_getStringWidth;
-var $elm$bytes$Bytes$Decode$map = F2(
-	function (func, _v0) {
-		var decodeA = _v0.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v1 = A2(decodeA, bites, offset);
-					var aOffset = _v1.a;
-					var a = _v1.b;
-					return _Utils_Tuple2(
-						aOffset,
-						func(a));
-				}));
-	});
-var $elm$bytes$Bytes$Decode$string = function (n) {
-	return $elm$bytes$Bytes$Decode$Decoder(
-		_Bytes_read_string(n));
-};
-var $elm$bytes$Bytes$Encode$Utf8 = F2(
-	function (a, b) {
-		return {$: 'Utf8', a: a, b: b};
-	});
-var $elm$bytes$Bytes$Encode$string = function (str) {
-	return A2(
-		$elm$bytes$Bytes$Encode$Utf8,
-		_Bytes_getStringWidth(str),
-		str);
-};
-var $elm$bytes$Bytes$Decode$unsignedInt32 = function (endianness) {
-	return $elm$bytes$Bytes$Decode$Decoder(
-		_Bytes_read_u32(
-			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
-};
-var $elm$bytes$Bytes$Encode$U32 = F2(
-	function (a, b) {
-		return {$: 'U32', a: a, b: b};
-	});
-var $elm$bytes$Bytes$Encode$unsignedInt32 = $elm$bytes$Bytes$Encode$U32;
-var $author$project$Serialize$string = A2(
-	$author$project$Serialize$build,
-	function (text) {
-		return $elm$bytes$Bytes$Encode$sequence(
-			_List_fromArray(
-				[
-					A2(
-					$elm$bytes$Bytes$Encode$unsignedInt32,
-					$author$project$Serialize$endian,
-					$elm$bytes$Bytes$Encode$getStringWidth(text)),
-					$elm$bytes$Bytes$Encode$string(text)
-				]));
-	},
-	A2(
-		$elm$bytes$Bytes$Decode$andThen,
-		function (charCount) {
-			return A2(
-				$elm$bytes$Bytes$Decode$map,
-				$elm$core$Result$Ok,
-				$elm$bytes$Bytes$Decode$string(charCount));
-		},
-		$elm$bytes$Bytes$Decode$unsignedInt32($author$project$Serialize$endian)));
 var $author$project$Acadia$Api$authInfoCodec = $author$project$Serialize$finishRecord(
 	A3(
 		$author$project$Serialize$field,
@@ -4619,7 +5187,6 @@ var $author$project$Acadia$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$fail;
 var $author$project$Acadia$UInt32$UInt32 = function (a) {
 	return {$: 'UInt32', a: a};
 };
-var $elm$core$Bitwise$and = _Bitwise_and;
 var $author$project$Acadia$UInt32$fromInt = function (n) {
 	return $author$project$Acadia$UInt32$UInt32(n & 4294967295);
 };
@@ -4772,7 +5339,6 @@ var $author$project$Acadia$Api$createOrganizationCodec = $author$project$Seriali
 			function (name) {
 				return {name: name};
 			})));
-var $author$project$Serialize$DataCorrupted = {$: 'DataCorrupted'};
 var $elm$core$String$length = _String_length;
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
@@ -4787,28 +5353,6 @@ var $elm$core$String$repeatHelp = F3(
 var $elm$core$String$repeat = F2(
 	function (n, chunk) {
 		return A3($elm$core$String$repeatHelp, n, chunk, '');
-	});
-var $elm$regex$Regex$Match = F4(
-	function (match, index, number, submatches) {
-		return {index: index, match: match, number: number, submatches: submatches};
-	});
-var $elm$regex$Regex$replace = _Regex_replaceAtMost(_Regex_infinity);
-var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
-var $elm$regex$Regex$fromString = function (string) {
-	return A2(
-		$elm$regex$Regex$fromStringWith,
-		{caseInsensitive: false, multiline: false},
-		string);
-};
-var $elm$regex$Regex$never = _Regex_never;
-var $elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
 	});
 var $author$project$Serialize$replaceFromUrl = A2(
 	$elm$core$Maybe$withDefault,
@@ -4837,9 +5381,6 @@ var $danfishgold$base64_bytes$Encode$isValidChar = function (c) {
 		}
 	}
 };
-var $elm$core$Bitwise$or = _Bitwise_or;
-var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
-var $elm$core$Basics$ge = _Utils_ge;
 var $elm$core$Basics$negate = function (n) {
 	return -n;
 };
@@ -4866,11 +5407,6 @@ var $danfishgold$base64_bytes$Encode$unsafeConvertChar = function (_char) {
 		}
 	}
 };
-var $elm$bytes$Bytes$Encode$U16 = F2(
-	function (a, b) {
-		return {$: 'U16', a: a, b: b};
-	});
-var $elm$bytes$Bytes$Encode$unsignedInt16 = $elm$bytes$Bytes$Encode$U16;
 var $elm$bytes$Bytes$Encode$U8 = function (a) {
 	return {$: 'U8', a: a};
 };
@@ -5115,7 +5651,6 @@ var $author$project$Acadia$UInt8$toInt = function (_v0) {
 var $author$project$Acadia$UInt8$UInt8 = function (a) {
 	return {$: 'UInt8', a: a};
 };
-var $elm$bytes$Bytes$Decode$unsignedInt8 = $elm$bytes$Bytes$Decode$Decoder(_Bytes_read_u8);
 var $author$project$Acadia$UInt8$decode = A2($elm$bytes$Bytes$Decode$map, $author$project$Acadia$UInt8$UInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
 var $author$project$Acadia$Bytes$Decode$uint8 = $author$project$Acadia$UInt8$decode;
 var $author$project$Backend$d_VARIANT_0 = function (size) {
@@ -5179,76 +5714,6 @@ var $author$project$Backend$getUserSelf = A2(
 			}),
 		$author$project$Backend$d_ARG_2,
 		$author$project$Backend$d_ARG_3));
-var $author$project$Serialize$CustomTypeCodec = function (a) {
-	return {$: 'CustomTypeCodec', a: a};
-};
-var $author$project$Serialize$customType = function (match) {
-	return $author$project$Serialize$CustomTypeCodec(
-		{
-			decoder: function (_v0) {
-				return $elm$core$Basics$identity;
-			},
-			idCounter: 0,
-			match: match
-		});
-};
-var $elm$bytes$Bytes$Decode$unsignedInt16 = function (endianness) {
-	return $elm$bytes$Bytes$Decode$Decoder(
-		_Bytes_read_u16(
-			_Utils_eq(endianness, $elm$bytes$Bytes$LE)));
-};
-var $author$project$Serialize$finishCustomType = function (_v0) {
-	var am = _v0.a;
-	return A2(
-		$author$project$Serialize$build,
-		A2(
-			$elm$core$Basics$composeR,
-			am.match,
-			function (_v1) {
-				var _v2 = _v1.a;
-				var a = _v2.a;
-				return a;
-			}),
-		A2(
-			$elm$bytes$Bytes$Decode$andThen,
-			function (tag) {
-				return A2(
-					am.decoder,
-					tag,
-					$elm$bytes$Bytes$Decode$succeed(
-						$elm$core$Result$Err($author$project$Serialize$DataCorrupted)));
-			},
-			$elm$bytes$Bytes$Decode$unsignedInt16($author$project$Serialize$endian)));
-};
-var $author$project$Serialize$VariantEncoder = function (a) {
-	return {$: 'VariantEncoder', a: a};
-};
-var $elm$json$Json$Encode$null = _Json_encodeNull;
-var $author$project$Serialize$variant = F3(
-	function (matchPiece, decoderPiece, _v0) {
-		var am = _v0.a;
-		var enc = function (v) {
-			return $author$project$Serialize$VariantEncoder(
-				_Utils_Tuple2(
-					$elm$bytes$Bytes$Encode$sequence(
-						A2(
-							$elm$core$List$cons,
-							A2($elm$bytes$Bytes$Encode$unsignedInt16, $author$project$Serialize$endian, am.idCounter),
-							v)),
-					$elm$json$Json$Encode$null));
-		};
-		var decoder_ = F2(
-			function (tag, orElse) {
-				return _Utils_eq(tag, am.idCounter) ? decoderPiece : A2(am.decoder, tag, orElse);
-			});
-		return $author$project$Serialize$CustomTypeCodec(
-			{
-				decoder: decoder_,
-				idCounter: am.idCounter + 1,
-				match: am.match(
-					matchPiece(enc))
-			});
-	});
 var $author$project$Serialize$variant0 = function (ctor) {
 	return A2(
 		$author$project$Serialize$variant,
@@ -5258,34 +5723,6 @@ var $author$project$Serialize$variant0 = function (ctor) {
 		$elm$bytes$Bytes$Decode$succeed(
 			$elm$core$Result$Ok(ctor)));
 };
-var $author$project$Serialize$result1 = F2(
-	function (ctor, value) {
-		if (value.$ === 'Ok') {
-			var ok = value.a;
-			return $elm$core$Result$Ok(
-				ctor(ok));
-		} else {
-			var err = value.a;
-			return $elm$core$Result$Err(err);
-		}
-	});
-var $author$project$Serialize$variant1 = F2(
-	function (ctor, m1) {
-		return A2(
-			$author$project$Serialize$variant,
-			F2(
-				function (c, v) {
-					return c(
-						_List_fromArray(
-							[
-								A2($author$project$Serialize$toBytesEncoder, m1, v)
-							]));
-				}),
-			A2(
-				$elm$bytes$Bytes$Decode$map,
-				$author$project$Serialize$result1(ctor),
-				$author$project$Serialize$toBytesDecoder(m1)));
-	});
 var $author$project$Serialize$maybe = function (justCodec) {
 	return $author$project$Serialize$finishCustomType(
 		A3(
@@ -5470,59 +5907,6 @@ var $author$project$Backend$logout = A2(
 			])),
 	$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 var $author$project$Acadia$Api$logoutCodec = $author$project$Serialize$unit;
-var $elm$json$Json$Encode$int = _Json_wrap;
-var $elm$json$Json$Encode$list = F2(
-	function (func, entries) {
-		return _Json_wrap(
-			A3(
-				$elm$core$List$foldl,
-				_Json_addEntry(func),
-				_Json_emptyArray(_Utils_Tuple0),
-				entries));
-	});
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Server$respond = _Platform_outgoingPort(
-	'respond',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'body',
-					$elm$json$Json$Encode$string($.body)),
-					_Utils_Tuple2(
-					'headers',
-					$elm$json$Json$Encode$list(
-						function ($) {
-							var a = $.a;
-							var b = $.b;
-							return A2(
-								$elm$json$Json$Encode$list,
-								$elm$core$Basics$identity,
-								_List_fromArray(
-									[
-										$elm$json$Json$Encode$string(a),
-										$elm$json$Json$Encode$string(b)
-									]));
-						})($.headers)),
-					_Utils_Tuple2(
-					'status',
-					$elm$json$Json$Encode$int($.status))
-				]));
-	});
 var $author$project$Backend$signup = function (v0) {
 	return A2(
 		$author$project$Acadia$Transaction$Transaction,
@@ -5562,13 +5946,24 @@ var $author$project$Server$init = function (request) {
 					case '/api/auth/login':
 						var _v1 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
 						if (_v1.$ === 'Err') {
-							return $author$project$Server$respond(
-								{body: 'Decode error', headers: _List_Nil, status: 400});
+							return $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Generic('Server error'),
+									status: 400
+								});
 						} else {
 							var authInfo = _v1.a;
-							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$respond(
-								{body: 'Invalid email', headers: _List_Nil, status: 400}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$respond(
-								{body: 'Password too short', headers: _List_Nil, status: 400}) : A3(
+							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'email'}),
+									status: 400
+								}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'password'}),
+									status: 400
+								}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
 								$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
@@ -5577,13 +5972,24 @@ var $author$project$Server$init = function (request) {
 					case '/api/auth/signup':
 						var _v2 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
 						if (_v2.$ === 'Err') {
-							return $author$project$Server$respond(
-								{body: 'Decode error', headers: _List_Nil, status: 400});
+							return $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Generic('Server error'),
+									status: 400
+								});
 						} else {
 							var authInfo = _v2.a;
-							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$respond(
-								{body: 'Invalid email', headers: _List_Nil, status: 400}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$respond(
-								{body: 'Password too short', headers: _List_Nil, status: 400}) : A3(
+							return ($elm$core$String$length(authInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'email'}),
+									status: 400
+								}) : (($elm$core$String$length(authInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'password'}),
+									status: 400
+								}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
 								$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
@@ -5592,20 +5998,30 @@ var $author$project$Server$init = function (request) {
 					case '/api/organizations/create':
 						var _v3 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
 						if (_v3.$ === 'Err') {
-							return $author$project$Server$respond(
-								{body: 'Decode error', headers: _List_Nil, status: 400});
+							return $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Generic('Server error'),
+									status: 400
+								});
 						} else {
 							var newOrg = _v3.a;
-							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$respond(
-								{body: 'Invalid name', headers: _List_Nil, status: 400}) : A3(
+							return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'name'}),
+									status: 400
+								}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
 								$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
 								$author$project$Backend$createOrganization(newOrg));
 						}
 					default:
-						return $author$project$Server$respond(
-							{body: 'Not Found', headers: _List_Nil, status: 404});
+						return $author$project$Server$acadiaFailureResponse(
+							{
+								error: $author$project$Acadia$Api$Generic('Not Found'),
+								status: 404
+							});
 				}
 			}
 		}());
@@ -5618,338 +6034,6 @@ var $author$project$Server$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
 var $elm$json$Json$Decode$succeed = _Json_succeed;
-var $author$project$Serialize$encodeToBytes = F2(
-	function (codec, value) {
-		return $elm$bytes$Bytes$Encode$encode(
-			$elm$bytes$Bytes$Encode$sequence(
-				_List_fromArray(
-					[
-						A2($author$project$Serialize$toBytesEncoder, codec, value)
-					])));
-	});
-var $elm$bytes$Bytes$Decode$loopHelp = F4(
-	function (state, callback, bites, offset) {
-		loopHelp:
-		while (true) {
-			var _v0 = callback(state);
-			var decoder = _v0.a;
-			var _v1 = A2(decoder, bites, offset);
-			var newOffset = _v1.a;
-			var step = _v1.b;
-			if (step.$ === 'Loop') {
-				var newState = step.a;
-				var $temp$state = newState,
-					$temp$callback = callback,
-					$temp$bites = bites,
-					$temp$offset = newOffset;
-				state = $temp$state;
-				callback = $temp$callback;
-				bites = $temp$bites;
-				offset = $temp$offset;
-				continue loopHelp;
-			} else {
-				var result = step.a;
-				return _Utils_Tuple2(newOffset, result);
-			}
-		}
-	});
-var $elm$bytes$Bytes$Decode$loop = F2(
-	function (state, callback) {
-		return $elm$bytes$Bytes$Decode$Decoder(
-			A2($elm$bytes$Bytes$Decode$loopHelp, state, callback));
-	});
-var $elm$bytes$Bytes$Decode$Done = function (a) {
-	return {$: 'Done', a: a};
-};
-var $elm$bytes$Bytes$Decode$Loop = function (a) {
-	return {$: 'Loop', a: a};
-};
-var $elm$core$String$cons = _String_cons;
-var $elm$core$String$fromChar = function (_char) {
-	return A2($elm$core$String$cons, _char, '');
-};
-var $danfishgold$base64_bytes$Decode$lowest6BitsMask = 63;
-var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
-var $elm$core$Char$fromCode = _Char_fromCode;
-var $danfishgold$base64_bytes$Decode$unsafeToChar = function (n) {
-	if (n <= 25) {
-		return $elm$core$Char$fromCode(65 + n);
-	} else {
-		if (n <= 51) {
-			return $elm$core$Char$fromCode(97 + (n - 26));
-		} else {
-			if (n <= 61) {
-				return $elm$core$Char$fromCode(48 + (n - 52));
-			} else {
-				switch (n) {
-					case 62:
-						return _Utils_chr('+');
-					case 63:
-						return _Utils_chr('/');
-					default:
-						return _Utils_chr('\u0000');
-				}
-			}
-		}
-	}
-};
-var $danfishgold$base64_bytes$Decode$bitsToChars = F2(
-	function (bits, missing) {
-		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits >>> 18);
-		switch (missing) {
-			case 0:
-				return A2(
-					$elm$core$String$cons,
-					p,
-					A2(
-						$elm$core$String$cons,
-						q,
-						A2(
-							$elm$core$String$cons,
-							r,
-							$elm$core$String$fromChar(s))));
-			case 1:
-				return A2(
-					$elm$core$String$cons,
-					p,
-					A2(
-						$elm$core$String$cons,
-						q,
-						A2($elm$core$String$cons, r, '=')));
-			case 2:
-				return A2(
-					$elm$core$String$cons,
-					p,
-					A2($elm$core$String$cons, q, '=='));
-			default:
-				return '';
-		}
-	});
-var $danfishgold$base64_bytes$Decode$bitsToCharSpecialized = F4(
-	function (bits1, bits2, bits3, accum) {
-		var z = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var y = $danfishgold$base64_bytes$Decode$unsafeToChar((bits3 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var x = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 >>> 18);
-		var w = $danfishgold$base64_bytes$Decode$unsafeToChar(bits3 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var s = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var r = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var q = $danfishgold$base64_bytes$Decode$unsafeToChar((bits1 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var p = $danfishgold$base64_bytes$Decode$unsafeToChar(bits1 >>> 18);
-		var d = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var c = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 6) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var b = $danfishgold$base64_bytes$Decode$unsafeToChar((bits2 >>> 12) & $danfishgold$base64_bytes$Decode$lowest6BitsMask);
-		var a = $danfishgold$base64_bytes$Decode$unsafeToChar(bits2 >>> 18);
-		return A2(
-			$elm$core$String$cons,
-			x,
-			A2(
-				$elm$core$String$cons,
-				y,
-				A2(
-					$elm$core$String$cons,
-					z,
-					A2(
-						$elm$core$String$cons,
-						w,
-						A2(
-							$elm$core$String$cons,
-							a,
-							A2(
-								$elm$core$String$cons,
-								b,
-								A2(
-									$elm$core$String$cons,
-									c,
-									A2(
-										$elm$core$String$cons,
-										d,
-										A2(
-											$elm$core$String$cons,
-											p,
-											A2(
-												$elm$core$String$cons,
-												q,
-												A2(
-													$elm$core$String$cons,
-													r,
-													A2($elm$core$String$cons, s, accum))))))))))));
-	});
-var $danfishgold$base64_bytes$Decode$decode18Help = F5(
-	function (a, b, c, d, e) {
-		var combined6 = ((255 & d) << 16) | e;
-		var combined5 = d >>> 8;
-		var combined4 = 16777215 & c;
-		var combined3 = ((65535 & b) << 8) | (c >>> 24);
-		var combined2 = ((255 & a) << 16) | (b >>> 16);
-		var combined1 = a >>> 8;
-		return A4(
-			$danfishgold$base64_bytes$Decode$bitsToCharSpecialized,
-			combined3,
-			combined2,
-			combined1,
-			A4($danfishgold$base64_bytes$Decode$bitsToCharSpecialized, combined6, combined5, combined4, ''));
-	});
-var $elm$bytes$Bytes$Decode$map5 = F6(
-	function (func, _v0, _v1, _v2, _v3, _v4) {
-		var decodeA = _v0.a;
-		var decodeB = _v1.a;
-		var decodeC = _v2.a;
-		var decodeD = _v3.a;
-		var decodeE = _v4.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v5 = A2(decodeA, bites, offset);
-					var aOffset = _v5.a;
-					var a = _v5.b;
-					var _v6 = A2(decodeB, bites, aOffset);
-					var bOffset = _v6.a;
-					var b = _v6.b;
-					var _v7 = A2(decodeC, bites, bOffset);
-					var cOffset = _v7.a;
-					var c = _v7.b;
-					var _v8 = A2(decodeD, bites, cOffset);
-					var dOffset = _v8.a;
-					var d = _v8.b;
-					var _v9 = A2(decodeE, bites, dOffset);
-					var eOffset = _v9.a;
-					var e = _v9.b;
-					return _Utils_Tuple2(
-						eOffset,
-						A5(func, a, b, c, d, e));
-				}));
-	});
-var $danfishgold$base64_bytes$Decode$u16BE = $elm$bytes$Bytes$Decode$unsignedInt16($elm$bytes$Bytes$BE);
-var $danfishgold$base64_bytes$Decode$u32BE = $elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE);
-var $danfishgold$base64_bytes$Decode$decode18Bytes = A6($elm$bytes$Bytes$Decode$map5, $danfishgold$base64_bytes$Decode$decode18Help, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u32BE, $danfishgold$base64_bytes$Decode$u16BE);
-var $elm$bytes$Bytes$Decode$map3 = F4(
-	function (func, _v0, _v1, _v2) {
-		var decodeA = _v0.a;
-		var decodeB = _v1.a;
-		var decodeC = _v2.a;
-		return $elm$bytes$Bytes$Decode$Decoder(
-			F2(
-				function (bites, offset) {
-					var _v3 = A2(decodeA, bites, offset);
-					var aOffset = _v3.a;
-					var a = _v3.b;
-					var _v4 = A2(decodeB, bites, aOffset);
-					var bOffset = _v4.a;
-					var b = _v4.b;
-					var _v5 = A2(decodeC, bites, bOffset);
-					var cOffset = _v5.a;
-					var c = _v5.b;
-					return _Utils_Tuple2(
-						cOffset,
-						A3(func, a, b, c));
-				}));
-	});
-var $danfishgold$base64_bytes$Decode$loopHelp = function (_v0) {
-	var remaining = _v0.remaining;
-	var string = _v0.string;
-	if (remaining >= 18) {
-		return A2(
-			$elm$bytes$Bytes$Decode$map,
-			function (result) {
-				return $elm$bytes$Bytes$Decode$Loop(
-					{
-						remaining: remaining - 18,
-						string: _Utils_ap(string, result)
-					});
-			},
-			$danfishgold$base64_bytes$Decode$decode18Bytes);
-	} else {
-		if (remaining >= 3) {
-			var helper = F3(
-				function (a, b, c) {
-					var combined = ((a << 16) | (b << 8)) | c;
-					return $elm$bytes$Bytes$Decode$Loop(
-						{
-							remaining: remaining - 3,
-							string: _Utils_ap(
-								string,
-								A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 0))
-						});
-				});
-			return A4($elm$bytes$Bytes$Decode$map3, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
-		} else {
-			if (!remaining) {
-				return $elm$bytes$Bytes$Decode$succeed(
-					$elm$bytes$Bytes$Decode$Done(string));
-			} else {
-				if (remaining === 2) {
-					var helper = F2(
-						function (a, b) {
-							var combined = (a << 16) | (b << 8);
-							return $elm$bytes$Bytes$Decode$Done(
-								_Utils_ap(
-									string,
-									A2($danfishgold$base64_bytes$Decode$bitsToChars, combined, 1)));
-						});
-					return A3($elm$bytes$Bytes$Decode$map2, helper, $elm$bytes$Bytes$Decode$unsignedInt8, $elm$bytes$Bytes$Decode$unsignedInt8);
-				} else {
-					return A2(
-						$elm$bytes$Bytes$Decode$map,
-						function (a) {
-							return $elm$bytes$Bytes$Decode$Done(
-								_Utils_ap(
-									string,
-									A2($danfishgold$base64_bytes$Decode$bitsToChars, a << 16, 2)));
-						},
-						$elm$bytes$Bytes$Decode$unsignedInt8);
-				}
-			}
-		}
-	}
-};
-var $danfishgold$base64_bytes$Decode$decoder = function (width) {
-	return A2(
-		$elm$bytes$Bytes$Decode$loop,
-		{remaining: width, string: ''},
-		$danfishgold$base64_bytes$Decode$loopHelp);
-};
-var $elm$bytes$Bytes$width = _Bytes_width;
-var $danfishgold$base64_bytes$Decode$fromBytes = function (bytes) {
-	return A2(
-		$elm$bytes$Bytes$Decode$decode,
-		$danfishgold$base64_bytes$Decode$decoder(
-			$elm$bytes$Bytes$width(bytes)),
-		bytes);
-};
-var $danfishgold$base64_bytes$Base64$fromBytes = $danfishgold$base64_bytes$Decode$fromBytes;
-var $author$project$Serialize$replaceForUrl = A2(
-	$elm$core$Maybe$withDefault,
-	$elm$regex$Regex$never,
-	$elm$regex$Regex$fromString('[\\+/=]'));
-var $author$project$Serialize$replaceBase64Chars = function () {
-	var replaceChar = function (rematch) {
-		var _v0 = rematch.match;
-		switch (_v0) {
-			case '+':
-				return '-';
-			case '/':
-				return '_';
-			default:
-				return '';
-		}
-	};
-	return A2(
-		$elm$core$Basics$composeR,
-		$danfishgold$base64_bytes$Base64$fromBytes,
-		A2(
-			$elm$core$Basics$composeR,
-			$elm$core$Maybe$withDefault(''),
-			A2($elm$regex$Regex$replace, $author$project$Serialize$replaceForUrl, replaceChar)));
-}();
-var $author$project$Serialize$encodeToString = function (codec) {
-	return A2(
-		$elm$core$Basics$composeR,
-		$author$project$Serialize$encodeToBytes(codec),
-		$author$project$Serialize$replaceBase64Chars);
-};
 var $author$project$Server$setPathOnCookie = function (cookie) {
 	return cookie + '; Path=/api';
 };

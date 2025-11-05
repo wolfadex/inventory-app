@@ -65,14 +65,14 @@ init request =
             "/api/auth/login" ->
                 case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
                     Err _ ->
-                        respond { status = 400, body = "Decode error", headers = [] }
+                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
 
                     Ok authInfo ->
                         if String.length authInfo.email < 3 then
-                            respond { status = 400, body = "Invalid email", headers = [] }
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "email", message = "Too short" } }
 
                         else if String.length authInfo.password < 8 then
-                            respond { status = 400, body = "Password too short", headers = [] }
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "password", message = "Too short" } }
 
                         else
                             acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login authInfo)
@@ -80,14 +80,14 @@ init request =
             "/api/auth/signup" ->
                 case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
                     Err _ ->
-                        respond { status = 400, body = "Decode error", headers = [] }
+                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
 
                     Ok authInfo ->
                         if String.length authInfo.email < 3 then
-                            respond { status = 400, body = "Invalid email", headers = [] }
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "email", message = "Too short" } }
 
                         else if String.length authInfo.password < 8 then
-                            respond { status = 400, body = "Password too short", headers = [] }
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "password", message = "Too short" } }
 
                         else
                             acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup authInfo)
@@ -95,18 +95,27 @@ init request =
             "/api/organizations/create" ->
                 case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
                     Err _ ->
-                        respond { status = 400, body = "Decode error", headers = [] }
+                        acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
 
                     Ok newOrg ->
                         if String.length newOrg.name < 1 then
-                            respond { status = 400, body = "Invalid name", headers = [] }
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "name", message = "Too short" } }
 
                         else
                             acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.organizationCodec) (Backend.createOrganization newOrg)
 
             _ ->
-                respond { status = 404, body = "Not Found", headers = [] }
+                acadiaFailureResponse { status = 404, error = Acadia.Api.Generic "Not Found" }
     )
+
+
+acadiaFailureResponse : { status : Int, error : Acadia.Api.Error } -> Cmd msg
+acadiaFailureResponse config =
+    respond
+        { status = config.status
+        , body = Serialize.encodeToString Acadia.Api.errorCodec config.error
+        , headers = []
+        }
 
 
 acadiaRequest : Headers -> (Result Http.Error ( Headers, a ) -> msg) -> Acadia.Transaction.Transaction a -> Cmd msg

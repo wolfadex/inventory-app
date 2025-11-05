@@ -1,6 +1,8 @@
 module Acadia.Api exposing
-    ( authInfoCodec
+    ( Error(..)
+    , authInfoCodec
     , createOrganizationCodec
+    , errorCodec
     , getUserSelfCodec
     , loginCodec
     , logoutCodec
@@ -11,6 +13,35 @@ module Acadia.Api exposing
 
 import Backend
 import Serialize
+
+
+type Error
+    = Field { name : String, message : String }
+    | Generic String
+
+
+errorCodec : Serialize.Codec e Error
+errorCodec =
+    Serialize.customType
+        (\fieldEncoder genericEncoder value ->
+            case value of
+                Field v ->
+                    fieldEncoder v
+
+                Generic v ->
+                    genericEncoder v
+        )
+        |> Serialize.variant1 Field fieldErrorCodec
+        |> Serialize.variant1 Generic Serialize.string
+        |> Serialize.finishCustomType
+
+
+fieldErrorCodec : Serialize.Codec e { name : String, message : String }
+fieldErrorCodec =
+    Serialize.record (\name message -> { name = name, message = message })
+        |> Serialize.field .name Serialize.string
+        |> Serialize.field .message Serialize.string
+        |> Serialize.finishRecord
 
 
 logoutCodec : Serialize.Codec e ()

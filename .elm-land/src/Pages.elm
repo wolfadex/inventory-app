@@ -20,9 +20,10 @@ import Html
 import Pages.ALL_
 import Pages.Dashboard
 import Pages.HOME_
+import Pages.Login
 import Pages.Logout
 import Pages.OrganizationInit
-import Pages.SignIn
+import Pages.SignUp
 import Route exposing (Route)
 import Route.Path
 import Shared
@@ -43,9 +44,10 @@ type alias Context params =
 type Model
     = Model_HOME_ Pages.HOME_.Model
     | Model_Dashboard Pages.Dashboard.Model
+    | Model_Login Pages.Login.Model
     | Model_Logout Pages.Logout.Model
     | Model_OrganizationInit Pages.OrganizationInit.Model
-    | Model_SignIn Pages.SignIn.Model
+    | Model_SignUp Pages.SignUp.Model
     | Model_ALL_ Pages.ALL_.Model
 
 
@@ -72,6 +74,16 @@ init url shared =
                 , toMsg = Dashboard
                 }
 
+        Route.Path.Login ->
+            handleInitForPage
+                { init = Pages.Login.init
+                , shared = shared
+                , url = url
+                , params = ()
+                , toModel = Model_Login
+                , toMsg = Login
+                }
+
         Route.Path.Logout ->
             handleInitForPage
                 { init = Pages.Logout.init
@@ -92,14 +104,14 @@ init url shared =
                 , toMsg = OrganizationInit
                 }
 
-        Route.Path.SignIn ->
+        Route.Path.SignUp ->
             handleInitForPage
-                { init = Pages.SignIn.init
+                { init = Pages.SignUp.init
                 , shared = shared
                 , url = url
                 , params = ()
-                , toModel = Model_SignIn
-                , toMsg = SignIn
+                , toModel = Model_SignUp
+                , toMsg = SignUp
                 }
 
         Route.Path.ALL_ params ->
@@ -143,9 +155,10 @@ handleInitForPage props =
 type Msg
     = HOME_ Pages.HOME_.Msg
     | Dashboard Pages.Dashboard.Msg
+    | Login Pages.Login.Msg
     | Logout Pages.Logout.Msg
     | OrganizationInit Pages.OrganizationInit.Msg
-    | SignIn Pages.SignIn.Msg
+    | SignUp Pages.SignUp.Msg
     | ALL_ Pages.ALL_.Msg
 
 
@@ -181,6 +194,18 @@ update url shared msg model =
                 , pageMsg = pageMsg
                 }
 
+        ( Route.Path.Login, Login pageMsg, Model_Login pageModel ) ->
+            handleUpdateForPage
+                { update = Pages.Login.update
+                , url = url
+                , shared = shared
+                , toModel = Model_Login
+                , toMsg = Login
+                , params = ()
+                , pageModel = pageModel
+                , pageMsg = pageMsg
+                }
+
         ( Route.Path.Logout, Logout pageMsg, Model_Logout pageModel ) ->
             handleUpdateForPage
                 { update = Pages.Logout.update
@@ -205,13 +230,13 @@ update url shared msg model =
                 , pageMsg = pageMsg
                 }
 
-        ( Route.Path.SignIn, SignIn pageMsg, Model_SignIn pageModel ) ->
+        ( Route.Path.SignUp, SignUp pageMsg, Model_SignUp pageModel ) ->
             handleUpdateForPage
-                { update = Pages.SignIn.update
+                { update = Pages.SignUp.update
                 , url = url
                 , shared = shared
-                , toModel = Model_SignIn
-                , toMsg = SignIn
+                , toModel = Model_SignUp
+                , toMsg = SignUp
                 , params = ()
                 , pageModel = pageModel
                 , pageMsg = pageMsg
@@ -295,6 +320,19 @@ subscriptions url shared model =
         ( Model_Dashboard _, _ ) ->
             Subscription.none
 
+        ( Model_Login pageModel, Route.Path.Login ) ->
+            handleSubscriptionsForPage
+                { subscriptions = Pages.Login.subscriptions
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Login
+                , pageModel = pageModel
+                }
+
+        ( Model_Login _, _ ) ->
+            Subscription.none
+
         ( Model_Logout pageModel, Route.Path.Logout ) ->
             handleSubscriptionsForPage
                 { subscriptions = Pages.Logout.subscriptions
@@ -321,17 +359,17 @@ subscriptions url shared model =
         ( Model_OrganizationInit _, _ ) ->
             Subscription.none
 
-        ( Model_SignIn pageModel, Route.Path.SignIn ) ->
+        ( Model_SignUp pageModel, Route.Path.SignUp ) ->
             handleSubscriptionsForPage
-                { subscriptions = Pages.SignIn.subscriptions
+                { subscriptions = Pages.SignUp.subscriptions
                 , url = url
                 , params = ()
                 , shared = shared
-                , toMsg = SignIn
+                , toMsg = SignUp
                 , pageModel = pageModel
                 }
 
-        ( Model_SignIn _, _ ) ->
+        ( Model_SignUp _, _ ) ->
             Subscription.none
 
         ( Model_ALL_ pageModel, Route.Path.ALL_ params ) ->
@@ -401,6 +439,20 @@ view url shared model =
             "The route doesn't match the current page."
                 |> viewErrorPage url shared
 
+        ( Model_Login pageModel, Route.Path.Login ) ->
+            handleViewForPage
+                { view = Pages.Login.view
+                , url = url
+                , params = ()
+                , shared = shared
+                , toMsg = Login
+                , pageModel = pageModel
+                }
+
+        ( Model_Login _, _ ) ->
+            "The route doesn't match the current page."
+                |> viewErrorPage url shared
+
         ( Model_Logout pageModel, Route.Path.Logout ) ->
             handleViewForPage
                 { view = Pages.Logout.view
@@ -429,17 +481,17 @@ view url shared model =
             "The route doesn't match the current page."
                 |> viewErrorPage url shared
 
-        ( Model_SignIn pageModel, Route.Path.SignIn ) ->
+        ( Model_SignUp pageModel, Route.Path.SignUp ) ->
             handleViewForPage
-                { view = Pages.SignIn.view
+                { view = Pages.SignUp.view
                 , url = url
                 , params = ()
                 , shared = shared
-                , toMsg = SignIn
+                , toMsg = SignUp
                 , pageModel = pageModel
                 }
 
-        ( Model_SignIn _, _ ) ->
+        ( Model_SignUp _, _ ) ->
             "The route doesn't match the current page."
                 |> viewErrorPage url shared
 

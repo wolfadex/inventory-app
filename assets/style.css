@@ -26,6 +26,18 @@ header {
     align-items: center;
 }
 
+article:has(form) {
+    border: 1px solid rgba(0, 0, 0, 0);
+}
+
+article:has(form[aria-invalid="true"]) {
+    border: 1px solid var(--pico-form-element-invalid-border-color);
+}
+
+form[aria-invalid="true"] small {
+    color: var(--pico-del-color);
+}
+
 .dropdown ul {
     max-width: fit-content;
 }

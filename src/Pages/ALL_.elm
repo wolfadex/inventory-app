@@ -11,10 +11,14 @@ module Pages.ALL_ exposing
 -}
 
 import Browser
+import Css
 import Effect exposing (Effect)
-import Html exposing (..)
+import Html exposing (Html)
 import Html.Attributes exposing (..)
+import Icon
+import Levenshtein
 import Route exposing (Route)
+import Route.Path
 import Shared
 import Subscription exposing (Subscription)
 
@@ -43,7 +47,7 @@ type alias Model =
 
 
 init : Context -> ( Model, Effect Msg )
-init { shared, route } =
+init _ =
     ( {}
     , Effect.none
     )
@@ -58,7 +62,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared, route } msg model =
+update _ msg model =
     case msg of
         NoOp ->
             ( model
@@ -71,7 +75,7 @@ update { shared, route } msg model =
 
 
 subscriptions : Context -> Model -> Subscription Msg
-subscriptions { shared, route } model =
+subscriptions _ _ =
     Subscription.none
 
 
@@ -80,13 +84,50 @@ subscriptions { shared, route } model =
 
 
 view : Context -> Model -> Browser.Document Msg
-view { shared, route } model =
+view { route } _ =
+    let
+        currentPath =
+            Route.Path.toString (Route.Path.ALL_ { all_ = route.params.all_ })
+
+        nearest =
+            allPaths
+                |> List.map (\path -> ( Levenshtein.distance (Route.Path.toString path) currentPath, path ))
+                |> List.sortBy Tuple.first
+                |> List.take 3
+    in
     { title = "404"
     , body =
-        [ div []
-            [ div [] [ img [ width 240, src "/logo.svg" ] [] ]
-            , h1 [] [ text "Page not found" ]
+        [ Html.div [ Css.pageCentered ]
+            [ Html.div [] [ Icon.logo 64 ]
+            , Html.h1 [] [ Html.text "Page not found" ]
+            , Html.p []
+                [ Html.text "Did you mean..."
+                , Html.ul []
+                    (List.map
+                        (\( _, path ) ->
+                            Html.li []
+                                [ Html.a [ Route.Path.href path ]
+                                    [ Html.text (Route.Path.toString path) ]
+                                ]
+                        )
+                        nearest
+                    )
+                ]
+            , Html.p []
+                [ Html.a [ Route.Path.href Route.Path.Dashboard ]
+                    [ Html.text "Back to the homepage" ]
+                ]
             ]
-        , p [] [ a [ href "/" ] [ text "Back to the homepage" ] ]
         ]
     }
+
+
+allPaths : List Route.Path.Path
+allPaths =
+    [ Route.Path.HOME_
+    , Route.Path.Dashboard
+    , Route.Path.Login
+    , Route.Path.Logout
+    , Route.Path.OrganizationInit
+    , Route.Path.SignUp
+    ]

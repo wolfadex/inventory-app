@@ -77,11 +77,11 @@ view _ _ =
             [ Html.p [] [ Html.text "A one stop shop for managing what you have and where it is." ]
             , Html.span []
                 [ Html.a
-                    [ Route.Path.href Route.Path.SignIn ]
-                    [ Html.text "Sign In" ]
+                    [ Route.Path.href Route.Path.Login ]
+                    [ Html.text "Login" ]
                 , Html.text " or "
                 , Html.a
-                    [ Route.Path.href Route.Path.SignIn ]
+                    [ Route.Path.href Route.Path.SignUp ]
                     [ Html.text "Sign Up!" ]
                 ]
             ]

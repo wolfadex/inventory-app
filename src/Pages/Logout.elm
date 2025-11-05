@@ -54,7 +54,7 @@ init _ =
             Acadia.Transaction.Transaction
                 (Serialize.toBytesEncoder Acadia.Api.logoutCodec ())
                 (Serialize.toBytesDecoder Acadia.Api.logoutCodec)
-        , onResponse = UserLoggedout
+        , onResponse = UserLoggedOut
         , path = "/auth/logout"
         }
     )
@@ -65,13 +65,13 @@ init _ =
 
 
 type Msg
-    = UserLoggedout (Result Http.Error (Result (Serialize.Error ()) ()))
+    = UserLoggedOut (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
 update { shared } msg model =
     case msg of
-        UserLoggedout (Ok (Ok ())) ->
+        UserLoggedOut (Ok (Ok ())) ->
             ( model
             , Effect.batch
                 [ Effect.broadcast (Subscription.RefreshAuthentication Nothing)
@@ -79,7 +79,7 @@ update { shared } msg model =
                 ]
             )
 
-        UserLoggedout _ ->
+        UserLoggedOut _ ->
             ( model
             , Effect.none
             )

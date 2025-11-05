@@ -21,6 +21,7 @@ module Effect exposing
 
 -}
 
+import Acadia.Api
 import Acadia.Transaction
 import Backend.Transaction
 import Bytes exposing (Bytes)
@@ -83,7 +84,7 @@ command cmd =
 {-| Attempt to run an Acadia transaction
 -}
 acadia :
-    { onResponse : Result Http.Error (Result (Serialize.Error ()) value) -> msg
+    { onResponse : Result Acadia.Api.Error (Result (Serialize.Error ()) value) -> msg
     , transaction : Acadia.Transaction.Transaction (Result (Serialize.Error ()) value)
     , path : String
     }
@@ -123,7 +124,7 @@ type CustomEffect msg
     = ReportUnexpectedFlags Json.Error
     | Acadia
         { transaction : Acadia.Transaction.Transaction msg
-        , onFailure : Http.Error -> msg
+        , onFailure : Acadia.Api.Error -> msg
         , path : String
         }
     | Command (Cmd msg)

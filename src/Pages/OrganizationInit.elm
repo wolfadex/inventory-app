@@ -49,7 +49,7 @@ type alias Context =
 
 type alias Model =
     { name : String
-    , submit : Submit () String
+    , submit : Submit String Acadia.Api.Error
     }
 
 
@@ -60,7 +60,7 @@ init { shared, route } =
       }
     , case shared.currentUser of
         Authentication.Unauthenticated ->
-            Effect.navigateTo { path = Route.Path.SignIn, query = Dict.empty }
+            Effect.navigateTo { path = Route.Path.Login, query = Dict.empty }
 
         Authentication.Authenticating ->
             Effect.none
@@ -78,7 +78,7 @@ type Msg
     = UserChangedName String
     | UserSubmittedForm
     | AuthenticationChanged
-    | OrganizationCreated (Result Http.Error (Result (Serialize.Error ()) Backend.Organization))
+    | OrganizationCreated (Result Acadia.Api.Error (Result (Serialize.Error ()) Backend.Organization))
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -94,7 +94,7 @@ update { shared, route } msg model =
                     Effect.none
 
                 Authentication.Unauthenticated ->
-                    Effect.navigateTo { path = Route.Path.SignIn, query = Dict.empty }
+                    Effect.navigateTo { path = Route.Path.Login, query = Dict.empty }
             )
 
         UserChangedName name ->
@@ -148,16 +148,19 @@ view { shared, route } model =
                 ]
             , Html.article []
                 [ Ui.Form.view
-                    { title = "Setup organization"
+                    { name = "organization"
+                    , title = "Setup organization"
                     , onSubmit = UserSubmittedForm
                     , additionalButtons = []
                     , submit = model.submit
                     , submitLabel = "Create organization"
                     , fields =
                         [ Ui.TextInput.basic
-                            { label = "Name"
+                            { name = "name"
+                            , label = "Name"
                             , value = model.name
                             , onInput = UserChangedName
+                            , submit = model.submit
                             }
                             [ Html.Attributes.disabled (model.submit == Submit.Submitting)
                             ]

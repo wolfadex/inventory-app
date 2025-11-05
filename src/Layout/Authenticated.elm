@@ -47,7 +47,7 @@ init sharedModel route =
             Effect.none
 
         Authentication.Unauthenticated ->
-            Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString route.url) }
+            Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString route.url) }
     )
 
 
@@ -94,7 +94,7 @@ update ({ model } as config) =
                     Effect.none
 
                 Authentication.Unauthenticated ->
-                    Effect.navigateTo { path = Route.Path.SignIn, query = Dict.singleton "returnto" (Url.toString config.route.url) }
+                    Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) }
             )
 
 

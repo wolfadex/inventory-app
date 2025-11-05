@@ -1,4 +1,4 @@
-module Pages.SignIn exposing
+module Pages.Login exposing
     ( Model, Msg
     , init, update, subscriptions, view
     )
@@ -13,15 +13,12 @@ module Pages.SignIn exposing
 import Acadia.Api
 import Acadia.Transaction
 import Authentication
-import Backend
 import Browser
-import Bytes.Encode
 import Css
 import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
 import Http
 import Icon
 import Route exposing (Route)
@@ -52,7 +49,7 @@ type alias Model =
     { pathAfterAuth : Route.Path.Path
     , email : String
     , password : String
-    , submit : Submit () String
+    , submit : Submit String Acadia.Api.Error
     }
 
 
@@ -62,11 +59,8 @@ init { shared, route } =
         pathAfterAuth =
             route.query
                 |> Dict.get "returnto"
-                |> Debug.log "return to"
                 |> Maybe.map Route.Path.fromString
-                |> Debug.log "from str"
                 |> Maybe.withDefault Route.Path.Dashboard
-                |> Debug.log "final"
     in
     ( { pathAfterAuth = pathAfterAuth
       , email = ""
@@ -98,10 +92,8 @@ type Msg
     = UserChangedEmail String
     | UserChangedPassword String
     | UserSubmittedAuthForm
-    | UserLoggedIn (Result Http.Error (Result (Serialize.Error ()) ()))
-    | Carl (Result Http.Error ())
+    | UserLoggedIn (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
     | AuthenticationChanged
-    | UserClickedSignUp
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -133,32 +125,18 @@ update { shared, route } msg model =
                 }
             )
 
-        Carl _ ->
-            ( model, Effect.none )
-
-        UserClickedSignUp ->
-            ( { model | submit = Submit.Submitting }
-            , Effect.acadia
-                { transaction =
-                    Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Acadia.Api.authInfoCodec
-                            { email = model.email
-                            , password = model.password
-                            }
-                        )
-                        (Serialize.toBytesDecoder Acadia.Api.loginCodec)
-                , onResponse = UserLoggedIn
-                , path = "/auth/signup"
-                }
-            )
-
         UserLoggedIn (Ok (Ok ())) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication (Just model.pathAfterAuth))
             )
 
-        UserLoggedIn _ ->
-            ( { model | submit = Submit.Failed "Error" }
+        UserLoggedIn (Ok (Err _)) ->
+            ( { model | submit = Submit.Failed (Acadia.Api.Generic "Error") }
+            , Effect.none
+            )
+
+        UserLoggedIn (Err err) ->
+            ( { model | submit = Submit.Failed err }
             , Effect.none
             )
 
@@ -171,7 +149,7 @@ update { shared, route } msg model =
                                 Submit.Fresh
 
                             else
-                                Submit.Failed "Failed to login"
+                                Submit.Failed (Acadia.Api.Generic "Failed to login")
                       }
                     , Effect.none
                     )
@@ -179,7 +157,7 @@ update { shared, route } msg model =
                 Authentication.Authenticating ->
                     ( model, Effect.none )
 
-                Authentication.Authenticated user ->
+                Authentication.Authenticated _ ->
                     ( model
                     , case shared.currentOrganization of
                         Just _ ->
@@ -195,7 +173,7 @@ update { shared, route } msg model =
 
 
 subscriptions : Context -> Model -> Subscription Msg
-subscriptions { shared, route } model =
+subscriptions _ _ =
     Subscription.onAuthenticationChange AuthenticationChanged
 
 
@@ -204,8 +182,8 @@ subscriptions { shared, route } model =
 
 
 view : Context -> Model -> Browser.Document Msg
-view { shared, route } model =
-    { title = "Sign in"
+view _ model =
+    { title = "Login"
     , body =
         [ Html.main_
             [ Css.pageCentered
@@ -217,34 +195,35 @@ view { shared, route } model =
                 ]
             , Html.article []
                 [ Ui.Form.view
-                    { title = "Login"
+                    { name = "login"
+                    , title = "Login"
                     , onSubmit = UserSubmittedAuthForm
                     , submit = model.submit
                     , submitLabel = "Login"
-                    , additionalButtons =
-                        [ { onClick = UserClickedSignUp
-                          , label = "Sign up"
-                          }
-                        ]
+                    , additionalButtons = []
                     , fields =
                         [ Ui.TextInput.email
-                            { label = "Email"
+                            { name = "email"
+                            , label = "Email"
                             , value = model.email
                             , onInput = UserChangedEmail
+                            , submit = model.submit
                             }
-                            [ Html.Attributes.disabled (model.submit == Submit.Submitting)
-                            , Html.Attributes.type_ "email"
-                            ]
+                            []
                         , Ui.TextInput.password
-                            { label = "Password"
+                            { name = "password"
+                            , label = "Password"
                             , value = model.password
                             , onInput = UserChangedPassword
+                            , submit = model.submit
                             }
-                            [ Html.Attributes.disabled (model.submit == Submit.Submitting)
-                            , Html.Attributes.type_ "password"
-                            ]
+                            []
                         ]
                     }
+                ]
+            , Html.footer []
+                [ Html.a [ Route.Path.href Route.Path.SignUp ]
+                    [ Html.text "Sign up" ]
                 ]
             ]
         ]

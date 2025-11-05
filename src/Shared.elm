@@ -56,9 +56,9 @@ init json route =
 
 
 type Msg
-    = GotCurrentUserAndOrg (Result Http.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
+    = GotCurrentUserAndOrg (Result Acadia.Api.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
     | AuthRefreshRequested (Maybe Route.Path.Path)
-    | RefreshedAuth (Maybe Route.Path.Path) (Result Http.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
+    | RefreshedAuth (Maybe Route.Path.Path) (Result Acadia.Api.Error (Result (Serialize.Error ()) ( Backend.User, Maybe Backend.Organization )))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )

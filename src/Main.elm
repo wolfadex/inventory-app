@@ -3,6 +3,7 @@ module Main exposing (main)
 import Acadia.Api
 import Acadia.Transaction
 import Browser.Navigation exposing (Key)
+import Bytes.Decode
 import Bytes.Encode
 import Effect exposing (Effect)
 import ElmLand.Effect
@@ -11,6 +12,7 @@ import ElmLand.Subscription
 import Http
 import Interop
 import Json.Decode as Json
+import Result.Extra exposing (error)
 import Serialize
 import Shared
 import Subscription
@@ -57,7 +59,7 @@ onCustomEffect customEffect url key shared =
                 { url = "/api" ++ info.path
                 , body = Http.bytesBody "application/octet-stream" (Serialize.encodeSimple encoder)
                 , expect =
-                    Http.expectBytes
+                    Http.expectBytesResponse
                         (\result ->
                             case result of
                                 Err err ->
@@ -66,7 +68,33 @@ onCustomEffect customEffect url key shared =
                                 Ok msg ->
                                     msg
                         )
-                        decoder
+                        (\response ->
+                            case response of
+                                Http.BadUrl_ _ ->
+                                    Err <| Acadia.Api.Generic "Invalid URL"
+
+                                Http.Timeout_ ->
+                                    Err <| Acadia.Api.Generic "Timeout"
+
+                                Http.NetworkError_ ->
+                                    Err <| Acadia.Api.Generic "Network error"
+
+                                Http.BadStatus_ metadata body ->
+                                    case Serialize.decodeFromBytes Acadia.Api.errorCodec body of
+                                        Ok error ->
+                                            Err error
+
+                                        Err _ ->
+                                            Err <| Acadia.Api.Generic "Error"
+
+                                Http.GoodStatus_ metadata body ->
+                                    case Bytes.Decode.decode decoder body of
+                                        Just a ->
+                                            Ok a
+
+                                        Nothing ->
+                                            Err <| Acadia.Api.Generic "Failed to read response"
+                        )
                 }
             )
 
