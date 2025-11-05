@@ -7,6 +7,7 @@ module Acadia.Api exposing
     , loginCodec
     , logoutCodec
     , organizationCodec
+    , signUpInfoCodec
     , userCodec
     , userIdCodec
     )
@@ -57,6 +58,15 @@ loginCodec =
 authInfoCodec : Serialize.Codec e Backend.AuthInfo
 authInfoCodec =
     Serialize.record Backend.AuthInfo
+        |> Serialize.field .email Serialize.string
+        |> Serialize.field .password Serialize.string
+        |> Serialize.finishRecord
+
+
+signUpInfoCodec : Serialize.Codec e Backend.SignUpInfo
+signUpInfoCodec =
+    Serialize.record Backend.SignUpInfo
+        |> Serialize.field .name Serialize.string
         |> Serialize.field .email Serialize.string
         |> Serialize.field .password Serialize.string
         |> Serialize.finishRecord

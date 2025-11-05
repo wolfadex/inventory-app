@@ -3,6 +3,7 @@ database module Backend exposing
     , UserID
     , AuthInfo
     , endpoint login
+    , SignUpInfo
     , endpoint signup
     , endpoint logout
     , endpoint getUserSelf
@@ -273,6 +274,7 @@ type alias UserRow =
     , pw_hash : Password.Hash
     , created : Time.Posix
     , primaryEmail : String
+    , name : String
     }
 
 
@@ -401,7 +403,14 @@ login _ authData =
             in
             succeed (toCookie uuid)
 
-signup : Cookies -> AuthInfo -> Transaction Cookies.Header
+
+type alias SignUpInfo =
+    { name : String
+    , email : String
+    , password : String
+    }
+
+signup : Cookies -> SignUpInfo -> Transaction Cookies.Header
 signup _ authData =
     let
         existingUser :=
@@ -421,6 +430,7 @@ signup _ authData =
                     insert users SuperUser
                         { id = userID
                         , primaryEmail = authData.email
+                        , name = authData.name
                         , pw_hash = hash
                         , created = created
                         }
@@ -431,6 +441,28 @@ signup _ authData =
                         , expires = Time.plus 15 Minutes created
                         , user = userID
                         , organization = Nothing
+                        }
+
+                orgId := Uuid.uuid |> Transaction.map OrganizationID
+
+                () :=
+                    insert organizations { create = True, read = False, update = False, delete = False }
+                        { id = orgId
+                        , owner = userID
+                        , name = authData.name
+                        }
+
+                roleId := Uuid.uuid |> Transaction.map RoleID
+
+                () :=
+                    insert roles { create = True, read = False, update = False, delete = False }
+                        (enableAllRoles roleId)
+
+                () :=
+                    insert organizationUsers { create = True, read = False, update = False, delete = False }
+                        { organizationID = orgId
+                        , userID = userID
+                        , roleID = roleId
                         }
             in
             succeed (toCookie uuid)

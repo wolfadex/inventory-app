@@ -2,7 +2,7 @@ dev:
     run-pty run-pty.json
 
 acadia-serve:
-    nodemon -w src/Backend.db --exec "acadia serve"
+    nodemon -w src/Backend.db --exec "acadia make --generate-elm-endpoints=gen && acadia serve"
 
 acadia-build:
     acadia make --generate-elm-endpoints=gen

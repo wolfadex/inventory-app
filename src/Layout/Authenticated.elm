@@ -147,7 +147,7 @@ viewAuthenticataed context body =
                             [ Route.Path.href Route.Path.Dashboard
                             ]
                             [ Icon.logo 32
-                            , Html.strong [ Html.Attributes.style "margin-left" "0.5rem" ] [ Html.text "Inventory App" ]
+                            , Html.strong [ Html.Attributes.style "margin-left" "0.5rem" ] [ Html.text context.currentOrganization.name ]
                             ]
                         ]
                     ]

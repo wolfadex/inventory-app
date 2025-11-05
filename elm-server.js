@@ -5288,7 +5288,7 @@ var $author$project$Acadia$UInt32$encodeBE = function (_v0) {
 	return A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, n);
 };
 var $author$project$Acadia$Bytes$Encode$uint32BE = $author$project$Acadia$UInt32$encodeBE;
-var $author$project$Backend$e_ARG_2 = function (v) {
+var $author$project$Backend$e_ARG_3 = function (v) {
 	var v_name = v.name;
 	var o0 = $author$project$Acadia$UInt32$fromInt(0);
 	var o1 = $author$project$Acadia$UInt32$fromInt(
@@ -5313,7 +5313,7 @@ var $author$project$Backend$createOrganization = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(6)),
-					$author$project$Backend$e_ARG_2(v0)
+					$author$project$Backend$e_ARG_3(v0)
 				])),
 		A2(
 			$author$project$Acadia$Bytes$Decode$andThen,
@@ -5907,6 +5907,58 @@ var $author$project$Backend$logout = A2(
 			])),
 	$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 var $author$project$Acadia$Api$logoutCodec = $author$project$Serialize$unit;
+var $author$project$Backend$SignUpInfo = F3(
+	function (name, email, password) {
+		return {email: email, name: name, password: password};
+	});
+var $author$project$Acadia$Api$signUpInfoCodec = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.password;
+		},
+		$author$project$Serialize$string,
+		A3(
+			$author$project$Serialize$field,
+			function ($) {
+				return $.email;
+			},
+			$author$project$Serialize$string,
+			A3(
+				$author$project$Serialize$field,
+				function ($) {
+					return $.name;
+				},
+				$author$project$Serialize$string,
+				$author$project$Serialize$record($author$project$Backend$SignUpInfo)))));
+var $author$project$Backend$e_ARG_1 = function (v) {
+	var v_password = v.password;
+	var v_name = v.name;
+	var v_email = v.email;
+	var o0 = $author$project$Acadia$UInt32$fromInt(8);
+	var o1 = $author$project$Acadia$UInt32$fromInt(
+		$author$project$Acadia$UInt32$toInt(o0) + $author$project$Acadia$UInt32$toInt(
+			$author$project$Acadia$Bytes$Encode$getSizeString(v_name)));
+	var o2 = $author$project$Acadia$UInt32$fromInt(
+		$author$project$Acadia$UInt32$toInt(o1) + $author$project$Acadia$UInt32$toInt(
+			$author$project$Acadia$Bytes$Encode$getSizeString(v_email)));
+	var o3 = $author$project$Acadia$UInt32$fromInt(
+		$author$project$Acadia$UInt32$toInt(o2) + $author$project$Acadia$UInt32$toInt(
+			$author$project$Acadia$Bytes$Encode$getSizeString(v_password)));
+	var e2 = $author$project$Acadia$Bytes$Encode$string(v_password);
+	var e1 = $author$project$Acadia$Bytes$Encode$string(v_email);
+	var e0 = $author$project$Acadia$Bytes$Encode$string(v_name);
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(o3),
+				$author$project$Acadia$Bytes$Encode$uint32LE(o1),
+				$author$project$Acadia$Bytes$Encode$uint32LE(o2),
+				e0,
+				e1,
+				e2
+			]));
+};
 var $author$project$Backend$signup = function (v0) {
 	return A2(
 		$author$project$Acadia$Transaction$Transaction,
@@ -5917,7 +5969,7 @@ var $author$project$Backend$signup = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(2)),
-					$author$project$Backend$e_ARG_0(v0)
+					$author$project$Backend$e_ARG_1(v0)
 				])),
 		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 };
@@ -5970,7 +6022,7 @@ var $author$project$Server$init = function (request) {
 								$author$project$Backend$login(authInfo)));
 						}
 					case '/api/auth/signup':
-						var _v2 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$authInfoCodec, request.body);
+						var _v2 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$signUpInfoCodec, request.body);
 						if (_v2.$ === 'Err') {
 							return $author$project$Server$acadiaFailureResponse(
 								{
@@ -5989,11 +6041,16 @@ var $author$project$Server$init = function (request) {
 									error: $author$project$Acadia$Api$Field(
 										{message: 'Too short', name: 'password'}),
 									status: 400
+								}) : (($elm$core$String$length(authInfo.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+								{
+									error: $author$project$Acadia$Api$Field(
+										{message: 'Too short', name: 'name'}),
+									status: 400
 								}) : A3(
 								$author$project$Server$acadiaRequest,
 								request.headers,
 								$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
-								$author$project$Backend$signup(authInfo)));
+								$author$project$Backend$signup(authInfo))));
 						}
 					case '/api/organizations/create':
 						var _v3 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);

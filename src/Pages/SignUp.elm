@@ -48,6 +48,7 @@ type alias Context =
 type alias Model =
     { email : String
     , password : String
+    , name : String
     , submit : Submit String Acadia.Api.Error
     }
 
@@ -56,6 +57,7 @@ init : Context -> ( Model, Effect Msg )
 init { shared, route } =
     ( { email = ""
       , password = ""
+      , name = ""
       , submit = Submit.Fresh
       }
     , Effect.none
@@ -69,8 +71,9 @@ init { shared, route } =
 type Msg
     = UserChangedEmail String
     | UserChangedPassword String
+    | UserChangedName String
     | UserSubmittedAuthForm
-    | UserLoggedIn (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
+    | UserSignedUp (Result Acadia.Api.Error (Result (Serialize.Error ()) ()))
     | AuthenticationChanged
 
 
@@ -87,33 +90,39 @@ update { shared, route } msg model =
             , Effect.none
             )
 
+        UserChangedName name ->
+            ( { model | name = name }
+            , Effect.none
+            )
+
         UserSubmittedAuthForm ->
             ( { model | submit = Submit.Submitting }
             , Effect.acadia
                 { transaction =
                     Acadia.Transaction.Transaction
-                        (Serialize.toBytesEncoder Acadia.Api.authInfoCodec
+                        (Serialize.toBytesEncoder Acadia.Api.signUpInfoCodec
                             { email = model.email
                             , password = model.password
+                            , name = model.name
                             }
                         )
                         (Serialize.toBytesDecoder Acadia.Api.loginCodec)
-                , onResponse = UserLoggedIn
+                , onResponse = UserSignedUp
                 , path = "/auth/signup"
                 }
             )
 
-        UserLoggedIn (Ok (Ok ())) ->
+        UserSignedUp (Ok (Ok ())) ->
             ( model
             , Effect.broadcast (Subscription.RefreshAuthentication Nothing)
             )
 
-        UserLoggedIn (Ok (Err err)) ->
+        UserSignedUp (Ok (Err err)) ->
             ( { model | submit = Submit.Failed (Acadia.Api.Generic "Error") }
             , Effect.none
             )
 
-        UserLoggedIn (Err err) ->
+        UserSignedUp (Err err) ->
             ( { model | submit = Submit.Failed err }
             , Effect.none
             )
@@ -175,7 +184,15 @@ view _ model =
                     , submitLabel = "Sign up"
                     , additionalButtons = []
                     , fields =
-                        [ Ui.TextInput.email
+                        [ Ui.TextInput.basic
+                            { name = "name"
+                            , label = "Name"
+                            , value = model.name
+                            , onInput = UserChangedName
+                            , submit = model.submit
+                            }
+                            []
+                        , Ui.TextInput.email
                             { name = "email"
                             , label = "Email"
                             , value = model.email

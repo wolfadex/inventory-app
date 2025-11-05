@@ -78,7 +78,7 @@ init request =
                             acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login authInfo)
 
             "/api/auth/signup" ->
-                case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
+                case Serialize.decodeFromString Acadia.Api.signUpInfoCodec request.body of
                     Err _ ->
                         acadiaFailureResponse { status = 400, error = Acadia.Api.Generic "Server error" }
 
@@ -88,6 +88,9 @@ init request =
 
                         else if String.length authInfo.password < 8 then
                             acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "password", message = "Too short" } }
+
+                        else if String.length authInfo.name < 1 then
+                            acadiaFailureResponse { status = 400, error = Acadia.Api.Field { name = "name", message = "Too short" } }
 
                         else
                             acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup authInfo)
