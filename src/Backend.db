@@ -60,10 +60,10 @@ foods :=
 -- ADD FOOD
 
 
-addFood : Cookies -> String -> Transaction ()
-addFood cookies name =
+addFood : Cookies -> OrganizationID -> String -> Transaction ()
+addFood cookies organizationID name =
     let
-        ( userID, organizationID ) := requireUserAndOrganization cookies
+        userID := requireUser cookies
 
         role :=
             requireRole ( userID, organizationID )
@@ -82,10 +82,10 @@ addFood cookies name =
 -- GET FOODS
 
 
-getFoods : Cookies -> Transaction (Rows String)
-getFoods cookies =
+getFoods : Cookies -> OrganizationID -> Transaction (Rows String)
+getFoods cookies organizationID =
     let
-        ( userID, organizationID ) := requireUserAndOrganization cookies
+        userID := requireUser cookies
 
         role :=
             requireRole ( userID, organizationID )
@@ -332,7 +332,6 @@ getUserSelf cookies =
 type alias Session =
     { cookie : Uuid
     , user : UserID
-    , organization : Maybe OrganizationID
     , expires : Time.Posix
     }
 
@@ -384,12 +383,6 @@ login _ authData =
 
         Just user ->
             let
-                organization :=
-                    access organizationUsers readOnlyPermission
-                        |> filter (\orgUsers -> orgUsers.userID == user.id)
-                        |> limitBy .organizationID 1
-                        |> selectMaybe
-
                 created := Time.now
                 uuid := Uuid.uuid
 
@@ -398,7 +391,6 @@ login _ authData =
                         { cookie = uuid
                         , user = user.id
                         , expires = Time.plus 15 Minutes created
-                        , organization = Maybe.map .organizationID organization
                         }
             in
             succeed (toCookie uuid)
@@ -440,7 +432,6 @@ signup _ authData =
                         { cookie = uuid
                         , expires = Time.plus 15 Minutes created
                         , user = userID
-                        , organization = Nothing
                         }
 
                 orgId := Uuid.uuid |> Transaction.map OrganizationID
@@ -502,30 +493,6 @@ fromCookie cookies =
 
 
 -- TABLE SECURITY
-
-
-requireUserAndOrganization : Cookies -> Transaction ( UserID, OrganizationID )
-requireUserAndOrganization cookies =
-    case fromCookie cookies of
-        Just uuid ->
-            let
-                time := Time.now
-            in
-            access sessions SuperUser
-                |> filter (\s -> s.cookie == uuid && time < s.expires)
-                |> select
-                |> Transaction.andThen
-                    (\session ->
-                        case session.organization of
-                            Just organization ->
-                               succeed ( session.user, organization )
-
-                            Nothing ->
-                                Transaction.fail
-                    )
-
-        Nothing ->
-            Transaction.fail
 
 
 requireUser : Cookies -> Transaction UserID

@@ -5385,7 +5385,7 @@ var $author$project$Acadia$UInt32$encodeBE = function (_v0) {
 	return A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, n);
 };
 var $author$project$Acadia$Bytes$Encode$uint32BE = $author$project$Acadia$UInt32$encodeBE;
-var $author$project$Backend$e_ARG_3 = function (v) {
+var $author$project$Backend$e_ARG_4 = function (v) {
 	var v_name = v.name;
 	var o0 = $author$project$Acadia$UInt32$fromInt(0);
 	var o1 = $author$project$Acadia$UInt32$fromInt(
@@ -5410,7 +5410,7 @@ var $author$project$Backend$createOrganization = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(6)),
-					$author$project$Backend$e_ARG_3(v0)
+					$author$project$Backend$e_ARG_4(v0)
 				])),
 		A2(
 			$author$project$Acadia$Bytes$Decode$andThen,
@@ -6210,21 +6210,11 @@ var $author$project$Server$init = function (requestJson) {
 										});
 								} else {
 									var loginInfo = _v5.a;
-									return ($elm$core$String$length(loginInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'email'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : (($elm$core$String$length(loginInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'password'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : A3(
+									return A3(
 										$author$project$Server$acadiaRequest,
 										request.headers,
 										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
-										$author$project$Backend$login(loginInfo)));
+										$author$project$Backend$login(loginInfo));
 								}
 							case 'ApiAuthSignup':
 								var _v6 = _v1.a;

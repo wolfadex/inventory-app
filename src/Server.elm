@@ -76,14 +76,7 @@ init requestJson =
                                 acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
                             Just loginInfo ->
-                                if String.length loginInfo.email < 3 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
-
-                                else if String.length loginInfo.password < 8 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "password", message = "Too short" } }
-
-                                else
-                                    acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login loginInfo)
+                                acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login loginInfo)
 
                     Just Endpoints.ApiAuthSignup ->
                         case Serialize.decodeFromString Acadia.Api.signUpInfoCodec request.body of
