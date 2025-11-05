@@ -51,7 +51,7 @@ type alias Response =
 init : Json.Encode.Value -> ( Model, Cmd Msg )
 init requestJson =
     ( {}
-    , case Json.Decode.decodeValue Http.Extended.requestDecode requestJson |> Debug.log "req dec" of
+    , case Json.Decode.decodeValue Http.Extended.requestDecode requestJson of
         Err _ ->
             respond { status = Http.Status.NotFound, body = "Not Found", headers = [] }
 
@@ -246,7 +246,6 @@ port sendResponse : Json.Encode.Value -> Cmd msg
 respond : Http.Extended.Response -> Cmd msg
 respond response =
     response
-        |> Debug.log "response"
         |> Http.Extended.responseEncode
         |> sendResponse
 

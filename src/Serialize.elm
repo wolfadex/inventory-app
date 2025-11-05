@@ -756,6 +756,7 @@ finishRecord (RecordCodec codec) =
     Codec
         { encoder =
             codec.encoder
+                >> List.reverse
                 >> BE.sequence
         , decoder = codec.decoder
         }

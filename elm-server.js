@@ -3609,12 +3609,37 @@ var $author$project$Serialize$field = F3(
 var $author$project$Serialize$Codec = function (a) {
 	return {$: 'Codec', a: a};
 };
+var $elm$core$List$foldl = F3(
+	function (func, acc, list) {
+		foldl:
+		while (true) {
+			if (!list.b) {
+				return acc;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				var $temp$func = func,
+					$temp$acc = A2(func, x, acc),
+					$temp$list = xs;
+				func = $temp$func;
+				acc = $temp$acc;
+				list = $temp$list;
+				continue foldl;
+			}
+		}
+	});
+var $elm$core$List$reverse = function (list) {
+	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
+};
 var $author$project$Serialize$finishRecord = function (_v0) {
 	var codec = _v0.a;
 	return $author$project$Serialize$Codec(
 		{
 			decoder: codec.decoder,
-			encoder: A2($elm$core$Basics$composeR, codec.encoder, $elm$bytes$Bytes$Encode$sequence)
+			encoder: A2(
+				$elm$core$Basics$composeR,
+				codec.encoder,
+				A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence))
 		});
 };
 var $author$project$Serialize$record = function (ctor) {
@@ -3767,25 +3792,6 @@ var $elm$json$Json$Decode$indent = function (str) {
 		'\n    ',
 		A2($elm$core$String$split, '\n', str));
 };
-var $elm$core$List$foldl = F3(
-	function (func, acc, list) {
-		foldl:
-		while (true) {
-			if (!list.b) {
-				return acc;
-			} else {
-				var x = list.a;
-				var xs = list.b;
-				var $temp$func = func,
-					$temp$acc = A2(func, x, acc),
-					$temp$list = xs;
-				func = $temp$func;
-				acc = $temp$acc;
-				list = $temp$list;
-				continue foldl;
-			}
-		}
-	});
 var $elm$core$List$length = function (xs) {
 	return A3(
 		$elm$core$List$foldl,
@@ -3848,9 +3854,6 @@ var $elm$core$Char$isDigit = function (_char) {
 };
 var $elm$core$Char$isAlphaNum = function (_char) {
 	return $elm$core$Char$isLower(_char) || ($elm$core$Char$isUpper(_char) || $elm$core$Char$isDigit(_char));
-};
-var $elm$core$List$reverse = function (list) {
-	return A3($elm$core$List$foldl, $elm$core$List$cons, _List_Nil, list);
 };
 var $elm$core$String$uncons = _String_uncons;
 var $elm$json$Json$Decode$errorOneOf = F2(
@@ -4169,7 +4172,6 @@ var $author$project$Http$Extended$errorCodec = $author$project$Serialize$finishC
 							return genericEncoder(v);
 						}
 					})))));
-var $elm$core$Debug$log = _Debug_log;
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
@@ -4357,8 +4359,7 @@ var $author$project$Http$Extended$responseEncode = function (response) {
 var $author$project$Server$sendResponse = _Platform_outgoingPort('sendResponse', $elm$core$Basics$identity);
 var $author$project$Server$respond = function (response) {
 	return $author$project$Server$sendResponse(
-		$author$project$Http$Extended$responseEncode(
-			A2($elm$core$Debug$log, 'response', response)));
+		$author$project$Http$Extended$responseEncode(response));
 };
 var $author$project$Server$acadiaFailureResponse = function (config) {
 	return $author$project$Server$respond(
@@ -6165,10 +6166,7 @@ var $author$project$Server$init = function (requestJson) {
 	return _Utils_Tuple2(
 		{},
 		function () {
-			var _v0 = A2(
-				$elm$core$Debug$log,
-				'req dec',
-				A2($elm$json$Json$Decode$decodeValue, $author$project$Http$Extended$requestDecode, requestJson));
+			var _v0 = A2($elm$json$Json$Decode$decodeValue, $author$project$Http$Extended$requestDecode, requestJson);
 			if (_v0.$ === 'Err') {
 				return $author$project$Server$respond(
 					{body: 'Not Found', headers: _List_Nil, status: $author$project$Http$Status$NotFound});
