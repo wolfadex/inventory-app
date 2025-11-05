@@ -1,4 +1,11 @@
-port module Server exposing (..)
+port module Server exposing
+    ( Headers
+    , Model
+    , Msg(..)
+    , Request
+    , Response
+    , main
+    )
 
 import Acadia.Api
 import Acadia.Transaction
@@ -6,7 +13,7 @@ import Backend
 import Bytes exposing (Bytes)
 import Bytes.Decode
 import Bytes.Encode
-import Dict exposing (Dict)
+import Dict
 import Http
 import Platform
 import Serialize
@@ -19,10 +26,6 @@ main =
         , subscriptions = subscriptions
         , update = update
         }
-
-
-type alias Flags =
-    String
 
 
 type alias Model =
@@ -160,7 +163,7 @@ bytesResponseWithHeaders dec response =
         Http.NetworkError_ ->
             Err Http.NetworkError
 
-        Http.BadStatus_ metadata body ->
+        Http.BadStatus_ metadata _ ->
             Err <| Http.BadStatus metadata.statusCode
 
         Http.GoodStatus_ metadata body ->

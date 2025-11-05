@@ -1,3 +1,5 @@
+# Development
+
 dev:
     run-pty run-pty.json
 
@@ -19,12 +21,20 @@ server-build-dev:
 server-serve:
     node --watch server.js
 
+elm-review-dev:
+    elm-review --watch --fix
+
+# Production
+
 publish-acadia:
     ./acadia_build.sh
 
     # Preview your app at `acadia.build`
     acadia preview gen/index.html
 
-build: acadia-build css-build
+elm-review-build:
+    elm-review
+
+build: elm-review-build acadia-build css-build
     tsc
     vite build

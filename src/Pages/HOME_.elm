@@ -1,14 +1,11 @@
-module Pages.HOME_ exposing (..)
+module Pages.HOME_ exposing (Context, Model, Msg(..), init, subscriptions, update, view)
 
-import Backend
 import Browser
 import Css
 import Effect exposing (Effect)
-import Html exposing (Html)
+import Html
 import Html.Attributes
-import Html.Events
 import Icon
-import Response exposing (Response)
 import Route exposing (Route)
 import Route.Path
 import Shared

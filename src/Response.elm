@@ -1,7 +1,5 @@
-module Response exposing (..)
+module Response exposing (Response(..))
 
 
 type Response value
     = Loading
-    | Success value
-    | Failure String

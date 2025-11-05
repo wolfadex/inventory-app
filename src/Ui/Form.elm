@@ -1,4 +1,4 @@
-module Ui.Form exposing (..)
+module Ui.Form exposing (view)
 
 import Acadia.Api
 import Html exposing (Html)
@@ -20,6 +20,7 @@ view :
     -> Html msg
 view ({ onSubmit, title, fields, submitLabel, submit, additionalButtons } as config) =
     let
+        describeByName : String
         describeByName =
             "form-description-" ++ config.name
     in
@@ -51,10 +52,9 @@ view ({ onSubmit, title, fields, submitLabel, submit, additionalButtons } as con
                     [ Html.Attributes.class "grid" ]
                     (List.map
                         (\btn ->
-                            Ui.Button.view
-                                { label = btn.label }
-                                [ Html.Events.onClick btn.onClick
-                                , Html.Attributes.attribute "appearance" "filled"
+                            Ui.Button.basic
+                                { label = btn.label, onClick = btn.onClick }
+                                [ Html.Attributes.attribute "appearance" "filled"
                                 , Html.Attributes.attribute "variant" "neutral"
                                 , Html.Attributes.class "outline"
                                 , case submit of
@@ -66,7 +66,7 @@ view ({ onSubmit, title, fields, submitLabel, submit, additionalButtons } as con
                                 ]
                         )
                         additionalButtons
-                        ++ [ Ui.Button.view
+                        ++ [ Ui.Button.submit
                                 { label = submitLabel }
                                 [ Html.Attributes.type_ "submit"
                                 , Html.Attributes.attribute "appearance" "accent"

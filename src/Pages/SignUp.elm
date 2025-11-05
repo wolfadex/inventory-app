@@ -1,6 +1,7 @@
 module Pages.SignUp exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , Context
     )
 
 {-|
@@ -17,9 +18,8 @@ import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
-import Html exposing (Html)
+import Html
 import Html.Attributes
-import Http
 import Icon
 import Route exposing (Route)
 import Route.Path
@@ -54,7 +54,7 @@ type alias Model =
 
 
 init : Context -> ( Model, Effect Msg )
-init { shared, route } =
+init _ =
     ( { email = ""
       , password = ""
       , name = ""
@@ -78,7 +78,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared, route } msg model =
+update { shared } msg model =
     case msg of
         UserChangedEmail email ->
             ( { model | email = email }
@@ -117,7 +117,7 @@ update { shared, route } msg model =
             , Effect.broadcast (Subscription.RefreshAuthentication Nothing)
             )
 
-        UserSignedUp (Ok (Err err)) ->
+        UserSignedUp (Ok (Err _)) ->
             ( { model | submit = Submit.Failed (Acadia.Api.Generic "Error") }
             , Effect.none
             )

@@ -1,4 +1,4 @@
-module Authentication exposing (..)
+module Authentication exposing (Authentication(..))
 
 import Backend
 

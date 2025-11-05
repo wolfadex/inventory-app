@@ -1,7 +1,7 @@
-module Submit exposing (..)
+module Submit exposing (Submit(..))
+
 
 type Submit a e
     = Fresh
     | Submitting
-    | Submitted a
     | Failed e

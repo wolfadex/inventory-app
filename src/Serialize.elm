@@ -108,7 +108,6 @@ So if you encoded an Int and then a Float, and then tried decoding it as a Float
 type Error e
     = CustomError e
     | DataCorrupted
-    | SerializerOutOfDate
 
 
 
@@ -306,12 +305,11 @@ bool : Codec e Bool
 bool =
     build
         (\value ->
-            case value of
-                True ->
-                    BE.unsignedInt8 1
+            if value then
+                BE.unsignedInt8 1
 
-                False ->
-                    BE.unsignedInt8 0
+            else
+                BE.unsignedInt8 0
         )
         (BD.unsignedInt8
             |> BD.map
@@ -1480,9 +1478,6 @@ mapErrorHelper mapFunc =
 
                 DataCorrupted ->
                     DataCorrupted
-
-                SerializerOutOfDate ->
-                    SerializerOutOfDate
         )
 
 

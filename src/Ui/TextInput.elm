@@ -61,6 +61,7 @@ common :
     -> Html msg
 common config attributes =
     let
+        describeByName : String
         describeByName =
             "text-input-" ++ config.name
     in

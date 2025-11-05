@@ -1,6 +1,7 @@
 module Pages.Login exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , Context
     )
 
 {-|
@@ -17,9 +18,8 @@ import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
-import Html exposing (Html)
+import Html
 import Html.Attributes
-import Http
 import Icon
 import Route exposing (Route)
 import Route.Path
@@ -56,6 +56,7 @@ type alias Model =
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
     let
+        pathAfterAuth : Route.Path.Path
         pathAfterAuth =
             route.query
                 |> Dict.get "returnto"
@@ -74,7 +75,7 @@ init { shared, route } =
         Authentication.Authenticating ->
             Effect.none
 
-        Authentication.Authenticated user ->
+        Authentication.Authenticated _ ->
             case shared.currentOrganization of
                 Just _ ->
                     Effect.navigateTo { path = pathAfterAuth, query = Dict.empty }
@@ -97,7 +98,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared, route } msg model =
+update { shared } msg model =
     case msg of
         UserChangedEmail email ->
             ( { model | email = email }

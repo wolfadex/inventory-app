@@ -13,5 +13,8 @@
   },
   {
     "command": ["just", "server-serve"]
+  },
+  {
+    "command": ["just", "elm-review-dev"]
   }
 ]

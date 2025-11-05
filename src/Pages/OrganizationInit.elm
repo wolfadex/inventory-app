@@ -1,6 +1,7 @@
 module Pages.OrganizationInit exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , Context
     )
 
 {-|
@@ -18,11 +19,8 @@ import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
-import Html exposing (Html)
+import Html
 import Html.Attributes
-import Html.Events
-import Http
-import Icon
 import Route exposing (Route)
 import Route.Path
 import Serialize
@@ -54,7 +52,7 @@ type alias Model =
 
 
 init : Context -> ( Model, Effect Msg )
-init { shared, route } =
+init { shared } =
     ( { name = ""
       , submit = Submit.Fresh
       }
@@ -65,7 +63,7 @@ init { shared, route } =
         Authentication.Authenticating ->
             Effect.none
 
-        Authentication.Authenticated user ->
+        Authentication.Authenticated _ ->
             Effect.none
     )
 
@@ -82,7 +80,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared, route } msg model =
+update { shared } msg model =
     case msg of
         AuthenticationChanged ->
             ( model
@@ -117,7 +115,7 @@ update { shared, route } msg model =
                 }
             )
 
-        OrganizationCreated (Ok (Ok organization)) ->
+        OrganizationCreated (Ok (Ok _)) ->
             ( model, Effect.none )
 
         OrganizationCreated _ ->
@@ -129,7 +127,7 @@ update { shared, route } msg model =
 
 
 subscriptions : Context -> Model -> Subscription Msg
-subscriptions { shared, route } model =
+subscriptions _ _ =
     Subscription.onAuthenticationChange AuthenticationChanged
 
 
@@ -138,7 +136,7 @@ subscriptions { shared, route } model =
 
 
 view : Context -> Model -> Browser.Document Msg
-view { shared, route } model =
+view _ model =
     { title = "Organization Setup"
     , body =
         [ Html.main_ [ Css.pageCentered ]

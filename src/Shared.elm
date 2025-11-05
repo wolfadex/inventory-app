@@ -16,8 +16,6 @@ import Authentication exposing (Authentication)
 import Backend
 import Dict
 import Effect exposing (Effect)
-import Http
-import Interop
 import Json.Decode as Json
 import Route exposing (Route)
 import Route.Path
@@ -36,7 +34,7 @@ type alias Model =
 
 
 init : Json.Value -> Route () -> ( Model, Effect Msg )
-init json route =
+init _ _ =
     ( { currentUser = Authentication.Authenticating
       , currentOrganization = Nothing
       }
@@ -62,7 +60,7 @@ type Msg
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
-update route msg model =
+update _ msg model =
     case msg of
         GotCurrentUserAndOrg (Ok (Ok ( user, maybeOrg ))) ->
             ( { model

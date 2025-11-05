@@ -4,15 +4,11 @@ import Acadia.Api
 import Acadia.Transaction
 import Browser.Navigation exposing (Key)
 import Bytes.Decode
-import Bytes.Encode
-import Effect exposing (Effect)
+import Effect
 import ElmLand.Effect
 import ElmLand.Program exposing (Msg, Program)
 import ElmLand.Subscription
 import Http
-import Interop
-import Json.Decode as Json
-import Result.Extra exposing (error)
 import Serialize
 import Shared
 import Subscription
@@ -37,18 +33,8 @@ onCustomEffect :
     -> Key
     -> Shared.Model
     -> ( Shared.Model, Cmd Msg )
-onCustomEffect customEffect url key shared =
+onCustomEffect customEffect _ _ shared =
     case customEffect of
-        Effect.ReportUnexpectedFlags error ->
-            ( shared
-            , Interop.reportUnexpectedFlags
-                { error = Json.errorToString error
-                }
-            )
-
-        Effect.Command cmd ->
-            ( shared, cmd )
-
         Effect.Acadia info ->
             let
                 (Acadia.Transaction.Transaction encoder decoder) =
@@ -79,7 +65,7 @@ onCustomEffect customEffect url key shared =
                                 Http.NetworkError_ ->
                                     Err <| Acadia.Api.Generic "Network error"
 
-                                Http.BadStatus_ metadata body ->
+                                Http.BadStatus_ _ body ->
                                     case Serialize.decodeFromBytes Acadia.Api.errorCodec body of
                                         Ok error ->
                                             Err error
@@ -87,7 +73,7 @@ onCustomEffect customEffect url key shared =
                                         Err _ ->
                                             Err <| Acadia.Api.Generic "Error"
 
-                                Http.GoodStatus_ metadata body ->
+                                Http.GoodStatus_ _ body ->
                                     case Bytes.Decode.decode decoder body of
                                         Just a ->
                                             Ok a
@@ -104,12 +90,6 @@ onCustomEffect customEffect url key shared =
 onCustomSub : Subscription.CustomSubscription Msg -> Sub Msg
 onCustomSub customSub =
     case customSub of
-        Subscription.OnUrlChanged _ ->
-            Sub.none
-
-        Subscription.OnDocumentPointerDown toMsg ->
-            Interop.onDocumentPointerDown toMsg
-
         Subscription.OnAuthenticationChanged _ ->
             Sub.none
 

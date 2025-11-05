@@ -1,12 +1,8 @@
-module Pages.Dashboard exposing (..)
+module Pages.Dashboard exposing (Context, Food, Model, Msg(..), init, subscriptions, update, view)
 
-import Backend
 import Browser
 import Effect exposing (Effect)
-import Html exposing (Html)
-import Html.Attributes
-import Html.Events
-import Icon
+import Html
 import Layout.Authenticated
 import Response exposing (Response)
 import Route exposing (Route)
@@ -54,7 +50,7 @@ init { shared, route } =
 
 
 subscriptions : Context -> Model -> Subscription Msg
-subscriptions { shared, route } model =
+subscriptions _ model =
     Layout.Authenticated.subscriptions model.layout
         |> Subscription.map LayoutMessage
 
@@ -65,7 +61,6 @@ subscriptions { shared, route } model =
 
 type Msg
     = LayoutMessage Layout.Authenticated.Msg
-    | GotFoods (Maybe (List Food))
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -81,26 +76,16 @@ update { shared, route } msg model =
                 , route = route
                 }
 
-        GotFoods (Just foods) ->
-            ( { model | foods = Response.Success foods }
-            , Effect.none
-            )
-
-        GotFoods Nothing ->
-            ( { model | foods = Response.Failure "Couldn't fetch foods..." }
-            , Effect.none
-            )
-
 
 view : Context -> Model -> Browser.Document Msg
-view { shared, route } model =
+view { shared } model =
     Layout.Authenticated.view
         { model = model.layout
         , sharedModel = shared
         , toMsg = LayoutMessage
         , title = "Dashboard"
         , body =
-            \{ currentUser, currentOrganization } ->
+            \{ currentUser } ->
                 [ Html.text currentUser.primaryEmail
                 , Html.p [] [ Html.text "Lorem ipsum" ]
                 ]

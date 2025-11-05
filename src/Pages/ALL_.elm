@@ -1,6 +1,7 @@
 module Pages.ALL_ exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , Context, Params
     )
 
 {-|
@@ -13,8 +14,7 @@ module Pages.ALL_ exposing
 import Browser
 import Css
 import Effect exposing (Effect)
-import Html exposing (Html)
-import Html.Attributes exposing (..)
+import Html
 import Icon
 import Levenshtein
 import Route exposing (Route)
@@ -86,9 +86,11 @@ subscriptions _ _ =
 view : Context -> Model -> Browser.Document Msg
 view { route } _ =
     let
+        currentPath : String
         currentPath =
             Route.Path.toString (Route.Path.ALL_ { all_ = route.params.all_ })
 
+        nearest : List ( Int, Route.Path.Path )
         nearest =
             allPaths
                 |> List.map (\path -> ( Levenshtein.distance (Route.Path.toString path) currentPath, path ))

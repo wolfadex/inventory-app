@@ -1,6 +1,7 @@
 module Pages.Logout exposing
     ( Model, Msg
     , init, update, subscriptions, view
+    , Context
     )
 
 {-|
@@ -12,14 +13,11 @@ module Pages.Logout exposing
 
 import Acadia.Api
 import Acadia.Transaction
-import Authentication
 import Browser
 import Css
 import Dict
 import Effect exposing (Effect)
-import Html exposing (Html)
-import Html.Attributes
-import Http
+import Html
 import Icon
 import Route exposing (Route)
 import Route.Path
@@ -69,7 +67,7 @@ type Msg
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
-update { shared } msg model =
+update _ msg model =
     case msg of
         UserLoggedOut (Ok (Ok ())) ->
             ( model

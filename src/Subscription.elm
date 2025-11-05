@@ -1,7 +1,6 @@
 module Subscription exposing
     ( Subscription
     , none, batch
-    , onResize, onUrlChange
     , map
     , Event(..), onEvent
     , CustomSubscription(..)
@@ -12,7 +11,6 @@ module Subscription exposing
 
 @docs Subscription
 @docs none, batch
-@docs onResize, onUrlChange
 @docs map
 
 @docs Event, onEvent
@@ -23,7 +21,6 @@ module Subscription exposing
 -}
 
 import ElmLand.Subscription
-import Json.Decode as Json
 import Route.Path
 
 
@@ -54,30 +51,8 @@ batch list =
     ElmLand.Subscription.batch list
 
 
-{-| Runs whenever the window is resized (Similar to `Browser.Events.onResize`)
--}
-onResize : (Int -> Int -> msg) -> Subscription msg
-onResize toMsg =
-    ElmLand.Subscription.onResize toMsg
-
-
-{-| Runs whenever the URL changes but a new page is not loaded
--}
-onUrlChange : msg -> Subscription msg
-onUrlChange msg =
-    ElmLand.Subscription.custom (OnUrlChanged msg)
-
-
-{-| Listen for document.pointerdown events
--}
-onDocumentPointerDown : (Json.Value -> msg) -> Subscription msg
-onDocumentPointerDown toMsg =
-    ElmLand.Subscription.custom (OnDocumentPointerDown toMsg)
-
-
 
 -- CUSTOM SUBSCRIPTIONS
-
 
 
 onAuthenticationChange : msg -> Subscription msg
@@ -93,8 +68,7 @@ onAuthenticationRefreshRequested toMsg =
 {-| Events that can be sent with `Effect.broadcast`
 -}
 type Event
-    = UrlChanged
-    | AuthenticationChanged
+    = AuthenticationChanged
     | RefreshAuthentication (Maybe Route.Path.Path)
 
 
@@ -102,9 +76,7 @@ type Event
 standard ones provided by the `ElmLand.Subscription` module
 -}
 type CustomSubscription msg
-    = OnUrlChanged msg
-    | OnDocumentPointerDown (Json.Value -> msg)
-    | OnAuthenticationChanged msg
+    = OnAuthenticationChanged msg
     | OnAuthenticationRefreshRequested (Maybe Route.Path.Path -> msg)
 
 
@@ -123,12 +95,6 @@ mapCustom :
     -> CustomSubscription msg2
 mapCustom fn sub =
     case sub of
-        OnUrlChanged msg1 ->
-            OnUrlChanged (fn msg1)
-
-        OnDocumentPointerDown toMsg1 ->
-            OnDocumentPointerDown (fn << toMsg1)
-
         OnAuthenticationChanged msg1 ->
             OnAuthenticationChanged (fn msg1)
 
@@ -145,19 +111,13 @@ onEvent event sub =
     ElmLand.Subscription.onEvent sub <|
         \customSub ->
             case ( event, customSub ) of
-                ( UrlChanged, OnUrlChanged fn ) ->
-                    [ fn ]
-
-                ( UrlChanged, _ ) ->
-                    []
-
                 ( AuthenticationChanged, OnAuthenticationChanged fn ) ->
                     [ fn ]
 
                 ( AuthenticationChanged, _ ) ->
                     []
 
-                ( RefreshAuthentication maybePath , OnAuthenticationRefreshRequested fn ) ->
+                ( RefreshAuthentication maybePath, OnAuthenticationRefreshRequested fn ) ->
                     [ fn maybePath ]
 
                 ( RefreshAuthentication _, _ ) ->

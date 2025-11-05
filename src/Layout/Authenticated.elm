@@ -1,4 +1,4 @@
-module Layout.Authenticated exposing (..)
+module Layout.Authenticated exposing (AuthContext, Model, Msg(..), init, subscriptions, update, view)
 
 import Authentication
 import Backend
@@ -8,7 +8,6 @@ import Dict
 import Effect exposing (Effect)
 import Html exposing (Html)
 import Html.Attributes
-import Html.Events
 import Icon
 import Route exposing (Route)
 import Route.Path
@@ -56,7 +55,7 @@ init sharedModel route =
 
 
 subscriptions : Model -> Subscription Msg
-subscriptions model =
+subscriptions _ =
     Subscription.onAuthenticationChange AuthenticationChanged
 
 

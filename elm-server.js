@@ -4837,7 +4837,6 @@ var $author$project$Server$bytesResponseWithHeaders = F2(
 				return $elm$core$Result$Err($elm$http$Http$NetworkError);
 			case 'BadStatus_':
 				var metadata = response.a;
-				var body = response.b;
 				return $elm$core$Result$Err(
 					$elm$http$Http$BadStatus(metadata.statusCode));
 			default:

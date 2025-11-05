@@ -8,8 +8,6 @@ module Acadia.Api exposing
     , logoutCodec
     , organizationCodec
     , signUpInfoCodec
-    , userCodec
-    , userIdCodec
     )
 
 import Backend

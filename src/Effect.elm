@@ -3,9 +3,8 @@ module Effect exposing
     , none, batch, map
     , broadcast
     , CustomEffect(..)
-    , reportUnexpectedFlags, acadia
+    , acadia
     , navigateTo
-    , command
     )
 
 {-|
@@ -15,7 +14,7 @@ module Effect exposing
 @docs broadcast
 
 @docs CustomEffect
-@docs reportUnexpectedFlags, acadia
+@docs acadia
 
 @docs navigateTo
 
@@ -24,16 +23,12 @@ module Effect exposing
 import Acadia.Api
 import Acadia.Transaction
 import Backend.Transaction
-import Bytes exposing (Bytes)
-import Bytes.Decode
 import Dict exposing (Dict)
 import ElmLand.Effect
-import Http
-import Json.Decode as Json
 import Route
 import Route.Path
 import Serialize
-import Subscription exposing (Subscription)
+import Subscription
 
 
 
@@ -67,18 +62,6 @@ batch =
 broadcast : Subscription.Event -> Effect msg
 broadcast event =
     ElmLand.Effect.broadcast event
-
-
-{-| Report a problem with the initial JSON sent into your app
--}
-reportUnexpectedFlags : Json.Error -> Effect msg
-reportUnexpectedFlags error =
-    ElmLand.Effect.custom (ReportUnexpectedFlags error)
-
-
-command : Cmd msg -> Effect msg
-command cmd =
-    ElmLand.Effect.custom (Command cmd)
 
 
 {-| Attempt to run an Acadia transaction
@@ -121,13 +104,11 @@ navigateTo { path, query } =
 {-| Any custom effects specific to this application
 -}
 type CustomEffect msg
-    = ReportUnexpectedFlags Json.Error
-    | Acadia
+    = Acadia
         { transaction : Acadia.Transaction.Transaction msg
         , onFailure : Acadia.Api.Error -> msg
         , path : String
         }
-    | Command (Cmd msg)
 
 
 
@@ -146,15 +127,9 @@ map fn effect =
 mapCustomEffect : (msg1 -> msg2) -> CustomEffect msg1 -> CustomEffect msg2
 mapCustomEffect fn customEffect =
     case customEffect of
-        ReportUnexpectedFlags data ->
-            ReportUnexpectedFlags data
-
         Acadia info ->
             Acadia
                 { transaction = Backend.Transaction.map fn info.transaction
                 , onFailure = info.onFailure >> fn
                 , path = info.path
                 }
-
-        Command m1 ->
-            Command (Cmd.map fn m1)
