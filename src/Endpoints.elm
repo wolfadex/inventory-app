@@ -10,27 +10,6 @@ import Bytes.Encode
 import Http.Method exposing (Method)
 
 
-
--- type Method
---     = Get
---     | Post
---     | Put
---     | Patch
---     | Delete
--- type alias Request a b =
---     { method : Method
---     , payload : a
---     , response : b
---     }
--- type alias Route params =
---     { params : params
---     , path : Route.Path.Path
---     , query : Dict String String
---     , fragment : Maybe String
---     , url : Url
---     }
-
-
 type alias Endpoint responseValue =
     { method : Method
     , path : EndpointPath

@@ -1,11 +1,7 @@
 node_modules
-
 elm-stuff
-
 acadia-stuff
-
-.stack-work/
-*~
+.elm-pages
 
 /public/app.elm.js
 

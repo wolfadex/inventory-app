@@ -9,6 +9,9 @@ acadia-serve:
 acadia-build:
     acadia make --generate-elm-endpoints=gen
 
+acadia-api-gen:
+    elm-pages run scripts/src/GenAcadiaApi.elm
+
 css-dev:
     css-in-elm watch assets/style.css src/Css.elm
 
