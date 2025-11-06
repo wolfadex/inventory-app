@@ -10,6 +10,7 @@ import Elm.Declare
 import Elm.Op
 import Elm.Parser
 import Elm.Syntax.Declaration
+import Elm.Syntax.Expression
 import Elm.Syntax.Node
 import Elm.Syntax.Type
 import Elm.Syntax.TypeAnnotation
@@ -35,8 +36,7 @@ run =
                             (\(Elm.Syntax.Node.Node _ declaration) ->
                                 case declaration of
                                     Elm.Syntax.Declaration.FunctionDeclaration function ->
-                                        -- functionToCodecs function
-                                        []
+                                        functionToCodecs function
 
                                     Elm.Syntax.Declaration.AliasDeclaration typeAlias ->
                                         let
@@ -90,19 +90,9 @@ run =
         )
 
 
-codecifyName : String -> String
-codecifyName name =
-    lowerFirstChar name ++ "Codec"
-
-
-lowerFirstChar : String -> String
-lowerFirstChar name =
-    case String.uncons name of
-        Nothing ->
-            name
-
-        Just ( first, rest ) ->
-            String.cons (Char.toLower first) rest
+functionToCodecs : Elm.Syntax.Expression.Function -> List (SkippableResult String Elm.Declaration)
+functionToCodecs function =
+    function.signature
 
 
 typeAnnotationToCodec : String -> Elm.Syntax.TypeAnnotation.TypeAnnotation -> SkippableResult String Elm.Expression
@@ -972,6 +962,21 @@ customTypeToCodec type_ =
 
 
 --
+
+
+codecifyName : String -> String
+codecifyName name =
+    lowerFirstChar name ++ "Codec"
+
+
+lowerFirstChar : String -> String
+lowerFirstChar name =
+    case String.uncons name of
+        Nothing ->
+            name
+
+        Just ( first, rest ) ->
+            String.cons (Char.toLower first) rest
 
 
 combineResults : List (Result e a) -> Result e (List a)
