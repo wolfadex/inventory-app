@@ -291,12 +291,14 @@ users :=
 type alias User =
     { id : UserID
     , primaryEmail : String
+    , created : Time.Posix
     }
 
 userToUserRow : UserRow -> User
 userToUserRow user =
     { id = user.id
     , primaryEmail = user.primaryEmail
+    , created = user.created
     }
 
 
