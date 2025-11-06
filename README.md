@@ -22,7 +22,9 @@ I use [mise](https://mise.jdx.dev/) for dependency management. If you want to do
 
 ### Building for dev
 
-- `just dev` - start various dev servers in watch mode
+`just dev`
+
+This start various dev servers in watch mode, using run-pty to manage them all. See the run-pty docs for more about how to navigate its UI.
 
 ### Building for prod
 
