@@ -1,6 +1,6 @@
 import { defineConfig } from "vite";
 import elm from "vite-plugin-elm-watch";
-import elmLand from "./.elm-land/package/src/plugin";
+import elmLand from "elm-land/vite";
 
 export default defineConfig({
   server: {

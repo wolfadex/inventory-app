@@ -1,6 +1,6 @@
 import "./style.css";
 import "./picocss/pico.min.css";
-import ElmLand from "../.elm-land/package/src/client";
+import ElmLand from "elm-land/client";
 import Main from "../src/Main.elm";
 
 // 1. Define Elm flags
