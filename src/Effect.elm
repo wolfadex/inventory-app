@@ -5,6 +5,7 @@ module Effect exposing
     , CustomEffect(..)
     , navigateTo
     , endpoint
+    -- , get
     )
 
 {-|
@@ -23,8 +24,11 @@ module Effect exposing
 import Bytes.Decode
 import Dict exposing (Dict)
 import ElmLand.Effect
+import ElmLand.Http
 import Endpoints
+import Http
 import Http.Extended
+import Json.Decode
 import Route
 import Route.Path
 import Subscription
@@ -98,6 +102,14 @@ navigateTo { path, query } =
         (Route.toString { path = path, query = query, fragment = Nothing })
 
 
+get : { url : String, decoder : Json.Decode.Decoder value, onResponse : Result Http.Error value -> msg } -> Effect msg
+get props =
+    ElmLand.Effect.custom
+        (Fetch
+            (ElmLand.Http.get props)
+        )
+
+
 
 -- CUSTOM EFFECTS
 
@@ -109,6 +121,7 @@ type CustomEffect msg
         { endpoint : Endpoints.Endpoint msg
         , onFailure : Http.Extended.Error -> msg
         }
+    | Fetch (ElmLand.Http.Request msg)
 
 
 
@@ -137,3 +150,6 @@ mapCustomEffect fn customEffect =
                     }
                 , onFailure = info.onFailure >> fn
                 }
+
+        Fetch info ->
+            Fetch (ElmLand.Http.map fn info)

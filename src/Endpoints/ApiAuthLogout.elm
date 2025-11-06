@@ -15,7 +15,7 @@ post toMsg =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthLogout
             , request = Serialize.toBytesEncoder Serialize.unit ()
-            , response = Serialize.toBytesDecoder Acadia.Api.loginCodec
+            , response = Serialize.toBytesDecoder Acadia.Api.logoutResponseCodec
             }
         , onResponse = toMsg
         }

@@ -5,6 +5,7 @@ import Bytes.Decode
 import Bytes.Encode
 import Effect
 import ElmLand.Effect
+import ElmLand.Http
 import ElmLand.Program exposing (Msg, Program)
 import ElmLand.Subscription
 import Endpoints
@@ -37,6 +38,18 @@ onCustomEffect :
     -> ( Shared.Model, Cmd Msg )
 onCustomEffect customEffect _ _ shared =
     case customEffect of
+        -- Effect.Fetch request ->
+        --     ( shared
+        --       -- , ElmLand.Http.toCmd request
+        --     , request
+        --         |> ElmLand.Http.mapError
+        --             (\msg ->
+        --                 ElmLand.Program.Batch
+        --                     [ msg
+        --                     , ElmLand.Program.Shared
+        --                     ]
+        --             )
+        --     )
         Effect.EndpointRequest info ->
             ( shared
             , Http.request

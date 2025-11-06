@@ -10,9 +10,11 @@ database module Backend exposing
     --
     , OrganizationID
     , Organization
+    , CreateOrganizationInput
     , endpoint createOrganization
     --
     , Food
+    , AddFoodInput
     , endpoint addFood
     , endpoint getFoods
     )
@@ -59,9 +61,14 @@ foods :=
 
 -- ADD FOOD
 
+type alias AddFoodInput =
+    { organizationID: OrganizationID
+    , name : String
+    }
 
-addFood : Cookies -> OrganizationID -> String -> Transaction ()
-addFood cookies organizationID name =
+
+addFood : Cookies -> AddFoodInput -> Transaction ()
+addFood cookies { organizationID, name } =
     let
         userID := requireUser cookies
 
@@ -231,8 +238,11 @@ organizationUsers :=
                 }
         }
 
+type alias CreateOrganizationInput =
+    { name : String
+    }
 
-createOrganization : Cookies -> { name : String } -> Transaction Organization
+createOrganization : Cookies -> CreateOrganizationInput -> Transaction Organization
 createOrganization cookies newOrgData =
     let
         userID := requireUser cookies

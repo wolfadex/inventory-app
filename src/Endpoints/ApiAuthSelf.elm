@@ -16,7 +16,7 @@ post toMsg =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthSelf
             , request = Serialize.toBytesEncoder Serialize.unit ()
-            , response = Serialize.toBytesDecoder Acadia.Api.getUserSelfCodec
+            , response = Serialize.toBytesDecoder Acadia.Api.getUserSelfResponseCodec
             }
         , onResponse = toMsg
         }

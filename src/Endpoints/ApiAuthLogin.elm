@@ -16,7 +16,7 @@ post toMsg authInfo =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthLogin
             , request = Serialize.toBytesEncoder Acadia.Api.authInfoCodec authInfo
-            , response = Serialize.toBytesDecoder Acadia.Api.loginCodec
+            , response = Serialize.toBytesDecoder Acadia.Api.loginResponseCodec
             }
         , onResponse = toMsg
         }

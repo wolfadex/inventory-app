@@ -16,7 +16,7 @@ post toMsg signupInfo =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthSignup
             , request = Serialize.toBytesEncoder Acadia.Api.signUpInfoCodec signupInfo
-            , response = Serialize.toBytesDecoder Acadia.Api.loginCodec
+            , response = Serialize.toBytesDecoder Acadia.Api.signupResponseCodec
             }
         , onResponse = toMsg
         }

@@ -16,6 +16,7 @@ import Elm.Syntax.Type
 import Elm.Syntax.TypeAnnotation
 import FatalError
 import Pages.Script exposing (Script)
+import Set exposing (Set)
 
 
 run : Script
@@ -32,11 +33,32 @@ run =
             |> BackendTask.andThen
                 (\elmFile ->
                     elmFile.declarations
-                        |> List.concatMap
+                        |> List.sortBy
                             (\(Elm.Syntax.Node.Node _ declaration) ->
                                 case declaration of
+                                    Elm.Syntax.Declaration.FunctionDeclaration _ ->
+                                        5
+
+                                    Elm.Syntax.Declaration.AliasDeclaration _ ->
+                                        4
+
+                                    Elm.Syntax.Declaration.CustomTypeDeclaration _ ->
+                                        3
+
+                                    Elm.Syntax.Declaration.PortDeclaration _ ->
+                                        2
+
+                                    Elm.Syntax.Declaration.InfixDeclaration _ ->
+                                        1
+
+                                    Elm.Syntax.Declaration.Destructuring _ _ ->
+                                        0
+                            )
+                        |> List.foldl
+                            (\(Elm.Syntax.Node.Node _ declaration) prevDecs ->
+                                case declaration of
                                     Elm.Syntax.Declaration.FunctionDeclaration function ->
-                                        functionToCodecs function
+                                        functionToCodecs prevDecs function
 
                                     Elm.Syntax.Declaration.AliasDeclaration typeAlias ->
                                         let
@@ -46,34 +68,22 @@ run =
                                             (Elm.Syntax.Node.Node _ typeAnnotation) =
                                                 typeAlias.typeAnnotation
                                         in
-                                        case
-                                            typeAnnotationToCodec name typeAnnotation
-                                                |> skipMap (Elm.declaration (codecifyName name))
-                                                |> skippableToMaybe
-                                        of
-                                            Nothing ->
-                                                []
-
-                                            Just res ->
-                                                [ res ]
+                                        typeAnnotationToCodecDeclaration prevDecs name typeAnnotation
 
                                     Elm.Syntax.Declaration.CustomTypeDeclaration type_ ->
-                                        case customTypeToCodec type_ |> skippableToMaybe of
-                                            Nothing ->
-                                                []
-
-                                            Just res ->
-                                                [ res ]
+                                        customTypeToCodec prevDecs type_
 
                                     Elm.Syntax.Declaration.PortDeclaration _ ->
-                                        []
+                                        prevDecs
 
                                     Elm.Syntax.Declaration.InfixDeclaration _ ->
-                                        []
+                                        prevDecs
 
                                     Elm.Syntax.Declaration.Destructuring _ _ ->
-                                        []
+                                        prevDecs
                             )
+                            ( [], Set.empty )
+                        |> Tuple.first
                         |> combineResults
                         |> Result.map (Elm.file [ "Acadia", "Api" ])
                         |> Result.mapError FatalError.fromString
@@ -90,9 +100,77 @@ run =
         )
 
 
-functionToCodecs : Elm.Syntax.Expression.Function -> List (SkippableResult String Elm.Declaration)
-functionToCodecs function =
-    function.signature
+functionToCodecs : ( List (Result String Elm.Declaration), Set String ) -> Elm.Syntax.Expression.Function -> ( List (Result String Elm.Declaration), Set String )
+functionToCodecs ( decs, knownNames ) function =
+    case function.signature of
+        Nothing ->
+            ( decs, knownNames )
+
+        Just (Elm.Syntax.Node.Node _ signature) ->
+            let
+                (Elm.Syntax.Node.Node _ name) =
+                    signature.name
+
+                (Elm.Syntax.Node.Node _ typeAnnotation) =
+                    signature.typeAnnotation
+            in
+            case typeAnnotation of
+                Elm.Syntax.TypeAnnotation.FunctionTypeAnnotation (Elm.Syntax.Node.Node _ _) (Elm.Syntax.Node.Node _ typeAnnoTo) ->
+                    case typeAnnoTo of
+                        Elm.Syntax.TypeAnnotation.Typed (Elm.Syntax.Node.Node _ ( moduleName, string )) args ->
+                            case ( moduleName, string ) of
+                                ( [ "Acadia", "Transaction" ], "Transaction" ) ->
+                                    case args of
+                                        [ Elm.Syntax.Node.Node _ arg ] ->
+                                            typeAnnotationToCodecDeclaration ( decs, knownNames )
+                                                (name ++ "Response")
+                                                arg
+
+                                        _ ->
+                                            Debug.todo "this shouldn't happen"
+
+                                _ ->
+                                    Debug.todo "Unexpected response type"
+
+                        _ ->
+                            Debug.todo "Currently only support Acadia endpoints with a single argument"
+
+                Elm.Syntax.TypeAnnotation.Typed (Elm.Syntax.Node.Node _ ( moduleName, string )) args ->
+                    case ( moduleName, string ) of
+                        ( [ "Acadia", "Transaction" ], "Transaction" ) ->
+                            case args of
+                                [ Elm.Syntax.Node.Node _ arg ] ->
+                                    typeAnnotationToCodecDeclaration ( decs, knownNames )
+                                        (name ++ "Response")
+                                        arg
+
+                                _ ->
+                                    Debug.todo "this shouldn't happen"
+
+                        _ ->
+                            Debug.todo "Unexpected response type"
+
+                _ ->
+                    typeAnnotationToCodecDeclaration ( decs, knownNames ) name typeAnnotation
+
+
+typeAnnotationToCodecDeclaration : ( List (Result String Elm.Declaration), Set String ) -> String -> Elm.Syntax.TypeAnnotation.TypeAnnotation -> ( List (Result String Elm.Declaration), Set String )
+typeAnnotationToCodecDeclaration ( decs, knownNames ) name typeAnnotation =
+    if Set.member (codecifyName name) knownNames then
+        ( decs, knownNames )
+
+    else
+        typeAnnotationToCodec name typeAnnotation
+            |> skipMap (Elm.declaration (codecifyName name))
+            |> skippableToMaybe
+            |> (\maybeDec ->
+                    case maybeDec of
+                        Nothing ->
+                            ( decs, knownNames )
+
+                        Just dec ->
+                            ( dec :: decs, Set.insert (codecifyName name) knownNames )
+               )
 
 
 typeAnnotationToCodec : String -> Elm.Syntax.TypeAnnotation.TypeAnnotation -> SkippableResult String Elm.Expression
@@ -233,7 +311,7 @@ typeAnnotationToCodec name typeAnnotation =
         Elm.Syntax.TypeAnnotation.GenericRecord _ _ ->
             SErr "Generic records unsupported"
 
-        Elm.Syntax.TypeAnnotation.FunctionTypeAnnotation _ _ ->
+        Elm.Syntax.TypeAnnotation.FunctionTypeAnnotation (Elm.Syntax.Node.Node _ typeAnnoFrom) (Elm.Syntax.Node.Node _ typeAnnoTo) ->
             SErr "Function typess unsupported"
 
 
@@ -545,8 +623,11 @@ typeTypeAnnotationToCodec ( moduleName, string ) args =
         ( [ "Password" ], "Hash" ) ->
             Skip
 
+        ( [ "Acadia", "Transaction" ], "Transaction" ) ->
+            Skip
+
         _ ->
-            SErr "Unsupported type for codec"
+            SErr ("Unsupported type for codec: " ++ Debug.toString ( moduleName, string ))
 
 
 typeAnnotationToCodecAnnotation : Elm.Syntax.TypeAnnotation.TypeAnnotation -> Result String Elm.Annotation.Annotation
@@ -601,363 +682,377 @@ typeAnnotationToCodecAnnotation typeAnnotation =
             Err "Function typess unsupported"
 
 
-customTypeToCodec : Elm.Syntax.Type.Type -> SkippableResult String Elm.Declaration
-customTypeToCodec type_ =
+customTypeToCodec : ( List (Result String Elm.Declaration), Set String ) -> Elm.Syntax.Type.Type -> ( List (Result String Elm.Declaration), Set String )
+customTypeToCodec ( decs, knownNames ) type_ =
     let
         (Elm.Syntax.Node.Node _ name) =
             type_.name
+    in
+    if Set.member (codecifyName name) knownNames then
+        ( decs, knownNames )
 
-        start =
-            Elm.apply
-                (Elm.value
-                    { importFrom = [ "Serialize" ]
-                    , name = "customType"
-                    , annotation = Nothing
-                    }
-                )
-                [ Elm.function
-                    (List.map
-                        (\(Elm.Syntax.Node.Node _ cons) ->
+    else
+        let
+            start =
+                Elm.apply
+                    (Elm.value
+                        { importFrom = [ "Serialize" ]
+                        , name = "customType"
+                        , annotation = Nothing
+                        }
+                    )
+                    [ Elm.function
+                        (List.map
+                            (\(Elm.Syntax.Node.Node _ cons) ->
+                                let
+                                    (Elm.Syntax.Node.Node _ consName) =
+                                        cons.name
+                                in
+                                ( lowerFirstChar consName ++ "Encoder"
+                                , Nothing
+                                )
+                            )
+                            type_.constructors
+                        )
+                        (\conEncoders ->
+                            Elm.fn (Elm.Arg.var "value")
+                                (\value ->
+                                    Elm.Case.custom value
+                                        (Elm.Annotation.named [] name)
+                                        (List.map2
+                                            (\(Elm.Syntax.Node.Node _ cons) enc ->
+                                                let
+                                                    (Elm.Syntax.Node.Node _ consName) =
+                                                        cons.name
+
+                                                    customStart =
+                                                        Elm.Arg.customTypeWith
+                                                            { importFrom = [ "Backend" ]
+                                                            , typeName = name
+                                                            , variantName = consName
+                                                            }
+                                                in
+                                                case cons.arguments of
+                                                    [] ->
+                                                        Elm.Case.branch (customStart identity)
+                                                            (\_ -> enc)
+
+                                                    [ _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart identity
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                            )
+                                                            (\arg1 -> Elm.apply enc [ arg1 ])
+
+                                                    [ _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart Tuple.pair
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                            )
+                                                            (\( arg1, arg2 ) -> Elm.apply enc [ arg1, arg2 ])
+
+                                                    [ _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 -> ( arg1, arg2, arg3 ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                            )
+                                                            (\( arg1, arg2, arg3 ) -> Elm.apply enc [ arg1, arg2, arg3 ])
+
+                                                    [ _, _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 arg4 -> ( arg1, arg2, ( arg3, arg4 ) ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg4")
+                                                            )
+                                                            (\( arg1, arg2, ( arg3, arg4 ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4 ])
+
+                                                    [ _, _, _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 arg4 arg5 -> ( arg1, arg2, ( arg3, arg4, arg5 ) ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg4")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg5")
+                                                            )
+                                                            (\( arg1, arg2, ( arg3, arg4, arg5 ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5 ])
+
+                                                    [ _, _, _, _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6 ) ) ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg4")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg5")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg6")
+                                                            )
+                                                            (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6 ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6 ])
+
+                                                    [ _, _, _, _, _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 arg7 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6, arg7 ) ) ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg4")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg5")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg6")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg7")
+                                                            )
+                                                            (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6, arg7 ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6, arg7 ])
+
+                                                    [ _, _, _, _, _, _, _, _ ] ->
+                                                        Elm.Case.branch
+                                                            (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6, ( arg7, arg8 ) ) ) ))
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg1")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg2")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg3")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg4")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg5")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg6")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg7")
+                                                                |> Elm.Arg.item (Elm.Arg.var "arg8")
+                                                            )
+                                                            (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6, ( arg7, arg8 ) ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 ])
+
+                                                    _ ->
+                                                        Debug.todo "You've hit a custom type with more than 8 arguments! Please copy the above approach to handle your arguments"
+                                            )
+                                            type_.constructors
+                                            conEncoders
+                                        )
+                                )
+                        )
+                    ]
+                    |> SOk
+        in
+        type_.constructors
+            |> List.foldl
+                (\(Elm.Syntax.Node.Node _ valueConstructor) skippableFn ->
+                    case skippableFn of
+                        Skip ->
+                            Skip
+
+                        SErr e ->
+                            SErr e
+
+                        SOk fn ->
                             let
                                 (Elm.Syntax.Node.Node _ consName) =
-                                    cons.name
+                                    valueConstructor.name
+
+                                ( varN, argCodecs ) =
+                                    case valueConstructor.arguments of
+                                        [] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant0"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant1"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant2"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant3"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant4"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              , typeAnnotationToCodec "" arg4
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant5"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              , typeAnnotationToCodec "" arg4
+                                              , typeAnnotationToCodec "" arg5
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant6"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              , typeAnnotationToCodec "" arg4
+                                              , typeAnnotationToCodec "" arg5
+                                              , typeAnnotationToCodec "" arg6
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6, Elm.Syntax.Node.Node _ arg7 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant7"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              , typeAnnotationToCodec "" arg4
+                                              , typeAnnotationToCodec "" arg5
+                                              , typeAnnotationToCodec "" arg6
+                                              , typeAnnotationToCodec "" arg7
+                                              ]
+                                            )
+
+                                        [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6, Elm.Syntax.Node.Node _ arg7, Elm.Syntax.Node.Node _ arg8 ] ->
+                                            ( Elm.value
+                                                { importFrom = [ "Serialize" ]
+                                                , name = "variant8"
+                                                , annotation = Nothing
+                                                }
+                                            , [ Elm.value
+                                                    { importFrom = [ "Backend" ]
+                                                    , name = consName
+                                                    , annotation = Nothing
+                                                    }
+                                                    |> SOk
+                                              , typeAnnotationToCodec "" arg1
+                                              , typeAnnotationToCodec "" arg2
+                                              , typeAnnotationToCodec "" arg3
+                                              , typeAnnotationToCodec "" arg4
+                                              , typeAnnotationToCodec "" arg5
+                                              , typeAnnotationToCodec "" arg6
+                                              , typeAnnotationToCodec "" arg7
+                                              , typeAnnotationToCodec "" arg8
+                                              ]
+                                            )
+
+                                        _ ->
+                                            ( Elm.val "", [ SErr "Too many args in custom type" ] )
                             in
-                            ( lowerFirstChar consName ++ "Encoder"
-                            , Nothing
-                            )
-                        )
-                        type_.constructors
-                    )
-                    (\conEncoders ->
-                        Elm.fn (Elm.Arg.var "value")
-                            (\value ->
-                                Elm.Case.custom value
-                                    (Elm.Annotation.named [] name)
-                                    (List.map2
-                                        (\(Elm.Syntax.Node.Node _ cons) enc ->
-                                            let
-                                                (Elm.Syntax.Node.Node _ consName) =
-                                                    cons.name
-
-                                                customStart =
-                                                    Elm.Arg.customTypeWith
-                                                        { importFrom = [ "Backend" ]
-                                                        , typeName = name
-                                                        , variantName = consName
-                                                        }
-                                            in
-                                            case cons.arguments of
-                                                [] ->
-                                                    Elm.Case.branch (customStart identity)
-                                                        (\_ -> enc)
-
-                                                [ _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart identity
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                        )
-                                                        (\arg1 -> Elm.apply enc [ arg1 ])
-
-                                                [ _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart Tuple.pair
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                        )
-                                                        (\( arg1, arg2 ) -> Elm.apply enc [ arg1, arg2 ])
-
-                                                [ _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 -> ( arg1, arg2, arg3 ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                        )
-                                                        (\( arg1, arg2, arg3 ) -> Elm.apply enc [ arg1, arg2, arg3 ])
-
-                                                [ _, _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 arg4 -> ( arg1, arg2, ( arg3, arg4 ) ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg4")
-                                                        )
-                                                        (\( arg1, arg2, ( arg3, arg4 ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4 ])
-
-                                                [ _, _, _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 arg4 arg5 -> ( arg1, arg2, ( arg3, arg4, arg5 ) ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg4")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg5")
-                                                        )
-                                                        (\( arg1, arg2, ( arg3, arg4, arg5 ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5 ])
-
-                                                [ _, _, _, _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6 ) ) ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg4")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg5")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg6")
-                                                        )
-                                                        (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6 ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6 ])
-
-                                                [ _, _, _, _, _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 arg7 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6, arg7 ) ) ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg4")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg5")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg6")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg7")
-                                                        )
-                                                        (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6, arg7 ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6, arg7 ])
-
-                                                [ _, _, _, _, _, _, _, _ ] ->
-                                                    Elm.Case.branch
-                                                        (customStart (\arg1 arg2 arg3 arg4 arg5 arg6 arg7 arg8 -> ( arg1, arg2, ( arg3, arg4, ( arg5, arg6, ( arg7, arg8 ) ) ) ))
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg1")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg2")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg3")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg4")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg5")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg6")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg7")
-                                                            |> Elm.Arg.item (Elm.Arg.var "arg8")
-                                                        )
-                                                        (\( arg1, arg2, ( arg3, arg4, ( arg5, arg6, ( arg7, arg8 ) ) ) ) -> Elm.apply enc [ arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 ])
-
-                                                _ ->
-                                                    Debug.todo "You've hit a custom type with more than 8 arguments! Please copy the above approach to handle your arguments"
-                                        )
-                                        type_.constructors
-                                        conEncoders
+                            combineSkippableResults argCodecs
+                                |> skipMap
+                                    (\args ->
+                                        Elm.Op.pipe
+                                            (Elm.apply varN args)
+                                            fn
                                     )
+                )
+                start
+            |> skipMap
+                (\variantsApplied ->
+                    variantsApplied
+                        |> Elm.Op.pipe
+                            (Elm.value
+                                { importFrom = [ "Serialize" ]
+                                , name = "finishCustomType"
+                                , annotation = Nothing
+                                }
                             )
-                    )
-                ]
-                |> SOk
-    in
-    type_.constructors
-        |> List.foldl
-            (\(Elm.Syntax.Node.Node _ valueConstructor) skippableFn ->
-                case skippableFn of
-                    Skip ->
-                        Skip
+                        |> Elm.declaration (codecifyName name)
+                )
+            |> skippableToMaybe
+            |> (\maybeDec ->
+                    case maybeDec of
+                        Nothing ->
+                            ( decs, knownNames )
 
-                    SErr e ->
-                        SErr e
-
-                    SOk fn ->
-                        let
-                            (Elm.Syntax.Node.Node _ consName) =
-                                valueConstructor.name
-
-                            ( varN, argCodecs ) =
-                                case valueConstructor.arguments of
-                                    [] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant0"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant1"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant2"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant3"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant4"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          , typeAnnotationToCodec "" arg4
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant5"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          , typeAnnotationToCodec "" arg4
-                                          , typeAnnotationToCodec "" arg5
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant6"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          , typeAnnotationToCodec "" arg4
-                                          , typeAnnotationToCodec "" arg5
-                                          , typeAnnotationToCodec "" arg6
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6, Elm.Syntax.Node.Node _ arg7 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant7"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          , typeAnnotationToCodec "" arg4
-                                          , typeAnnotationToCodec "" arg5
-                                          , typeAnnotationToCodec "" arg6
-                                          , typeAnnotationToCodec "" arg7
-                                          ]
-                                        )
-
-                                    [ Elm.Syntax.Node.Node _ arg1, Elm.Syntax.Node.Node _ arg2, Elm.Syntax.Node.Node _ arg3, Elm.Syntax.Node.Node _ arg4, Elm.Syntax.Node.Node _ arg5, Elm.Syntax.Node.Node _ arg6, Elm.Syntax.Node.Node _ arg7, Elm.Syntax.Node.Node _ arg8 ] ->
-                                        ( Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "variant8"
-                                            , annotation = Nothing
-                                            }
-                                        , [ Elm.value
-                                                { importFrom = [ "Backend" ]
-                                                , name = consName
-                                                , annotation = Nothing
-                                                }
-                                                |> SOk
-                                          , typeAnnotationToCodec "" arg1
-                                          , typeAnnotationToCodec "" arg2
-                                          , typeAnnotationToCodec "" arg3
-                                          , typeAnnotationToCodec "" arg4
-                                          , typeAnnotationToCodec "" arg5
-                                          , typeAnnotationToCodec "" arg6
-                                          , typeAnnotationToCodec "" arg7
-                                          , typeAnnotationToCodec "" arg8
-                                          ]
-                                        )
-
-                                    _ ->
-                                        ( Elm.val "", [ SErr "Too many args in custom type" ] )
-                        in
-                        combineSkippableResults argCodecs
-                            |> skipMap
-                                (\args ->
-                                    Elm.Op.pipe
-                                        (Elm.apply varN args)
-                                        fn
-                                )
-            )
-            start
-        |> skipMap
-            (\variantsApplied ->
-                variantsApplied
-                    |> Elm.Op.pipe
-                        (Elm.value
-                            { importFrom = [ "Serialize" ]
-                            , name = "finishCustomType"
-                            , annotation = Nothing
-                            }
-                        )
-                    |> Elm.declaration (codecifyName name)
-            )
+                        Just dec ->
+                            ( dec :: decs, Set.insert (codecifyName name) knownNames )
+               )
 
 
 
