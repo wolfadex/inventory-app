@@ -15,8 +15,9 @@ I use [mise](https://mise.jdx.dev/) for dependency management. If you want to do
     - [@ryannhg/css-in-elm](https://www.npmjs.com/package/@ryannhg/css-in-elm) - helper for CSS and Elm
     - [elm-format](https://github.com/avh4/elm-format)
     - [elm-review](https://www.npmjs.com/package/elm-review)
-    - [elm-esm]() - for building the server
-    - [run-pty]() - runs all the tooling in parallel with a nice UI
+    - [elm-esm](https://www.npmjs.com/package/elm-esm) - for building the server
+    - [run-pty](https://www.npmjs.com/package/run-pty) - runs all the tooling in parallel with a nice UI
+    - [elm-pages](https://elm-pages.com/) - runs the script for generating API encoders/decoders
 
 
 ### Building for dev
