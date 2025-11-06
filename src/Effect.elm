@@ -102,15 +102,13 @@ navigateTo { path, query } =
         (Route.toString { path = path, query = query, fragment = Nothing })
 
 
-get : { url : String, decoder : Json.Decode.Decoder value, onResponse : Result Http.Error value -> msg } -> Effect msg
-get props =
-    ElmLand.Effect.custom
-        (Fetch
-            (ElmLand.Http.get props)
-        )
 
-
-
+-- get : { url : String, decoder : Json.Decode.Decoder value, onResponse : Result Http.Error value -> msg } -> Effect msg
+-- get props =
+--     ElmLand.Effect.custom
+--         (Fetch
+--             (ElmLand.Http.get props)
+--         )
 -- CUSTOM EFFECTS
 
 
@@ -121,10 +119,10 @@ type CustomEffect msg
         { endpoint : Endpoints.Endpoint msg
         , onFailure : Http.Extended.Error -> msg
         }
-    | Fetch (ElmLand.Http.Request msg)
 
 
 
+-- | Fetch (ElmLand.Http.Request msg)
 -- MAP
 
 
@@ -151,5 +149,7 @@ mapCustomEffect fn customEffect =
                 , onFailure = info.onFailure >> fn
                 }
 
-        Fetch info ->
-            Fetch (ElmLand.Http.map fn info)
+
+
+-- Fetch info ->
+--     Fetch (ElmLand.Http.map fn info)

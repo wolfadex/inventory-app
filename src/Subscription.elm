@@ -22,6 +22,7 @@ module Subscription exposing
 
 import ElmLand.Subscription
 import Route.Path
+import Url exposing (Url)
 
 
 {-| Describes a listener for specific events
@@ -70,6 +71,7 @@ onAuthenticationRefreshRequested toMsg =
 type Event
     = AuthenticationChanged
     | RefreshAuthentication (Maybe Route.Path.Path)
+    | UrlChanged Url
 
 
 {-| Describes a custom subscription outside of the

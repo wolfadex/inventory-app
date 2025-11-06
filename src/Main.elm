@@ -25,6 +25,7 @@ main =
     ElmLand.Program.new
         { onCustomEffect = onCustomEffect
         , onCustomSubscription = onCustomSubscription
+        , onUrlChangedEvent = Subscription.UrlChanged
         }
 
 

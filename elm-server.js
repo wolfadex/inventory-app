@@ -1,5 +1,5 @@
-// -- // -- // -- // -- // -- // -- // -- (function(scope){
-// -- // -- // -- // -- // -- // -- // -- 'use strict';
+// -- (function(scope){
+// -- 'use strict';
 
 function F(arity, fun, wrapper) {
   wrapper.a = arity;
@@ -2637,12 +2637,6 @@ function _Platform_setupIncomingPort(name, sendToApp)
 
 
 /*
-/*
-/*
-/*
-/*
-/*
-/*
 function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
@@ -2651,19 +2645,7 @@ function _Platform_export_UNUSED(exports)
 }
 
 */
-*/
-*/
-*/
-*/
-*/
-*/
 
-/*
-/*
-/*
-/*
-/*
-/*
 /*
 function _Platform_mergeExportsProd(obj, exports)
 {
@@ -2677,20 +2659,8 @@ function _Platform_mergeExportsProd(obj, exports)
 	}
 }
 */
-*/
-*/
-*/
-*/
-*/
-*/
 
 
-/*
-/*
-/*
-/*
-/*
-/*
 /*
 function _Platform_export(exports)
 {
@@ -2700,19 +2670,7 @@ function _Platform_export(exports)
 }
 
 */
-*/
-*/
-*/
-*/
-*/
-*/
 
-/*
-/*
-/*
-/*
-/*
-/*
 /*
 function _Platform_mergeExportsDebug(moduleName, obj, exports)
 {
@@ -2725,12 +2683,6 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 			: (obj[name] = exports[name]);
 	}
 }
-*/
-*/
-*/
-*/
-*/
-*/
 */
 
 
@@ -5473,17 +5425,63 @@ var $author$project$Backend$createOrganization = function (v0) {
 			},
 			$author$project$Backend$d_ARG_4));
 };
-var $author$project$Acadia$Api$createOrganizationCodec = $author$project$Serialize$finishRecord(
+var $author$project$Backend$CreateOrganizationInput = function (name) {
+	return {name: name};
+};
+var $author$project$Acadia$Api$createOrganizationInputCodec = $author$project$Serialize$finishRecord(
 	A3(
 		$author$project$Serialize$field,
 		function ($) {
 			return $.name;
 		},
 		$author$project$Serialize$string,
-		$author$project$Serialize$record(
-			function (name) {
-				return {name: name};
+		$author$project$Serialize$record($author$project$Backend$CreateOrganizationInput)));
+var $author$project$Backend$Organization = F2(
+	function (id, name) {
+		return {id: id, name: name};
+	});
+var $author$project$Acadia$Uuid$encode = function (_v0) {
+	var a = _v0.a;
+	var b = _v0.b;
+	var c = _v0.c;
+	var d = _v0.d;
+	return $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, a),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, b),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, c),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, d)
+			]));
+};
+var $author$project$Serialize$uuid = A2($author$project$Serialize$build, $author$project$Acadia$Uuid$encode, $author$project$Acadia$Uuid$decode);
+var $author$project$Acadia$Api$organizationIDCodec = $author$project$Serialize$finishCustomType(
+	A3(
+		$author$project$Serialize$variant1,
+		$author$project$Backend$OrganizationID,
+		$author$project$Serialize$uuid,
+		$author$project$Serialize$customType(
+			function (organizationIDEncoder) {
+				return function (value) {
+					var arg1 = value.a;
+					return organizationIDEncoder(arg1);
+				};
 			})));
+var $author$project$Acadia$Api$organizationCodec = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.name;
+		},
+		$author$project$Serialize$string,
+		A3(
+			$author$project$Serialize$field,
+			function ($) {
+				return $.id;
+			},
+			$author$project$Acadia$Api$organizationIDCodec,
+			$author$project$Serialize$record($author$project$Backend$Organization))));
+var $author$project$Acadia$Api$createOrganizationResponseCodec = $author$project$Acadia$Api$organizationCodec;
 var $elm$core$String$length = _String_length;
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
@@ -5780,27 +5778,46 @@ var $author$project$Endpoints$fromString = function (str) {
 var $author$project$Backend$UserID = function (a) {
 	return {$: 'UserID', a: a};
 };
+var $author$project$Acadia$Time$Posix = F2(
+	function (a, b) {
+		return {$: 'Posix', a: a, b: b};
+	});
+var $author$project$Acadia$Time$decodeLE = A3(
+	$elm$bytes$Bytes$Decode$map2,
+	F2(
+		function (lo, hi) {
+			return A2($author$project$Acadia$Time$Posix, hi, lo);
+		}),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$LE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$LE));
+var $author$project$Acadia$Bytes$Decode$timeLE = $author$project$Acadia$Time$decodeLE;
 var $author$project$Backend$d_ARG_2 = A2(
 	$author$project$Acadia$Bytes$Decode$andThen,
 	function (n) {
-		return ($author$project$Acadia$Int32$toInt(n) < 16) ? $author$project$Acadia$Bytes$Decode$fail : A2(
+		return ($author$project$Acadia$Int32$toInt(n) < 24) ? $author$project$Acadia$Bytes$Decode$fail : A2(
 			$author$project$Acadia$Bytes$Decode$andThen,
 			function (x_id_0) {
-				var o0 = $author$project$Acadia$UInt32$fromInt(16);
 				return A2(
 					$author$project$Acadia$Bytes$Decode$andThen,
-					function (x_primaryEmail) {
-						return $author$project$Acadia$Bytes$Decode$succeed(
-							{
-								id: $author$project$Backend$UserID(x_id_0),
-								primaryEmail: x_primaryEmail
-							});
-					},
-					$author$project$Acadia$Bytes$Decode$string(
-						$author$project$Acadia$UInt32$fromInt(
-							$author$project$Acadia$UInt32$toInt(
+					function (x_created) {
+						var o0 = $author$project$Acadia$UInt32$fromInt(24);
+						return A2(
+							$author$project$Acadia$Bytes$Decode$andThen,
+							function (x_primaryEmail) {
+								return $author$project$Acadia$Bytes$Decode$succeed(
+									{
+										created: x_created,
+										id: $author$project$Backend$UserID(x_id_0),
+										primaryEmail: x_primaryEmail
+									});
+							},
+							$author$project$Acadia$Bytes$Decode$string(
 								$author$project$Acadia$UInt32$fromInt(
-									$author$project$Acadia$Int32$toInt(n))) - $author$project$Acadia$UInt32$toInt(o0))));
+									$author$project$Acadia$UInt32$toInt(
+										$author$project$Acadia$UInt32$fromInt(
+											$author$project$Acadia$Int32$toInt(n))) - $author$project$Acadia$UInt32$toInt(o0))));
+					},
+					$author$project$Acadia$Bytes$Decode$timeLE);
 			},
 			$author$project$Acadia$Bytes$Decode$uuid);
 	},
@@ -5903,50 +5920,6 @@ var $author$project$Serialize$maybe = function (justCodec) {
 							}
 						})))));
 };
-var $author$project$Backend$Organization = F2(
-	function (id, name) {
-		return {id: id, name: name};
-	});
-var $author$project$Acadia$Uuid$encode = function (_v0) {
-	var a = _v0.a;
-	var b = _v0.b;
-	var c = _v0.c;
-	var d = _v0.d;
-	return $elm$bytes$Bytes$Encode$sequence(
-		_List_fromArray(
-			[
-				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, a),
-				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, b),
-				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, c),
-				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, d)
-			]));
-};
-var $author$project$Serialize$uuid = A2($author$project$Serialize$build, $author$project$Acadia$Uuid$encode, $author$project$Acadia$Uuid$decode);
-var $author$project$Acadia$Api$organizationIdCodec = $author$project$Serialize$finishCustomType(
-	A3(
-		$author$project$Serialize$variant1,
-		$author$project$Backend$OrganizationID,
-		$author$project$Serialize$uuid,
-		$author$project$Serialize$customType(
-			F2(
-				function (enc, _v0) {
-					var val = _v0.a;
-					return enc(val);
-				}))));
-var $author$project$Acadia$Api$organizationCodec = $author$project$Serialize$finishRecord(
-	A3(
-		$author$project$Serialize$field,
-		function ($) {
-			return $.name;
-		},
-		$author$project$Serialize$string,
-		A3(
-			$author$project$Serialize$field,
-			function ($) {
-				return $.id;
-			},
-			$author$project$Acadia$Api$organizationIdCodec,
-			$author$project$Serialize$record($author$project$Backend$Organization))));
 var $elm$core$Tuple$pair = F2(
 	function (a, b) {
 		return _Utils_Tuple2(a, b);
@@ -5968,36 +5941,59 @@ var $author$project$Serialize$tuple = F2(
 					codecFirst,
 					$author$project$Serialize$record($elm$core$Tuple$pair))));
 	});
-var $author$project$Backend$User = F2(
-	function (id, primaryEmail) {
-		return {id: id, primaryEmail: primaryEmail};
+var $author$project$Backend$User = F3(
+	function (id, primaryEmail, created) {
+		return {created: created, id: id, primaryEmail: primaryEmail};
 	});
-var $author$project$Acadia$Api$userIdCodec = $author$project$Serialize$finishCustomType(
+var $author$project$Acadia$Time$decodeBE = A3(
+	$elm$bytes$Bytes$Decode$map2,
+	$author$project$Acadia$Time$Posix,
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE),
+	$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$BE));
+var $author$project$Acadia$Time$encodeBE = function (_v0) {
+	var hi = _v0.a;
+	var lo = _v0.b;
+	return $elm$bytes$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, hi),
+				A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$BE, lo)
+			]));
+};
+var $author$project$Serialize$time = A2($author$project$Serialize$build, $author$project$Acadia$Time$encodeBE, $author$project$Acadia$Time$decodeBE);
+var $author$project$Acadia$Api$userIDCodec = $author$project$Serialize$finishCustomType(
 	A3(
 		$author$project$Serialize$variant1,
 		$author$project$Backend$UserID,
 		$author$project$Serialize$uuid,
 		$author$project$Serialize$customType(
-			F2(
-				function (enc, _v0) {
-					var val = _v0.a;
-					return enc(val);
-				}))));
+			function (userIDEncoder) {
+				return function (value) {
+					var arg1 = value.a;
+					return userIDEncoder(arg1);
+				};
+			})));
 var $author$project$Acadia$Api$userCodec = $author$project$Serialize$finishRecord(
 	A3(
 		$author$project$Serialize$field,
 		function ($) {
-			return $.primaryEmail;
+			return $.created;
 		},
-		$author$project$Serialize$string,
+		$author$project$Serialize$time,
 		A3(
 			$author$project$Serialize$field,
 			function ($) {
-				return $.id;
+				return $.primaryEmail;
 			},
-			$author$project$Acadia$Api$userIdCodec,
-			$author$project$Serialize$record($author$project$Backend$User))));
-var $author$project$Acadia$Api$getUserSelfCodec = A2(
+			$author$project$Serialize$string,
+			A3(
+				$author$project$Serialize$field,
+				function ($) {
+					return $.id;
+				},
+				$author$project$Acadia$Api$userIDCodec,
+				$author$project$Serialize$record($author$project$Backend$User)))));
+var $author$project$Acadia$Api$getUserSelfResponseCodec = A2(
 	$author$project$Serialize$tuple,
 	$author$project$Acadia$Api$userCodec,
 	$author$project$Serialize$maybe($author$project$Acadia$Api$organizationCodec));
@@ -6050,7 +6046,7 @@ var $author$project$Serialize$unit = A2(
 	$elm$core$Basics$always(
 		$elm$bytes$Bytes$Encode$sequence(_List_Nil)),
 	$elm$bytes$Bytes$Decode$succeed(_Utils_Tuple0));
-var $author$project$Acadia$Api$loginCodec = $author$project$Serialize$unit;
+var $author$project$Acadia$Api$loginResponseCodec = $author$project$Serialize$unit;
 var $author$project$Backend$logout = A2(
 	$author$project$Acadia$Transaction$Transaction,
 	$author$project$Acadia$Bytes$Encode$sequence(
@@ -6062,7 +6058,7 @@ var $author$project$Backend$logout = A2(
 				$author$project$Acadia$UInt32$fromInt(1))
 			])),
 	$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
-var $author$project$Acadia$Api$logoutCodec = $author$project$Serialize$unit;
+var $author$project$Acadia$Api$logoutResponseCodec = $author$project$Serialize$unit;
 var $author$project$Http$Extended$Request = F4(
 	function (path, method, headers, body) {
 		return {body: body, headers: headers, method: method, path: path};
@@ -6210,6 +6206,7 @@ var $author$project$Backend$signup = function (v0) {
 				])),
 		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 };
+var $author$project$Acadia$Api$signupResponseCodec = $author$project$Serialize$unit;
 var $author$project$Server$init = function (requestJson) {
 	return _Utils_Tuple2(
 		{},
@@ -6238,14 +6235,14 @@ var $author$project$Server$init = function (requestJson) {
 								return A3(
 									$author$project$Server$acadiaRequest,
 									request.headers,
-									$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfCodec),
+									$author$project$Server$AuthSelfResponse($author$project$Acadia$Api$getUserSelfResponseCodec),
 									$author$project$Backend$getUserSelf);
 							case 'ApiAuthLogout':
 								var _v3 = _v1.a;
 								return A3(
 									$author$project$Server$acadiaRequest,
 									request.headers,
-									$author$project$Server$AuthLogoutResponse($author$project$Acadia$Api$logoutCodec),
+									$author$project$Server$AuthLogoutResponse($author$project$Acadia$Api$logoutResponseCodec),
 									$author$project$Backend$logout);
 							case 'ApiAuthLogin':
 								var _v4 = _v1.a;
@@ -6261,7 +6258,7 @@ var $author$project$Server$init = function (requestJson) {
 									return A3(
 										$author$project$Server$acadiaRequest,
 										request.headers,
-										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
+										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginResponseCodec),
 										$author$project$Backend$login(loginInfo));
 								}
 							case 'ApiAuthSignup':
@@ -6293,12 +6290,12 @@ var $author$project$Server$init = function (requestJson) {
 										}) : A3(
 										$author$project$Server$acadiaRequest,
 										request.headers,
-										$author$project$Server$LoginResponse($author$project$Acadia$Api$loginCodec),
+										$author$project$Server$LoginResponse($author$project$Acadia$Api$signupResponseCodec),
 										$author$project$Backend$signup(signupInfo))));
 								}
 							default:
 								var _v8 = _v1.a;
-								var _v9 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationCodec, request.body);
+								var _v9 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Api$createOrganizationInputCodec, request.body);
 								if (_v9.$ === 'Nothing') {
 									return $author$project$Server$acadiaFailureResponse(
 										{
@@ -6315,7 +6312,7 @@ var $author$project$Server$init = function (requestJson) {
 										}) : A3(
 										$author$project$Server$acadiaRequest,
 										request.headers,
-										$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$organizationCodec),
+										$author$project$Server$OrganizationCreateResponse($author$project$Acadia$Api$createOrganizationResponseCodec),
 										$author$project$Backend$createOrganization(newOrg));
 								}
 						}
@@ -6403,31 +6400,7 @@ var $elm$core$Platform$worker = _Platform_worker;
 var $author$project$Server$main = $elm$core$Platform$worker(
 	{init: $author$project$Server$init, subscriptions: $author$project$Server$subscriptions, update: $author$project$Server$update});
 /*
-/*
-/*
-/*
-/*
-/*
-/*
 _Platform_export({'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}});}(this));
 */
-*/
-*/
-*/
-*/
-*/
-*/
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
 export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
   

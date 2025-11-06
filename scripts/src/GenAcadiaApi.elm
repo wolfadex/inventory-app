@@ -193,25 +193,19 @@ typeAnnotationToCodec name typeAnnotation =
         Elm.Syntax.TypeAnnotation.Tupled parts ->
             case parts of
                 [ Elm.Syntax.Node.Node _ typeAnnoA, Elm.Syntax.Node.Node _ typeAnnoB ] ->
-                    Result.map2
-                        (\annoA annoB ->
-                            Elm.fn2
-                                (Elm.Arg.varWith "codecA" annoA)
-                                (Elm.Arg.varWith "codecB" annoB)
-                                (\codecA codecB ->
-                                    Elm.apply
-                                        (Elm.value
-                                            { importFrom = [ "Serialize" ]
-                                            , name = "tuple"
-                                            , annotation = Nothing
-                                            }
-                                        )
-                                        [ codecA, codecB ]
+                    skipMap2
+                        (\codecA codecB ->
+                            Elm.apply
+                                (Elm.value
+                                    { importFrom = [ "Serialize" ]
+                                    , name = "tuple"
+                                    , annotation = Nothing
+                                    }
                                 )
+                                [ codecA, codecB ]
                         )
-                        (typeAnnotationToCodecAnnotation typeAnnoA)
-                        (typeAnnotationToCodecAnnotation typeAnnoB)
-                        |> skipFromResult
+                        (typeAnnotationToCodec "" typeAnnoA)
+                        (typeAnnotationToCodec "" typeAnnoB)
 
                 _ ->
                     SErr "Invalid tuple size"
@@ -1135,6 +1129,27 @@ skipMap fn res =
 
         SOk a ->
             SOk (fn a)
+
+
+skipMap2 : (a -> b -> c) -> SkippableResult e a -> SkippableResult e b -> SkippableResult e c
+skipMap2 fn res1 res2 =
+    case res1 of
+        Skip ->
+            Skip
+
+        SErr e ->
+            SErr e
+
+        SOk a ->
+            case res2 of
+                Skip ->
+                    Skip
+
+                SErr e ->
+                    SErr e
+
+                SOk b ->
+                    SOk (fn a b)
 
 
 skippableToMaybe : SkippableResult e a -> Maybe (Result e a)

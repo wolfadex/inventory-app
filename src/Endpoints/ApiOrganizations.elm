@@ -15,7 +15,7 @@ post toMsg newOrgInfo =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiOrganizations
-            , request = Serialize.toBytesEncoder Acadia.Api.createOrganizationCodec newOrgInfo
+            , request = Serialize.toBytesEncoder Acadia.Api.createOrganizationInputCodec newOrgInfo
             , response = Serialize.toBytesDecoder Acadia.Api.organizationCodec
             }
         , onResponse = toMsg

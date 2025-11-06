@@ -65,10 +65,10 @@ init requestJson =
                         acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
 
                     Just Endpoints.ApiAuthSelf ->
-                        acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfCodec) Backend.getUserSelf
+                        acadiaRequest request.headers (AuthSelfResponse Acadia.Api.getUserSelfResponseCodec) Backend.getUserSelf
 
                     Just Endpoints.ApiAuthLogout ->
-                        acadiaRequest request.headers (AuthLogoutResponse Acadia.Api.logoutCodec) Backend.logout
+                        acadiaRequest request.headers (AuthLogoutResponse Acadia.Api.logoutResponseCodec) Backend.logout
 
                     Just Endpoints.ApiAuthLogin ->
                         case Serialize.decodeFromString Acadia.Api.authInfoCodec request.body of
@@ -76,7 +76,7 @@ init requestJson =
                                 acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
                             Just loginInfo ->
-                                acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.login loginInfo)
+                                acadiaRequest request.headers (LoginResponse Acadia.Api.loginResponseCodec) (Backend.login loginInfo)
 
                     Just Endpoints.ApiAuthSignup ->
                         case Serialize.decodeFromString Acadia.Api.signUpInfoCodec request.body of
@@ -94,10 +94,10 @@ init requestJson =
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                                 else
-                                    acadiaRequest request.headers (LoginResponse Acadia.Api.loginCodec) (Backend.signup signupInfo)
+                                    acadiaRequest request.headers (LoginResponse Acadia.Api.signupResponseCodec) (Backend.signup signupInfo)
 
                     Just Endpoints.ApiOrganizations ->
-                        case Serialize.decodeFromString Acadia.Api.createOrganizationCodec request.body of
+                        case Serialize.decodeFromString Acadia.Api.createOrganizationInputCodec request.body of
                             Nothing ->
                                 acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
@@ -106,7 +106,7 @@ init requestJson =
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                                 else
-                                    acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.organizationCodec) (Backend.createOrganization newOrg)
+                                    acadiaRequest request.headers (OrganizationCreateResponse Acadia.Api.createOrganizationResponseCodec) (Backend.createOrganization newOrg)
     )
 
 
