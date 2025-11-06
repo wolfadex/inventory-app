@@ -26,6 +26,21 @@ I use [mise](https://mise.jdx.dev/) for dependency management. If you want to do
 
 This start various dev servers in watch mode, using run-pty to manage them all. See the run-pty docs for more about how to navigate its UI.
 
+**Dev Notes**
+- The codegen for `Acadia.Api` currently only supports Acadia endpoints with 1 argument (excluding `Cookies`). Additionally, it doesn't yet support anonymous records. E.g.
+```elm
+unsupportedEndpoint : Cookies -> String -> Int -> Transaction Bool
+
+unsupportedEndpoint : Cookies -> { name : String, count : Int } -> Transaction Bool
+
+supportedEndpoint : Cookies -> NamedInput -> Transaction Bool
+
+type alias NamedInpuut =
+    { name : String
+    , count : Int
+    }
+```
+
 ### Building for prod
 
 - `just build` - I haven't tested this yet
