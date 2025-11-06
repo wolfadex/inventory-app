@@ -38,6 +38,7 @@ import Subscription
 -}
 type alias Effect msg =
     ElmLand.Effect.Effect
+        Subscription.Event
         (CustomEffect msg)
         msg
 

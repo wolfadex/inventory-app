@@ -22,8 +22,8 @@ import Url exposing (Url)
 main : Program
 main =
     ElmLand.Program.new
-        { toCmd = ElmLand.Effect.toCmd onCustomEffect
-        , toSub = ElmLand.Subscription.toSub onCustomSub
+        { onCustomEffect = onCustomEffect
+        , onCustomSubscription = onCustomSubscription
         }
 
 
@@ -89,11 +89,27 @@ onCustomEffect customEffect _ _ shared =
 
 {-| How should a Subscription become a Platform.Sub?
 -}
-onCustomSub : Subscription.CustomSubscription Msg -> Sub Msg
-onCustomSub customSub =
+onCustomSubscription : Subscription.CustomSubscription Msg -> ElmLand.Subscription.Handler Subscription.Event Msg
+onCustomSubscription customSub =
     case customSub of
-        Subscription.OnAuthenticationChanged _ ->
-            Sub.none
+        Subscription.OnAuthenticationChanged msg ->
+            ElmLand.Subscription.handleEvent
+                (\event ->
+                    case event of
+                        Subscription.AuthenticationChanged ->
+                            Just msg
 
-        Subscription.OnAuthenticationRefreshRequested _ ->
-            Sub.none
+                        _ ->
+                            Nothing
+                )
+
+        Subscription.OnAuthenticationRefreshRequested toMsg ->
+            ElmLand.Subscription.handleEvent
+                (\event ->
+                    case event of
+                        Subscription.RefreshAuthentication maybePath ->
+                            Just (toMsg maybePath)
+
+                        _ ->
+                            Nothing
+                )

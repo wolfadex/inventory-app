@@ -2,7 +2,7 @@ module Subscription exposing
     ( Subscription
     , none, batch
     , map
-    , Event(..), onEvent
+    , Event(..)
     , CustomSubscription(..)
     , onAuthenticationChange, onAuthenticationRefreshRequested
     )
@@ -13,7 +13,7 @@ module Subscription exposing
 @docs none, batch
 @docs map
 
-@docs Event, onEvent
+@docs Event
 @docs CustomSubscription
 
 @docs onAuthenticationChange, onAuthenticationRefreshRequested
@@ -100,25 +100,3 @@ mapCustom fn sub =
 
         OnAuthenticationRefreshRequested toMsg1 ->
             OnAuthenticationRefreshRequested (fn << toMsg1)
-
-
-
--- NEEDED BY ELM LAND
-
-
-onEvent : Event -> Subscription msg -> List msg
-onEvent event sub =
-    ElmLand.Subscription.onEvent sub <|
-        \customSub ->
-            case ( event, customSub ) of
-                ( AuthenticationChanged, OnAuthenticationChanged fn ) ->
-                    [ fn ]
-
-                ( AuthenticationChanged, _ ) ->
-                    []
-
-                ( RefreshAuthentication maybePath, OnAuthenticationRefreshRequested fn ) ->
-                    [ fn maybePath ]
-
-                ( RefreshAuthentication _, _ ) ->
-                    []

@@ -2,6 +2,7 @@ node_modules
 elm-stuff
 acadia-stuff
 .elm-pages
+.elm-land
 
 /public/app.elm.js
 
