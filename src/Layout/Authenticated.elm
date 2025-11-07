@@ -1,4 +1,13 @@
-module Layout.Authenticated exposing (AuthContext, Model, Msg(..), init, subscriptions, update, view)
+module Layout.Authenticated exposing
+    ( AuthContext
+    , Model
+    , Msg(..)
+    , init
+    , subscriptions
+    , update
+    , updateWithAuth
+    , view
+    )
 
 import Authentication
 import Backend
@@ -117,6 +126,30 @@ update ({ model } as config) =
                 Authentication.Unauthenticated ->
                     Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) }
             )
+
+
+updateWithAuth :
+    { pageModel : pageModel
+    , sharedModel : Shared.Model
+    , route : Route params
+    , update : AuthContext -> ( pageModel, Effect pageMsg )
+    }
+    -> ( pageModel, Effect pageMsg )
+updateWithAuth config =
+    case config.sharedModel.currentUser of
+        Authentication.Authenticated user ->
+            case config.sharedModel.currentOrganization of
+                Just organization ->
+                    config.update { currentUser = user, currentOrganization = organization }
+
+                Nothing ->
+                    ( config.pageModel, Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
+
+        Authentication.Authenticating ->
+            ( config.pageModel, Effect.none )
+
+        Authentication.Unauthenticated ->
+            ( config.pageModel, Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
 
 
 

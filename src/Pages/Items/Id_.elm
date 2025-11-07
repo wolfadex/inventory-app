@@ -124,14 +124,28 @@ update { shared, route } msg model =
                 }
 
         ItemLoaded (Err err) ->
-            ( { model | item = Response.Failure err }
-            , Effect.none
-            )
+            Layout.Authenticated.updateWithAuth
+                { pageModel = model
+                , sharedModel = shared
+                , route = route
+                , update =
+                    \_ ->
+                        ( { model | item = Response.Failure err }
+                        , Effect.none
+                        )
+                }
 
         ItemLoaded (Ok item) ->
-            ( { model | item = Response.Success item }
-            , Effect.none
-            )
+            Layout.Authenticated.updateWithAuth
+                { pageModel = model
+                , sharedModel = shared
+                , route = route
+                , update =
+                    \_ ->
+                        ( { model | item = Response.Success item }
+                        , Effect.none
+                        )
+                }
 
 
 view : Context -> Model -> Browser.Document Msg
