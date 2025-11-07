@@ -5710,277 +5710,6 @@ var $author$project$Acadia$Serialize$organization = $author$project$Serialize$fi
 										$author$project$Acadia$Serialize$organizationID,
 										$author$project$Serialize$record($author$project$Backend$Organization)))))))))));
 var $author$project$Acadia$Serialize$createOrganizationResponse = $author$project$Acadia$Serialize$organization;
-var $elm$core$String$length = _String_length;
-var $elm$core$Basics$modBy = _Basics_modBy;
-var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
-var $elm$core$String$repeatHelp = F3(
-	function (n, chunk, result) {
-		return (n <= 0) ? result : A3(
-			$elm$core$String$repeatHelp,
-			n >> 1,
-			_Utils_ap(chunk, chunk),
-			(!(n & 1)) ? result : _Utils_ap(result, chunk));
-	});
-var $elm$core$String$repeat = F2(
-	function (n, chunk) {
-		return A3($elm$core$String$repeatHelp, n, chunk, '');
-	});
-var $author$project$Serialize$replaceFromUrl = A2(
-	$elm$core$Maybe$withDefault,
-	$elm$regex$Regex$never,
-	$elm$regex$Regex$fromString('[-_]'));
-var $elm$core$String$slice = _String_slice;
-var $elm$core$String$dropLeft = F2(
-	function (n, string) {
-		return (n < 1) ? string : A3(
-			$elm$core$String$slice,
-			n,
-			$elm$core$String$length(string),
-			string);
-	});
-var $danfishgold$base64_bytes$Encode$isValidChar = function (c) {
-	if ($elm$core$Char$isAlphaNum(c)) {
-		return true;
-	} else {
-		switch (c.valueOf()) {
-			case '+':
-				return true;
-			case '/':
-				return true;
-			default:
-				return false;
-		}
-	}
-};
-var $elm$core$Basics$negate = function (n) {
-	return -n;
-};
-var $danfishgold$base64_bytes$Encode$unsafeConvertChar = function (_char) {
-	var key = $elm$core$Char$toCode(_char);
-	if ((key >= 65) && (key <= 90)) {
-		return key - 65;
-	} else {
-		if ((key >= 97) && (key <= 122)) {
-			return (key - 97) + 26;
-		} else {
-			if ((key >= 48) && (key <= 57)) {
-				return ((key - 48) + 26) + 26;
-			} else {
-				switch (_char.valueOf()) {
-					case '+':
-						return 62;
-					case '/':
-						return 63;
-					default:
-						return -1;
-				}
-			}
-		}
-	}
-};
-var $elm$bytes$Bytes$Encode$U8 = function (a) {
-	return {$: 'U8', a: a};
-};
-var $elm$bytes$Bytes$Encode$unsignedInt8 = $elm$bytes$Bytes$Encode$U8;
-var $danfishgold$base64_bytes$Encode$encodeCharacters = F4(
-	function (a, b, c, d) {
-		if ($danfishgold$base64_bytes$Encode$isValidChar(a) && $danfishgold$base64_bytes$Encode$isValidChar(b)) {
-			var n2 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(b);
-			var n1 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(a);
-			if ('=' === d.valueOf()) {
-				if ('=' === c.valueOf()) {
-					var n = (n1 << 18) | (n2 << 12);
-					var b1 = n >> 16;
-					return $elm$core$Maybe$Just(
-						$elm$bytes$Bytes$Encode$unsignedInt8(b1));
-				} else {
-					if ($danfishgold$base64_bytes$Encode$isValidChar(c)) {
-						var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
-						var n = ((n1 << 18) | (n2 << 12)) | (n3 << 6);
-						var combined = n >> 8;
-						return $elm$core$Maybe$Just(
-							A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined));
-					} else {
-						return $elm$core$Maybe$Nothing;
-					}
-				}
-			} else {
-				if ($danfishgold$base64_bytes$Encode$isValidChar(c) && $danfishgold$base64_bytes$Encode$isValidChar(d)) {
-					var n4 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(d);
-					var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
-					var n = ((n1 << 18) | (n2 << 12)) | ((n3 << 6) | n4);
-					var combined = n >> 8;
-					var b3 = n;
-					return $elm$core$Maybe$Just(
-						$elm$bytes$Bytes$Encode$sequence(
-							_List_fromArray(
-								[
-									A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined),
-									$elm$bytes$Bytes$Encode$unsignedInt8(b3)
-								])));
-				} else {
-					return $elm$core$Maybe$Nothing;
-				}
-			}
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$String$left = F2(
-	function (n, string) {
-		return (n < 1) ? '' : A3($elm$core$String$slice, 0, n, string);
-	});
-var $elm$core$String$foldr = _String_foldr;
-var $elm$core$String$toList = function (string) {
-	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
-var $danfishgold$base64_bytes$Encode$encodeChunks = F2(
-	function (input, accum) {
-		encodeChunks:
-		while (true) {
-			var _v0 = $elm$core$String$toList(
-				A2($elm$core$String$left, 4, input));
-			_v0$4:
-			while (true) {
-				if (!_v0.b) {
-					return $elm$core$Maybe$Just(accum);
-				} else {
-					if (_v0.b.b) {
-						if (_v0.b.b.b) {
-							if (_v0.b.b.b.b) {
-								if (!_v0.b.b.b.b.b) {
-									var a = _v0.a;
-									var _v1 = _v0.b;
-									var b = _v1.a;
-									var _v2 = _v1.b;
-									var c = _v2.a;
-									var _v3 = _v2.b;
-									var d = _v3.a;
-									var _v4 = A4($danfishgold$base64_bytes$Encode$encodeCharacters, a, b, c, d);
-									if (_v4.$ === 'Just') {
-										var enc = _v4.a;
-										var $temp$input = A2($elm$core$String$dropLeft, 4, input),
-											$temp$accum = A2($elm$core$List$cons, enc, accum);
-										input = $temp$input;
-										accum = $temp$accum;
-										continue encodeChunks;
-									} else {
-										return $elm$core$Maybe$Nothing;
-									}
-								} else {
-									break _v0$4;
-								}
-							} else {
-								var a = _v0.a;
-								var _v5 = _v0.b;
-								var b = _v5.a;
-								var _v6 = _v5.b;
-								var c = _v6.a;
-								var _v7 = A4(
-									$danfishgold$base64_bytes$Encode$encodeCharacters,
-									a,
-									b,
-									c,
-									_Utils_chr('='));
-								if (_v7.$ === 'Nothing') {
-									return $elm$core$Maybe$Nothing;
-								} else {
-									var enc = _v7.a;
-									return $elm$core$Maybe$Just(
-										A2($elm$core$List$cons, enc, accum));
-								}
-							}
-						} else {
-							var a = _v0.a;
-							var _v8 = _v0.b;
-							var b = _v8.a;
-							var _v9 = A4(
-								$danfishgold$base64_bytes$Encode$encodeCharacters,
-								a,
-								b,
-								_Utils_chr('='),
-								_Utils_chr('='));
-							if (_v9.$ === 'Nothing') {
-								return $elm$core$Maybe$Nothing;
-							} else {
-								var enc = _v9.a;
-								return $elm$core$Maybe$Just(
-									A2($elm$core$List$cons, enc, accum));
-							}
-						}
-					} else {
-						break _v0$4;
-					}
-				}
-			}
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $danfishgold$base64_bytes$Encode$encoder = function (string) {
-	return A2(
-		$elm$core$Maybe$map,
-		A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence),
-		A2($danfishgold$base64_bytes$Encode$encodeChunks, string, _List_Nil));
-};
-var $danfishgold$base64_bytes$Encode$toBytes = function (string) {
-	return A2(
-		$elm$core$Maybe$map,
-		$elm$bytes$Bytes$Encode$encode,
-		$danfishgold$base64_bytes$Encode$encoder(string));
-};
-var $danfishgold$base64_bytes$Base64$toBytes = $danfishgold$base64_bytes$Encode$toBytes;
-var $author$project$Serialize$decode = function (base64text) {
-	var strlen = $elm$core$String$length(base64text);
-	var replaceChar = function (rematch) {
-		var _v0 = rematch.match;
-		if (_v0 === '-') {
-			return '+';
-		} else {
-			return '/';
-		}
-	};
-	if (!strlen) {
-		return $elm$core$Maybe$Just(
-			$elm$bytes$Bytes$Encode$encode(
-				$elm$bytes$Bytes$Encode$sequence(_List_Nil)));
-	} else {
-		var hanging = A2($elm$core$Basics$modBy, 4, strlen);
-		var ilen = (!hanging) ? 0 : (4 - hanging);
-		return $danfishgold$base64_bytes$Base64$toBytes(
-			A3(
-				$elm$regex$Regex$replace,
-				$author$project$Serialize$replaceFromUrl,
-				replaceChar,
-				_Utils_ap(
-					base64text,
-					A2($elm$core$String$repeat, ilen, '='))));
-	}
-};
-var $author$project$Serialize$decodeFromBytes = F2(
-	function (codec, bytes_) {
-		var decoder = $author$project$Serialize$toBytesDecoder(codec);
-		return A2($elm$bytes$Bytes$Decode$decode, decoder, bytes_);
-	});
-var $author$project$Serialize$decodeFromString = F2(
-	function (codec, base64) {
-		var _v0 = $author$project$Serialize$decode(base64);
-		if (_v0.$ === 'Just') {
-			var bytes_ = _v0.a;
-			return A2($author$project$Serialize$decodeFromBytes, codec, bytes_);
-		} else {
-			return $elm$core$Maybe$Nothing;
-		}
-	});
 var $elm$json$Json$Decode$decodeValue = _Json_run;
 var $author$project$Endpoints$ApiAuthLogin = {$: 'ApiAuthLogin'};
 var $author$project$Endpoints$ApiAuthLogout = {$: 'ApiAuthLogout'};
@@ -6718,6 +6447,7 @@ var $author$project$Acadia$Serialize$getUserSelfResponse = A2(
 	$author$project$Serialize$tuple,
 	$author$project$Acadia$Serialize$user,
 	$author$project$Serialize$maybe($author$project$Acadia$Serialize$organization));
+var $elm$core$String$length = _String_length;
 var $author$project$Acadia$UInt32$encodeLE = function (_v0) {
 	var n = _v0.a;
 	return A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$LE, n);
@@ -6928,6 +6658,276 @@ var $author$project$Backend$signup = function (v0) {
 		$author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0));
 };
 var $author$project$Acadia$Serialize$signupResponse = $author$project$Serialize$unit;
+var $elm$core$Basics$modBy = _Basics_modBy;
+var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
+var $elm$core$String$repeatHelp = F3(
+	function (n, chunk, result) {
+		return (n <= 0) ? result : A3(
+			$elm$core$String$repeatHelp,
+			n >> 1,
+			_Utils_ap(chunk, chunk),
+			(!(n & 1)) ? result : _Utils_ap(result, chunk));
+	});
+var $elm$core$String$repeat = F2(
+	function (n, chunk) {
+		return A3($elm$core$String$repeatHelp, n, chunk, '');
+	});
+var $author$project$Serialize$replaceFromUrl = A2(
+	$elm$core$Maybe$withDefault,
+	$elm$regex$Regex$never,
+	$elm$regex$Regex$fromString('[-_]'));
+var $elm$core$String$slice = _String_slice;
+var $elm$core$String$dropLeft = F2(
+	function (n, string) {
+		return (n < 1) ? string : A3(
+			$elm$core$String$slice,
+			n,
+			$elm$core$String$length(string),
+			string);
+	});
+var $danfishgold$base64_bytes$Encode$isValidChar = function (c) {
+	if ($elm$core$Char$isAlphaNum(c)) {
+		return true;
+	} else {
+		switch (c.valueOf()) {
+			case '+':
+				return true;
+			case '/':
+				return true;
+			default:
+				return false;
+		}
+	}
+};
+var $elm$core$Basics$negate = function (n) {
+	return -n;
+};
+var $danfishgold$base64_bytes$Encode$unsafeConvertChar = function (_char) {
+	var key = $elm$core$Char$toCode(_char);
+	if ((key >= 65) && (key <= 90)) {
+		return key - 65;
+	} else {
+		if ((key >= 97) && (key <= 122)) {
+			return (key - 97) + 26;
+		} else {
+			if ((key >= 48) && (key <= 57)) {
+				return ((key - 48) + 26) + 26;
+			} else {
+				switch (_char.valueOf()) {
+					case '+':
+						return 62;
+					case '/':
+						return 63;
+					default:
+						return -1;
+				}
+			}
+		}
+	}
+};
+var $elm$bytes$Bytes$Encode$U8 = function (a) {
+	return {$: 'U8', a: a};
+};
+var $elm$bytes$Bytes$Encode$unsignedInt8 = $elm$bytes$Bytes$Encode$U8;
+var $danfishgold$base64_bytes$Encode$encodeCharacters = F4(
+	function (a, b, c, d) {
+		if ($danfishgold$base64_bytes$Encode$isValidChar(a) && $danfishgold$base64_bytes$Encode$isValidChar(b)) {
+			var n2 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(b);
+			var n1 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(a);
+			if ('=' === d.valueOf()) {
+				if ('=' === c.valueOf()) {
+					var n = (n1 << 18) | (n2 << 12);
+					var b1 = n >> 16;
+					return $elm$core$Maybe$Just(
+						$elm$bytes$Bytes$Encode$unsignedInt8(b1));
+				} else {
+					if ($danfishgold$base64_bytes$Encode$isValidChar(c)) {
+						var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
+						var n = ((n1 << 18) | (n2 << 12)) | (n3 << 6);
+						var combined = n >> 8;
+						return $elm$core$Maybe$Just(
+							A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined));
+					} else {
+						return $elm$core$Maybe$Nothing;
+					}
+				}
+			} else {
+				if ($danfishgold$base64_bytes$Encode$isValidChar(c) && $danfishgold$base64_bytes$Encode$isValidChar(d)) {
+					var n4 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(d);
+					var n3 = $danfishgold$base64_bytes$Encode$unsafeConvertChar(c);
+					var n = ((n1 << 18) | (n2 << 12)) | ((n3 << 6) | n4);
+					var combined = n >> 8;
+					var b3 = n;
+					return $elm$core$Maybe$Just(
+						$elm$bytes$Bytes$Encode$sequence(
+							_List_fromArray(
+								[
+									A2($elm$bytes$Bytes$Encode$unsignedInt16, $elm$bytes$Bytes$BE, combined),
+									$elm$bytes$Bytes$Encode$unsignedInt8(b3)
+								])));
+				} else {
+					return $elm$core$Maybe$Nothing;
+				}
+			}
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$String$left = F2(
+	function (n, string) {
+		return (n < 1) ? '' : A3($elm$core$String$slice, 0, n, string);
+	});
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $danfishgold$base64_bytes$Encode$encodeChunks = F2(
+	function (input, accum) {
+		encodeChunks:
+		while (true) {
+			var _v0 = $elm$core$String$toList(
+				A2($elm$core$String$left, 4, input));
+			_v0$4:
+			while (true) {
+				if (!_v0.b) {
+					return $elm$core$Maybe$Just(accum);
+				} else {
+					if (_v0.b.b) {
+						if (_v0.b.b.b) {
+							if (_v0.b.b.b.b) {
+								if (!_v0.b.b.b.b.b) {
+									var a = _v0.a;
+									var _v1 = _v0.b;
+									var b = _v1.a;
+									var _v2 = _v1.b;
+									var c = _v2.a;
+									var _v3 = _v2.b;
+									var d = _v3.a;
+									var _v4 = A4($danfishgold$base64_bytes$Encode$encodeCharacters, a, b, c, d);
+									if (_v4.$ === 'Just') {
+										var enc = _v4.a;
+										var $temp$input = A2($elm$core$String$dropLeft, 4, input),
+											$temp$accum = A2($elm$core$List$cons, enc, accum);
+										input = $temp$input;
+										accum = $temp$accum;
+										continue encodeChunks;
+									} else {
+										return $elm$core$Maybe$Nothing;
+									}
+								} else {
+									break _v0$4;
+								}
+							} else {
+								var a = _v0.a;
+								var _v5 = _v0.b;
+								var b = _v5.a;
+								var _v6 = _v5.b;
+								var c = _v6.a;
+								var _v7 = A4(
+									$danfishgold$base64_bytes$Encode$encodeCharacters,
+									a,
+									b,
+									c,
+									_Utils_chr('='));
+								if (_v7.$ === 'Nothing') {
+									return $elm$core$Maybe$Nothing;
+								} else {
+									var enc = _v7.a;
+									return $elm$core$Maybe$Just(
+										A2($elm$core$List$cons, enc, accum));
+								}
+							}
+						} else {
+							var a = _v0.a;
+							var _v8 = _v0.b;
+							var b = _v8.a;
+							var _v9 = A4(
+								$danfishgold$base64_bytes$Encode$encodeCharacters,
+								a,
+								b,
+								_Utils_chr('='),
+								_Utils_chr('='));
+							if (_v9.$ === 'Nothing') {
+								return $elm$core$Maybe$Nothing;
+							} else {
+								var enc = _v9.a;
+								return $elm$core$Maybe$Just(
+									A2($elm$core$List$cons, enc, accum));
+							}
+						}
+					} else {
+						break _v0$4;
+					}
+				}
+			}
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $danfishgold$base64_bytes$Encode$encoder = function (string) {
+	return A2(
+		$elm$core$Maybe$map,
+		A2($elm$core$Basics$composeR, $elm$core$List$reverse, $elm$bytes$Bytes$Encode$sequence),
+		A2($danfishgold$base64_bytes$Encode$encodeChunks, string, _List_Nil));
+};
+var $danfishgold$base64_bytes$Encode$toBytes = function (string) {
+	return A2(
+		$elm$core$Maybe$map,
+		$elm$bytes$Bytes$Encode$encode,
+		$danfishgold$base64_bytes$Encode$encoder(string));
+};
+var $danfishgold$base64_bytes$Base64$toBytes = $danfishgold$base64_bytes$Encode$toBytes;
+var $author$project$Serialize$decode = function (base64text) {
+	var strlen = $elm$core$String$length(base64text);
+	var replaceChar = function (rematch) {
+		var _v0 = rematch.match;
+		if (_v0 === '-') {
+			return '+';
+		} else {
+			return '/';
+		}
+	};
+	if (!strlen) {
+		return $elm$core$Maybe$Just(
+			$elm$bytes$Bytes$Encode$encode(
+				$elm$bytes$Bytes$Encode$sequence(_List_Nil)));
+	} else {
+		var hanging = A2($elm$core$Basics$modBy, 4, strlen);
+		var ilen = (!hanging) ? 0 : (4 - hanging);
+		return $danfishgold$base64_bytes$Base64$toBytes(
+			A3(
+				$elm$regex$Regex$replace,
+				$author$project$Serialize$replaceFromUrl,
+				replaceChar,
+				_Utils_ap(
+					base64text,
+					A2($elm$core$String$repeat, ilen, '='))));
+	}
+};
+var $author$project$Serialize$decodeFromBytes = F2(
+	function (codec, bytes_) {
+		var decoder = $author$project$Serialize$toBytesDecoder(codec);
+		return A2($elm$bytes$Bytes$Decode$decode, decoder, bytes_);
+	});
+var $author$project$Serialize$decodeFromString = F2(
+	function (codec, base64) {
+		var _v0 = $author$project$Serialize$decode(base64);
+		if (_v0.$ === 'Just') {
+			var bytes_ = _v0.a;
+			return A2($author$project$Serialize$decodeFromBytes, codec, bytes_);
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
 var $author$project$Server$withRequestBody = F3(
 	function (fn, request, inputCodec) {
 		var _v0 = A2($author$project$Serialize$decodeFromString, inputCodec, request.body);
@@ -6973,77 +6973,65 @@ var $author$project$Server$init = function (requestJson) {
 								return A3($author$project$Server$acadiaRequest, request.headers, $author$project$Acadia$Serialize$logoutResponse, $author$project$Backend$logout);
 							case 'ApiAuthLogin':
 								var _v4 = _v1.a;
-								var _v5 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Serialize$authInfo, request.body);
-								if (_v5.$ === 'Nothing') {
-									return $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Generic('Server error'),
-											status: $author$project$Http$Status$BadRequest
-										});
-								} else {
-									var loginInfo = _v5.a;
-									return A3(
-										$author$project$Server$acadiaRequest,
-										request.headers,
-										$author$project$Acadia$Serialize$loginResponse,
-										$author$project$Backend$login(loginInfo));
-								}
+								return A3(
+									$author$project$Server$withRequestBody,
+									function (loginInfo) {
+										return A3(
+											$author$project$Server$acadiaRequest,
+											request.headers,
+											$author$project$Acadia$Serialize$loginResponse,
+											$author$project$Backend$login(loginInfo));
+									},
+									request,
+									$author$project$Acadia$Serialize$authInfo);
 							case 'ApiAuthSignup':
-								var _v6 = _v1.a;
-								var _v7 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Serialize$signUpInfo, request.body);
-								if (_v7.$ === 'Nothing') {
-									return $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Generic('Server error'),
-											status: $author$project$Http$Status$BadRequest
-										});
-								} else {
-									var signupInfo = _v7.a;
-									return ($elm$core$String$length(signupInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'email'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : (($elm$core$String$length(signupInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'password'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : (($elm$core$String$length(signupInfo.name) < 1) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'name'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : A3(
-										$author$project$Server$acadiaRequest,
-										request.headers,
-										$author$project$Acadia$Serialize$signupResponse,
-										$author$project$Backend$signup(signupInfo))));
-								}
+								var _v5 = _v1.a;
+								return A3(
+									$author$project$Server$withRequestBody,
+									function (signupInfo) {
+										return ($elm$core$String$length(signupInfo.email) < 3) ? $author$project$Server$acadiaFailureResponse(
+											{
+												error: $author$project$Http$Extended$Field(
+													{message: 'Too short', name: 'email'}),
+												status: $author$project$Http$Status$BadRequest
+											}) : (($elm$core$String$length(signupInfo.password) < 8) ? $author$project$Server$acadiaFailureResponse(
+											{
+												error: $author$project$Http$Extended$Field(
+													{message: 'Too short', name: 'password'}),
+												status: $author$project$Http$Status$BadRequest
+											}) : (($elm$core$String$length(signupInfo.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+											{
+												error: $author$project$Http$Extended$Field(
+													{message: 'Too short', name: 'name'}),
+												status: $author$project$Http$Status$BadRequest
+											}) : A3(
+											$author$project$Server$acadiaRequest,
+											request.headers,
+											$author$project$Acadia$Serialize$signupResponse,
+											$author$project$Backend$signup(signupInfo))));
+									},
+									request,
+									$author$project$Acadia$Serialize$signUpInfo);
 							case 'ApiOrganizations':
-								var _v8 = _v1.a;
-								var _v9 = A2($author$project$Serialize$decodeFromString, $author$project$Acadia$Serialize$createOrganizationInput, request.body);
-								if (_v9.$ === 'Nothing') {
-									return $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Generic('Server error'),
-											status: $author$project$Http$Status$BadRequest
-										});
-								} else {
-									var newOrg = _v9.a;
-									return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$acadiaFailureResponse(
-										{
-											error: $author$project$Http$Extended$Field(
-												{message: 'Too short', name: 'name'}),
-											status: $author$project$Http$Status$BadRequest
-										}) : A3(
-										$author$project$Server$acadiaRequest,
-										request.headers,
-										$author$project$Acadia$Serialize$createOrganizationResponse,
-										$author$project$Backend$createOrganization(newOrg));
-								}
+								var _v6 = _v1.a;
+								return A3(
+									$author$project$Server$withRequestBody,
+									function (newOrg) {
+										return ($elm$core$String$length(newOrg.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+											{
+												error: $author$project$Http$Extended$Field(
+													{message: 'Too short', name: 'name'}),
+												status: $author$project$Http$Status$BadRequest
+											}) : A3(
+											$author$project$Server$acadiaRequest,
+											request.headers,
+											$author$project$Acadia$Serialize$createOrganizationResponse,
+											$author$project$Backend$createOrganization(newOrg));
+									},
+									request,
+									$author$project$Acadia$Serialize$createOrganizationInput);
 							default:
-								var _v10 = _v1.a;
+								var _v7 = _v1.a;
 								return A3(
 									$author$project$Server$withRequestBody,
 									function (orgnizationID) {

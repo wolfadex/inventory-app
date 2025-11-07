@@ -71,19 +71,16 @@ init requestJson =
                         acadiaRequest request.headers Acadia.Serialize.logoutResponse Backend.logout
 
                     Just Endpoints.ApiAuthLogin ->
-                        case Serialize.decodeFromString Acadia.Serialize.authInfo request.body of
-                            Nothing ->
-                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
-
-                            Just loginInfo ->
+                        withRequestBody
+                            (\loginInfo ->
                                 acadiaRequest request.headers Acadia.Serialize.loginResponse (Backend.login loginInfo)
+                            )
+                            request
+                            Acadia.Serialize.authInfo
 
                     Just Endpoints.ApiAuthSignup ->
-                        case Serialize.decodeFromString Acadia.Serialize.signUpInfo request.body of
-                            Nothing ->
-                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
-
-                            Just signupInfo ->
+                        withRequestBody
+                            (\signupInfo ->
                                 if String.length signupInfo.email < 3 then
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
 
@@ -95,18 +92,21 @@ init requestJson =
 
                                 else
                                     acadiaRequest request.headers Acadia.Serialize.signupResponse (Backend.signup signupInfo)
+                            )
+                            request
+                            Acadia.Serialize.signUpInfo
 
                     Just Endpoints.ApiOrganizations ->
-                        case Serialize.decodeFromString Acadia.Serialize.createOrganizationInput request.body of
-                            Nothing ->
-                                acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
-
-                            Just newOrg ->
+                        withRequestBody
+                            (\newOrg ->
                                 if String.length newOrg.name < 1 then
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                                 else
                                     acadiaRequest request.headers Acadia.Serialize.createOrganizationResponse (Backend.createOrganization newOrg)
+                            )
+                            request
+                            Acadia.Serialize.createOrganizationInput
 
                     Just Endpoints.ApiItemsGet ->
                         withRequestBody
@@ -120,6 +120,7 @@ init requestJson =
     )
 
 
+withRequestBody : (a -> Cmd msg) -> Http.Extended.Request -> Serialize.Codec a -> Cmd msg
 withRequestBody fn request inputCodec =
     case Serialize.decodeFromString inputCodec request.body of
         Nothing ->
