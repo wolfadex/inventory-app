@@ -20,7 +20,8 @@
             "elm/regex": "1.0.0",
             "elm/svg": "1.0.1",
             "elm/time": "1.0.0",
-            "elm/url": "1.0.0"
+            "elm/url": "1.0.0",
+            "ianmackenzie/elm-units": "2.10.0"
         },
         "indirect": {
             "elm/file": "1.0.5",

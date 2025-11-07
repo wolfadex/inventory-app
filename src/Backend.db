@@ -13,10 +13,12 @@ database module Backend exposing
     , CreateOrganizationInput
     , endpoint createOrganization
     --
-    , Food
-    , AddFoodInput
-    , endpoint addFood
-    , endpoint getFoods
+    , Item
+    , UnitType(..)
+    , UnitStyle(..)
+    , AddItemInput
+    , endpoint addItem
+    , endpoint getItems
     )
 
 import Cookies exposing (Cookies)
@@ -30,30 +32,51 @@ import Transaction exposing (succeed)
 import Uuid exposing (Uuid)
 
 
--- FOODS
+--------------------------------------------------------------------------------
+-- INVENTORY MANAGEMENT --------------------------------------------------------
+--------------------------------------------------------------------------------
 
 
-type alias Food =
-    { id : FoodID
+type alias Item =
+    { id : ItemID
     , name : String
+    , quantity : Float32
+    , unitType : UnitType
+    , unitStyle : UnitStyle
     , owningOrganization : OrganizationID
+    , createdOn : Time.Posix
     , createdBy : UserID
+    , lastModifiedOn : Time.Posix
+    , lastModifiedBy : UserID
+    , deletedOn : Maybe Time.Posix
+    , detetedBy : Maybe UserID
     }
 
 
-type FoodID = FoodID Uuid
+type UnitType
+    = Metric
+    | Imperial
 
 
-foods : Table ( OrganizationID, Permission ) Food
-foods :=
+type UnitStyle
+    = Volume
+    | Mass
+    | Count
+
+
+type ItemID = ItemID Uuid
+
+
+items : Table ( OrganizationID, Permission ) Item
+items :=
     table
         { primary = .id
         , security =
             Security.policy
-                { access = \( organizationID, permission ) food -> permission.read && food.owningOrganization == organizationID
-                , insert = \( organizationID, permission ) food -> permission.create && food.owningOrganization == organizationID
-                , update = \( organizationID, permission ) food -> permission.update && food.owningOrganization == organizationID
-                , remove = \( organizationID, permission ) food -> permission.delete && food.owningOrganization == organizationID
+                { access = \( organizationID, permission ) item -> permission.read && item.owningOrganization == organizationID
+                , insert = \( organizationID, permission ) item -> permission.create && item.owningOrganization == organizationID
+                , update = \( organizationID, permission ) item -> permission.update && item.owningOrganization == organizationID
+                , remove = \( organizationID, permission ) item -> permission.delete && item.owningOrganization == organizationID
                 }
         }
 
@@ -61,27 +84,36 @@ foods :=
 
 -- ADD FOOD
 
-type alias AddFoodInput =
+type alias AddItemInput =
     { organizationID: OrganizationID
     , name : String
+    , quantity : Float32
+    , unitStyle : UnitStyle
+    , unitType : UnitType
     }
 
 
-addFood : Cookies -> AddFoodInput -> Transaction ()
-addFood cookies { organizationID, name } =
+addItem : Cookies -> AddItemInput -> Transaction ()
+addItem cookies input =
     let
-        userID := requireUser cookies
-
-        role :=
-            requireRole ( userID, organizationID )
-
-        id := Uuid.uuid |> Transaction.map FoodID
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+        id := Uuid.uuid |> Transaction.map ItemID
+        now := Time.now
     in
-    insert foods ( organizationID, role.food )
+    insert items ( input.organizationID, role.item )
         { id = id
-        , name = name
-        , createdBy = userID
-        , owningOrganization = organizationID
+        , name = input.name
+        , quantity = input.quantity
+        , unitType = input.unitType
+        , unitStyle = input.unitStyle
+        , owningOrganization = input.organizationID
+        , createdOn = now
+        , createdBy = user.id
+        , lastModifiedOn = now
+        , lastModifiedBy = user.id
+        , deletedOn = Nothing
+        , detetedBy = Nothing
         }
 
 
@@ -89,21 +121,77 @@ addFood cookies { organizationID, name } =
 -- GET FOODS
 
 
-getFoods : Cookies -> OrganizationID -> Transaction (Rows String)
-getFoods cookies organizationID =
+getItems : Cookies -> OrganizationID -> Transaction (Rows Item)
+getItems cookies organizationID =
     let
-        userID := requireUser cookies
+        user := requireUser cookies
 
         role :=
-            requireRole ( userID, organizationID )
+            requireRole ( user.id, organizationID )
     in
-    access foods ( organizationID, role.food )
-        |> map .name
+    access items ( organizationID, role.item )
+        -- |> filter (\i -> i.owningOranization = organizationID)
         |> selectAll
+
+--------------------------------------------------------------------------------
+-- COMMON ----------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+type alias Traceable a =
+    { a
+        | createdOn : Time.Posix
+        , createdBy : UserID
+        , lastModifiedOn : Time.Posix
+        , lastModifiedBy : UserID
+        , deletedOn : Maybe Time.Posix
+        , deletedBy : Maybe UserID
+    }
+
+
+withModified : UserID -> Traceable a -> Transaction (Traceable a)
+withModified userID traceable =
+    let
+        now := Time.now
+    in
+    succeed
+        { traceable
+            | lastModifiedOn = now
+            , lastModifiedBy = userID
+        }
+
+
+withDeleted : UserID -> Traceable a -> Transaction (Traceable a)
+withDeleted userID traceable =
+    let
+        now := Time.now
+    in
+    succeed
+        { traceable
+            | lastModifiedOn = now
+            , lastModifiedBy = userID
+            , deletedOn = Just now
+            , deletedBy = Just userID
+        }
+
+
+withUndeleted : UserID -> Traceable a -> Transaction (Traceable a)
+withUndeleted userID traceable =
+    let
+        now := Time.now
+    in
+    succeed
+        { traceable
+            | lastModifiedOn = now
+            , lastModifiedBy = userID
+            , deletedOn = Nothing
+            , deletedBy = Nothing
+        }
+
 
 --------------------------------------------------------------------------------
 -- SESSION MANAGEMENT ----------------------------------------------------------
 --------------------------------------------------------------------------------
+
 
 -- PERMISSIONS
 
@@ -135,7 +223,7 @@ readOnlyPermission =
 
 type alias Role =
     { id : RoleID
-    , food : Permission
+    , item : Permission
     , organization : Permission
     , organizationUsers : Permission
     }
@@ -144,7 +232,7 @@ type alias Role =
 enableAllRoles : RoleID -> Role
 enableAllRoles roleId =
     { id = roleId
-    , food = allPermission
+    , item = allPermission
     , organization = allPermission
     , organizationUsers = allPermission
     }
@@ -181,30 +269,23 @@ requireRole ( userID, organizationID ) =
 -- ORGANIZATIONS TABLE
 
 
-type alias OrganizationRow =
+type alias Organization =
     { id : OrganizationID
     , owner : UserID
     , name : String
-    }
-
-
-type alias Organization =
-    { id : OrganizationID
-    , name : String
-    }
-
-
-organizationRowToOrganization : OrganizationRow -> Organization
-organizationRowToOrganization org =
-    { id = org.id
-    , name = org.name
+    , createdOn : Time.Posix
+    , createdBy : UserID
+    , lastModifiedOn : Time.Posix
+    , lastModifiedBy : UserID
+    , deletedOn : Maybe Time.Posix
+    , detetedBy : Maybe UserID
     }
 
 
 type OrganizationID = OrganizationID Uuid
 
 
-organizations : Table Permission OrganizationRow
+organizations : Table Permission Organization
 organizations :=
     table
         { primary = .id
@@ -222,6 +303,12 @@ type alias OrganizationUsers =
     { organizationID : OrganizationID
     , userID : UserID
     , roleID : RoleID
+    , createdOn : Time.Posix
+    , createdBy : UserID
+    , lastModifiedOn : Time.Posix
+    , lastModifiedBy : UserID
+    , deletedOn : Maybe Time.Posix
+    , detetedBy : Maybe UserID
     }
 
 
@@ -245,15 +332,23 @@ type alias CreateOrganizationInput =
 createOrganization : Cookies -> CreateOrganizationInput -> Transaction Organization
 createOrganization cookies newOrgData =
     let
-        userID := requireUser cookies
+        user := requireUser cookies
 
         orgId := Uuid.uuid |> Transaction.map OrganizationID
+
+        now := Time.now
 
         () :=
             insert organizations { create = True, read = False, update = False, delete = False }
                 { id = orgId
-                , owner = userID
+                , owner = user.id
                 , name = newOrgData.name
+                , createdOn = now
+                , createdBy = user.id
+                , lastModifiedOn = now
+                , lastModifiedBy = user.id
+                , deletedOn = Nothing
+                , detetedBy = Nothing
                 }
 
         roleId := Uuid.uuid |> Transaction.map RoleID
@@ -265,13 +360,18 @@ createOrganization cookies newOrgData =
         () :=
             insert organizationUsers { create = True, read = False, update = False, delete = False }
                 { organizationID = orgId
-                , userID = userID
+                , userID = user.id
                 , roleID = roleId
+                , createdOn = now
+                , createdBy = user.id
+                , lastModifiedOn = now
+                , lastModifiedBy = user.id
+                , deletedOn = Nothing
+                , detetedBy = Nothing
                 }
     in
     access organizations (readOnlyPermission)
         |> filter (\org -> org.id == orgId)
-        |> map organizationRowToOrganization
         |> select
 
 
@@ -282,9 +382,16 @@ createOrganization cookies newOrgData =
 type alias UserRow =
     { id : UserID
     , pw_hash : Password.Hash
-    , created : Time.Posix
     , primaryEmail : String
     , name : String
+    , unitType : UnitType
+    --
+    , createdOn : Time.Posix
+    , createdBy : UserID
+    , lastModifiedOn : Time.Posix
+    , lastModifiedBy : UserID
+    , deletedOn : Maybe Time.Posix
+    , detetedBy : Maybe UserID
     }
 
 
@@ -301,26 +408,36 @@ users :=
 type alias User =
     { id : UserID
     , primaryEmail : String
-    , created : Time.Posix
+    , name : String
+    , unitType : UnitType
+    --
+    , createdOn : Time.Posix
+    , createdBy : UserID
+    , lastModifiedOn : Time.Posix
+    , lastModifiedBy : UserID
+    , deletedOn : Maybe Time.Posix
+    , detetedBy : Maybe UserID
     }
 
 userToUserRow : UserRow -> User
 userToUserRow user =
     { id = user.id
     , primaryEmail = user.primaryEmail
-    , created = user.created
+    , name = user.name
+    , unitType = user.unitType
+    , createdOn = user.createdOn
+    , createdBy = user.createdBy
+    , lastModifiedOn = user.lastModifiedOn
+    , lastModifiedBy = user.lastModifiedBy
+    , deletedOn = user.deletedOn
+    , detetedBy = user.detetedBy
     }
 
 
 getUserSelf : Cookies -> Transaction ( User, Maybe Organization )
 getUserSelf cookies =
     let
-        userID := requireUser cookies
-
-        user :=
-            access users SuperUser
-                |> filter (\u -> u.id == userID)
-                |> select
+        user := requireUser cookies
 
         maybeOrgUser :=
             access organizationUsers readOnlyPermission
@@ -330,20 +447,20 @@ getUserSelf cookies =
     in
     case maybeOrgUser of
         Nothing ->
-            succeed ( userToUserRow user, Nothing )
+            succeed ( user, Nothing )
 
         Just orgUser ->
             access organizations readOnlyPermission
                 |> filter (\org -> org.id == orgUser.organizationID)
                 |> selectMaybe
-                |> Transaction.map (\organization -> ( userToUserRow user, Maybe.map organizationRowToOrganization organization))
+                |> Transaction.map (\organization -> ( user, organization))
 
 -- SESSIONS TABLE
 
 
 type alias Session =
     { cookie : Uuid
-    , user : UserID
+    , userID : UserID
     , expires : Time.Posix
     }
 
@@ -401,7 +518,7 @@ login _ authData =
                 () :=
                     insert sessions SuperUser
                         { cookie = uuid
-                        , user = user.id
+                        , userID = user.id
                         , expires = Time.plus 15 Minutes created
                         }
             in
@@ -426,24 +543,30 @@ signup _ authData =
         Nothing ->
             let
                 userID  := Uuid.uuid |> Transaction.map UserID
-                created := Time.now
+                now := Time.now
                 uuid    := Uuid.uuid
                 hash    := Password.bcrypt authData.password
 
                 () :=
                     insert users SuperUser
                         { id = userID
+                        , pw_hash = hash
                         , primaryEmail = authData.email
                         , name = authData.name
-                        , pw_hash = hash
-                        , created = created
+                        , unitType = Imperial
+                        , createdOn = now
+                        , createdBy = userID
+                        , lastModifiedOn = now
+                        , lastModifiedBy = userID
+                        , deletedOn = Nothing
+                        , detetedBy = Nothing
                         }
 
                 () :=
                     insert sessions SuperUser
                         { cookie = uuid
-                        , expires = Time.plus 15 Minutes created
-                        , user = userID
+                        , expires = Time.plus 15 Minutes now
+                        , userID = userID
                         }
 
                 orgId := Uuid.uuid |> Transaction.map OrganizationID
@@ -453,6 +576,12 @@ signup _ authData =
                         { id = orgId
                         , owner = userID
                         , name = authData.name
+                        , createdOn = now
+                        , createdBy = userID
+                        , lastModifiedOn = now
+                        , lastModifiedBy = userID
+                        , deletedOn = Nothing
+                        , detetedBy = Nothing
                         }
 
                 roleId := Uuid.uuid |> Transaction.map RoleID
@@ -466,6 +595,12 @@ signup _ authData =
                         { organizationID = orgId
                         , userID = userID
                         , roleID = roleId
+                        , createdOn = now
+                        , createdBy = userID
+                        , lastModifiedOn = now
+                        , lastModifiedBy = userID
+                        , deletedOn = Nothing
+                        , detetedBy = Nothing
                         }
             in
             succeed (toCookie uuid)
@@ -507,17 +642,24 @@ fromCookie cookies =
 -- TABLE SECURITY
 
 
-requireUser : Cookies -> Transaction UserID
+requireUser : Cookies -> Transaction User
 requireUser cookies =
     case fromCookie cookies of
-    Just uuid ->
-        let
-            time := Time.now
-        in
-        access sessions SuperUser
-            |> filter (\s -> s.cookie == uuid && time < s.expires)
-            |> map .user
-            |> select
+        Just uuid ->
+            let
+                time := Time.now
+            in
+            access sessions SuperUser
+                |> filter (\s -> s.cookie == uuid && time < s.expires)
+                |> map .userID
+                |> select
+                |> Transaction.andThen
+                    (\userID ->
+                        access users SuperUser
+                            |> filter (\u -> u.id == userID)
+                            |> map userToUserRow
+                            |> select
+                    )
 
-    Nothing ->
-        Transaction.fail
+        Nothing ->
+            Transaction.fail
