@@ -19,9 +19,11 @@ database module Backend exposing
     , AddItemInput
     , endpoint addItem
     , endpoint getItems
+    , GetItemInput
+    , endpoint getItem
     , UpdateItemInput
     , endpoint updateItem
-    , DeleteInput
+    , DeleteItemInput
     , endpoint softDeleteItem
     , endpoint softUndeleteItem
     , endpoint hardDeleteItem
@@ -96,28 +98,32 @@ type alias AddItemInput =
     }
 
 
-addItem : Cookies -> AddItemInput -> Transaction ()
+addItem : Cookies -> AddItemInput -> Transaction Item
 addItem cookies input =
     let
         user := requireUser cookies
         role := requireRole ( user.id, input.organizationID )
         id := Uuid.uuid |> Transaction.map ItemID
         now := Time.now
+
+        () :=
+            insert items ( input.organizationID, role.item )
+                { id = id
+                , name = input.name
+                -- , quantity = input.quantity
+                , unitType = input.unitType
+                , unitStyle = input.unitStyle
+                , owningOrganization = input.organizationID
+                , createdOn = now
+                , createdBy = user.id
+                , lastModifiedOn = now
+                , lastModifiedBy = user.id
+                , deletedOn = Nothing
+                , deletedBy = Nothing
+                }
     in
-    insert items ( input.organizationID, role.item )
-        { id = id
-        , name = input.name
-        -- , quantity = input.quantity
-        , unitType = input.unitType
-        , unitStyle = input.unitStyle
-        , owningOrganization = input.organizationID
-        , createdOn = now
-        , createdBy = user.id
-        , lastModifiedOn = now
-        , lastModifiedBy = user.id
-        , deletedOn = Nothing
-        , deletedBy = Nothing
-        }
+    access items ( input.organizationID, role.item )
+        |> select
 
 
 getItems : Cookies -> OrganizationID -> Transaction (Rows Item)
@@ -128,6 +134,23 @@ getItems cookies organizationID =
     in
     access items ( organizationID, role.item )
         |> selectAll
+
+
+type alias GetItemInput =
+    { id : ItemID
+    , organizationID : OrganizationID
+    }
+
+
+getItem : Cookies -> GetItemInput -> Transaction Item
+getItem cookies input =
+    let
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+    in
+    access items ( input.organizationID, role.item )
+        |> filter (\item -> item.id == input.id)
+        |> select
 
 
 type alias UpdateItemInput =
@@ -161,13 +184,13 @@ updateItem cookies input =
         )
 
 
-type alias DeleteInput =
+type alias DeleteItemInput =
     { id : ItemID
     , organizationID : OrganizationID
     }
 
 
-softDeleteItem : Cookies -> DeleteInput -> Transaction ()
+softDeleteItem : Cookies -> DeleteItemInput -> Transaction ()
 softDeleteItem cookies input =
     let
         user := requireUser cookies
@@ -179,7 +202,7 @@ softDeleteItem cookies input =
         (withDeleted user.id now)
 
 
-softUndeleteItem : Cookies -> DeleteInput -> Transaction ()
+softUndeleteItem : Cookies -> DeleteItemInput -> Transaction ()
 softUndeleteItem cookies input =
     let
         user := requireUser cookies
@@ -191,7 +214,7 @@ softUndeleteItem cookies input =
         (withUndeleted user.id now)
 
 
-hardDeleteItem : Cookies -> DeleteInput -> Transaction ()
+hardDeleteItem : Cookies -> DeleteItemInput -> Transaction ()
 hardDeleteItem cookies input =
     let
         user := requireUser cookies

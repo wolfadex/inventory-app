@@ -56,68 +56,84 @@ init requestJson =
             respond { status = Http.Status.NotFound, body = "Not Found", headers = [] }
 
         Ok request ->
-            if request.method /= Http.Method.Post then
-                respond { status = Http.Status.NotFound, body = "Not Found", headers = [] }
+            case Endpoints.fromString request.path of
+                Nothing ->
+                    acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
 
-            else
-                case Endpoints.fromString request.path of
-                    Nothing ->
-                        acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
-
-                    Just Endpoints.ApiAuthSelf ->
-                        acadiaRequest request.headers Acadia.Serialize.getUserSelfResponse Backend.getUserSelf
-
-                    Just Endpoints.ApiAuthLogout ->
-                        acadiaRequest request.headers Acadia.Serialize.logoutResponse Backend.logout
-
-                    Just Endpoints.ApiAuthLogin ->
-                        withRequestBody
-                            (\loginInfo ->
-                                acadiaRequest request.headers Acadia.Serialize.loginResponse (Backend.login loginInfo)
-                            )
-                            request
-                            Acadia.Serialize.authInfo
-
-                    Just Endpoints.ApiAuthSignup ->
-                        withRequestBody
-                            (\signupInfo ->
-                                if String.length signupInfo.email < 3 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
-
-                                else if String.length signupInfo.password < 8 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "password", message = "Too short" } }
-
-                                else if String.length signupInfo.name < 1 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
-
-                                else
-                                    acadiaRequest request.headers Acadia.Serialize.signupResponse (Backend.signup signupInfo)
-                            )
-                            request
-                            Acadia.Serialize.signUpInfo
-
-                    Just Endpoints.ApiOrganizations ->
-                        withRequestBody
-                            (\newOrg ->
-                                if String.length newOrg.name < 1 then
-                                    acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
-
-                                else
-                                    acadiaRequest request.headers Acadia.Serialize.createOrganizationResponse (Backend.createOrganization newOrg)
-                            )
-                            request
-                            Acadia.Serialize.createOrganizationInput
-
-                    Just Endpoints.ApiItemsGet ->
-                        withRequestBody
-                            (\orgnizationID ->
-                                acadiaRequest request.headers
-                                    Acadia.Serialize.getItemsResponse
-                                    (Backend.getItems orgnizationID)
-                            )
-                            request
-                            Acadia.Serialize.organizationID
+                Just path ->
+                    requestHandler request path
     )
+
+
+requestHandler : Http.Extended.Request -> Endpoints.EndpointPath -> Cmd Msg
+requestHandler request path =
+    case ( request.method, path ) of
+        ( Http.Method.Post, Endpoints.ApiAuthSelf ) ->
+            acadiaRequest request.headers Acadia.Serialize.getUserSelfResponse Backend.getUserSelf
+
+        ( Http.Method.Post, Endpoints.ApiAuthLogout ) ->
+            acadiaRequest request.headers Acadia.Serialize.logoutResponse Backend.logout
+
+        ( Http.Method.Post, Endpoints.ApiAuthLogin ) ->
+            withRequestBody
+                (\loginInfo ->
+                    acadiaRequest request.headers Acadia.Serialize.loginResponse (Backend.login loginInfo)
+                )
+                request
+                Acadia.Serialize.authInfo
+
+        ( Http.Method.Post, Endpoints.ApiAuthSignup ) ->
+            withRequestBody
+                (\signupInfo ->
+                    if String.length signupInfo.email < 3 then
+                        acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "email", message = "Too short" } }
+
+                    else if String.length signupInfo.password < 8 then
+                        acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "password", message = "Too short" } }
+
+                    else if String.length signupInfo.name < 1 then
+                        acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
+
+                    else
+                        acadiaRequest request.headers Acadia.Serialize.signupResponse (Backend.signup signupInfo)
+                )
+                request
+                Acadia.Serialize.signUpInfo
+
+        ( Http.Method.Post, Endpoints.ApiOrganizations ) ->
+            withRequestBody
+                (\newOrg ->
+                    if String.length newOrg.name < 1 then
+                        acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
+
+                    else
+                        acadiaRequest request.headers Acadia.Serialize.createOrganizationResponse (Backend.createOrganization newOrg)
+                )
+                request
+                Acadia.Serialize.createOrganizationInput
+
+        ( Http.Method.Post, Endpoints.ApiItems ) ->
+            withRequestBody
+                (\input ->
+                    acadiaRequest request.headers
+                        Acadia.Serialize.addItemResponse
+                        (Backend.addItem input)
+                )
+                request
+                Acadia.Serialize.addItemInput
+
+        ( Http.Method.Delete, Endpoints.ApiItems ) ->
+            withRequestBody
+                (\input ->
+                    acadiaRequest request.headers
+                        Acadia.Serialize.softDeleteItemResponse
+                        (Backend.softDeleteItem input)
+                )
+                request
+                Acadia.Serialize.deleteItemInput
+
+        _ ->
+            acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
 
 
 withRequestBody : (a -> Cmd msg) -> Http.Extended.Request -> Serialize.Codec a -> Cmd msg
