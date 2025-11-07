@@ -1,5 +1,7 @@
 module Response exposing (Response(..))
 
 
-type Response value
+type Response error value
     = Loading
+    | Success value
+    | Failure error

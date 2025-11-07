@@ -5,6 +5,7 @@ module Endpoints exposing
     , toString
     )
 
+import Backend
 import Bytes.Decode
 import Bytes.Encode
 import Http.Method exposing (Method)
@@ -25,6 +26,7 @@ type EndpointPath
     | ApiAuthSelf
     | ApiOrganizations
     | ApiItems
+    | ApiItemsId_ { id : String }
 
 
 toString : EndpointPath -> String
@@ -48,27 +50,33 @@ toString endpoint =
         ApiItems ->
             "/api/items"
 
+        ApiItemsId_ { id } ->
+            "/api/items/" ++ id
+
 
 fromString : String -> Maybe EndpointPath
 fromString str =
-    case str of
-        "/api/auth/login" ->
+    case String.split "/" str of
+        [ "", "api", "auth", "login" ] ->
             Just ApiAuthLogin
 
-        "/api/auth/signup" ->
+        [ "", "api", "auth", "signup" ] ->
             Just ApiAuthSignup
 
-        "/api/auth/logout" ->
+        [ "", "api", "auth", "logout" ] ->
             Just ApiAuthLogout
 
-        "/api/auth/self" ->
+        [ "", "api", "auth", "self" ] ->
             Just ApiAuthSelf
 
-        "/api/organizations" ->
+        [ "", "api", "organizations" ] ->
             Just ApiOrganizations
 
-        "/api/items" ->
+        [ "", "api", "items" ] ->
             Just ApiItems
+
+        [ "", "api", "items", id ] ->
+            Just (ApiItemsId_ { id = id })
 
         _ ->
             Nothing

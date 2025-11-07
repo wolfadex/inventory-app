@@ -1,17 +1,21 @@
-module Pages.Dashboard exposing
+module Pages.Items.Id_ exposing
     ( Context
     , Model
     , Msg(..)
+    , Params
     , init
     , subscriptions
     , update
     , view
     )
 
+import Acadia.Uuid
 import Backend
 import Browser
 import Effect exposing (Effect)
+import Endpoints.Api.Items.Id_
 import Html
+import Http.Extended
 import Layout.Authenticated
 import Response exposing (Response)
 import Route exposing (Route)
@@ -25,13 +29,19 @@ import Subscription exposing (Subscription)
 
 type alias Context =
     { shared : Shared.Model
-    , route : Route ()
+    , route : Route Params
+    }
+
+
+type alias Params =
+    { id : String
     }
 
 
 type alias Model =
     { layout : Layout.Authenticated.Model
-    , items : Response String (List Backend.Item)
+    , itemID : Result String Backend.ItemID
+    , item : Response Http.Extended.Error Backend.Item
     }
 
 
@@ -44,15 +54,38 @@ init { shared, route } =
         , initUnauthenticated =
             \layout ->
                 { layout = layout
-                , items = Response.Failure ""
+                , itemID = Err ""
+                , item = Response.Failure (Http.Extended.Generic "")
                 }
         , initAuthenticated =
-            \_ layout layoutEffect ->
+            \{ currentUser, currentOrganization } layout layoutEffect ->
+                let
+                    itemID =
+                        case Acadia.Uuid.fromHex route.params.id of
+                            Nothing ->
+                                Err "Invalid item id"
+
+                            Just id ->
+                                Ok (Backend.ItemID id)
+                in
                 ( { layout = layout
-                  , items = Response.Loading
+                  , itemID = itemID
+                  , item =
+                        case itemID of
+                            Ok _ ->
+                                Response.Loading
+
+                            Err err ->
+                                Response.Failure (Http.Extended.Generic err)
                   }
                 , Effect.batch
                     [ layoutEffect
+                    , case itemID of
+                        Err _ ->
+                            Effect.none
+
+                        Ok id ->
+                            Endpoints.Api.Items.Id_.get ItemLoaded { id = id, organizationID = currentOrganization.id }
                     ]
                 )
         }
@@ -74,6 +107,7 @@ subscriptions _ model =
 
 type Msg
     = LayoutMessage Layout.Authenticated.Msg
+    | ItemLoaded (Result Http.Extended.Error Backend.Item)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -88,6 +122,16 @@ update { shared, route } msg model =
                 , sharedModel = shared
                 , route = route
                 }
+
+        ItemLoaded (Err err) ->
+            ( { model | item = Response.Failure err }
+            , Effect.none
+            )
+
+        ItemLoaded (Ok item) ->
+            ( { model | item = Response.Success item }
+            , Effect.none
+            )
 
 
 view : Context -> Model -> Browser.Document Msg

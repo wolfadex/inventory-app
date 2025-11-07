@@ -1,5 +1,5 @@
-// -- (function(scope){
-// -- 'use strict';
+// -- // -- // -- (function(scope){
+// -- // -- // -- 'use strict';
 
 function F(arity, fun, wrapper) {
   wrapper.a = arity;
@@ -2637,6 +2637,8 @@ function _Platform_setupIncomingPort(name, sendToApp)
 
 
 /*
+/*
+/*
 function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
@@ -2645,7 +2647,11 @@ function _Platform_export_UNUSED(exports)
 }
 
 */
+*/
+*/
 
+/*
+/*
 /*
 function _Platform_mergeExportsProd(obj, exports)
 {
@@ -2659,8 +2665,12 @@ function _Platform_mergeExportsProd(obj, exports)
 	}
 }
 */
+*/
+*/
 
 
+/*
+/*
 /*
 function _Platform_export(exports)
 {
@@ -2670,7 +2680,11 @@ function _Platform_export(exports)
 }
 
 */
+*/
+*/
 
+/*
+/*
 /*
 function _Platform_mergeExportsDebug(moduleName, obj, exports)
 {
@@ -2683,6 +2697,8 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 			: (obj[name] = exports[name]);
 	}
 }
+*/
+*/
 */
 
 
@@ -4357,24 +4373,76 @@ var $author$project$Endpoints$ApiAuthLogout = {$: 'ApiAuthLogout'};
 var $author$project$Endpoints$ApiAuthSelf = {$: 'ApiAuthSelf'};
 var $author$project$Endpoints$ApiAuthSignup = {$: 'ApiAuthSignup'};
 var $author$project$Endpoints$ApiItems = {$: 'ApiItems'};
+var $author$project$Endpoints$ApiItemsId_ = function (a) {
+	return {$: 'ApiItemsId_', a: a};
+};
 var $author$project$Endpoints$ApiOrganizations = {$: 'ApiOrganizations'};
 var $author$project$Endpoints$fromString = function (str) {
-	switch (str) {
-		case '/api/auth/login':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogin);
-		case '/api/auth/signup':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSignup);
-		case '/api/auth/logout':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogout);
-		case '/api/auth/self':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSelf);
-		case '/api/organizations':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiOrganizations);
-		case '/api/items':
-			return $elm$core$Maybe$Just($author$project$Endpoints$ApiItems);
-		default:
-			return $elm$core$Maybe$Nothing;
+	var _v0 = A2($elm$core$String$split, '/', str);
+	_v0$7:
+	while (true) {
+		if ((((_v0.b && (_v0.a === '')) && _v0.b.b) && (_v0.b.a === 'api')) && _v0.b.b.b) {
+			if (!_v0.b.b.b.b) {
+				switch (_v0.b.b.a) {
+					case 'organizations':
+						var _v13 = _v0.b;
+						var _v14 = _v13.b;
+						return $elm$core$Maybe$Just($author$project$Endpoints$ApiOrganizations);
+					case 'items':
+						var _v15 = _v0.b;
+						var _v16 = _v15.b;
+						return $elm$core$Maybe$Just($author$project$Endpoints$ApiItems);
+					default:
+						break _v0$7;
+				}
+			} else {
+				if (!_v0.b.b.b.b.b) {
+					switch (_v0.b.b.a) {
+						case 'auth':
+							switch (_v0.b.b.b.a) {
+								case 'login':
+									var _v1 = _v0.b;
+									var _v2 = _v1.b;
+									var _v3 = _v2.b;
+									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogin);
+								case 'signup':
+									var _v4 = _v0.b;
+									var _v5 = _v4.b;
+									var _v6 = _v5.b;
+									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSignup);
+								case 'logout':
+									var _v7 = _v0.b;
+									var _v8 = _v7.b;
+									var _v9 = _v8.b;
+									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogout);
+								case 'self':
+									var _v10 = _v0.b;
+									var _v11 = _v10.b;
+									var _v12 = _v11.b;
+									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSelf);
+								default:
+									break _v0$7;
+							}
+						case 'items':
+							var _v17 = _v0.b;
+							var _v18 = _v17.b;
+							var _v19 = _v18.b;
+							var id = _v19.a;
+							return $elm$core$Maybe$Just(
+								$author$project$Endpoints$ApiItemsId_(
+									{id: id}));
+						default:
+							break _v0$7;
+					}
+				} else {
+					break _v0$7;
+				}
+			}
+		} else {
+			break _v0$7;
+		}
 	}
+	return $elm$core$Maybe$Nothing;
 };
 var $author$project$Http$Extended$Request = F4(
 	function (path, method, headers, body) {
@@ -6198,6 +6266,292 @@ var $author$project$Acadia$Serialize$deleteItemInput = $author$project$Serialize
 			},
 			$author$project$Acadia$Serialize$itemID,
 			$author$project$Serialize$record($author$project$Backend$DeleteItemInput))));
+var $author$project$Backend$e_ARG_3 = function (v) {
+	var v_organizationID = v.organizationID;
+	var v_id = v.id;
+	var o0 = $author$project$Acadia$UInt32$fromInt(32);
+	var _v0 = v_organizationID;
+	var v_organizationID_0 = _v0.a;
+	var _v1 = v_id;
+	var v_id_0 = _v1.a;
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(o0),
+				$author$project$Acadia$Bytes$Encode$uuid(v_id_0),
+				$author$project$Acadia$Bytes$Encode$uuid(v_organizationID_0)
+			]));
+};
+var $author$project$Backend$getItem = function (v0) {
+	return A2(
+		$author$project$Acadia$Transaction$Transaction,
+		$author$project$Acadia$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(0)),
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(4)),
+					$author$project$Backend$e_ARG_3(v0)
+				])),
+		A2(
+			$author$project$Acadia$Bytes$Decode$andThen,
+			function (id) {
+				return A2(
+					$author$project$Acadia$Bytes$Decode$andThen,
+					function (name) {
+						return A2(
+							$author$project$Acadia$Bytes$Decode$andThen,
+							function (unitType) {
+								return A2(
+									$author$project$Acadia$Bytes$Decode$andThen,
+									function (unitStyle) {
+										return A2(
+											$author$project$Acadia$Bytes$Decode$andThen,
+											function (owningOrganization) {
+												return A2(
+													$author$project$Acadia$Bytes$Decode$andThen,
+													function (createdOn) {
+														return A2(
+															$author$project$Acadia$Bytes$Decode$andThen,
+															function (createdBy) {
+																return A2(
+																	$author$project$Acadia$Bytes$Decode$andThen,
+																	function (lastModifiedOn) {
+																		return A2(
+																			$author$project$Acadia$Bytes$Decode$andThen,
+																			function (lastModifiedBy) {
+																				return A2(
+																					$author$project$Acadia$Bytes$Decode$andThen,
+																					function (deletedOn) {
+																						return A2(
+																							$author$project$Acadia$Bytes$Decode$andThen,
+																							function (deletedBy) {
+																								return $author$project$Acadia$Bytes$Decode$succeed(
+																									{createdBy: createdBy, createdOn: createdOn, deletedBy: deletedBy, deletedOn: deletedOn, id: id, lastModifiedBy: lastModifiedBy, lastModifiedOn: lastModifiedOn, name: name, owningOrganization: owningOrganization, unitStyle: unitStyle, unitType: unitType});
+																							},
+																							$author$project$Backend$d_ARG_8);
+																					},
+																					$author$project$Backend$d_ARG_7);
+																			},
+																			$author$project$Backend$d_ARG_6);
+																	},
+																	$author$project$Backend$d_ARG_5);
+															},
+															$author$project$Backend$d_ARG_6);
+													},
+													$author$project$Backend$d_ARG_5);
+											},
+											$author$project$Backend$d_ARG_4);
+									},
+									$author$project$Backend$d_ARG_3);
+							},
+							$author$project$Backend$d_ARG_2);
+					},
+					$author$project$Backend$d_ARG_1);
+			},
+			$author$project$Backend$d_ARG_0));
+};
+var $author$project$Backend$GetItemInput = F2(
+	function (id, organizationID) {
+		return {id: id, organizationID: organizationID};
+	});
+var $author$project$Acadia$Serialize$getItemInput = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.organizationID;
+		},
+		$author$project$Acadia$Serialize$organizationID,
+		A3(
+			$author$project$Serialize$field,
+			function ($) {
+				return $.id;
+			},
+			$author$project$Acadia$Serialize$itemID,
+			$author$project$Serialize$record($author$project$Backend$GetItemInput))));
+var $author$project$Acadia$Serialize$getItemResponse = $author$project$Acadia$Serialize$item;
+var $author$project$Backend$e_ARG_4 = function (_v0) {
+	var u = _v0.a;
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(
+				$author$project$Acadia$UInt32$fromInt(16)),
+				$author$project$Acadia$Bytes$Encode$uuid(u)
+			]));
+};
+var $author$project$Acadia$Bytes$Decode$listHelp = F3(
+	function (want, revs, decoder) {
+		return A2(
+			$elm$bytes$Bytes$Decode$loop,
+			_Utils_Tuple2(0, revs),
+			function (_v0) {
+				var have = _v0.a;
+				var xs = _v0.b;
+				return (_Utils_cmp(have, want) < 0) ? A2(
+					$elm$bytes$Bytes$Decode$map,
+					function (x) {
+						return $elm$bytes$Bytes$Decode$Loop(
+							_Utils_Tuple2(
+								have + 1,
+								A2($elm$core$List$cons, x, xs)));
+					},
+					decoder) : $elm$bytes$Bytes$Decode$succeed(
+					$elm$bytes$Bytes$Decode$Done(xs));
+			});
+	});
+var $author$project$Acadia$Bytes$Decode$list = function (decoder) {
+	return A2(
+		$elm$bytes$Bytes$Decode$loop,
+		_List_Nil,
+		function (revs) {
+			return A2(
+				$elm$bytes$Bytes$Decode$andThen,
+				function (size) {
+					if (!size) {
+						return $elm$bytes$Bytes$Decode$succeed(
+							$elm$bytes$Bytes$Decode$Done(
+								$elm$core$List$reverse(revs)));
+					} else {
+						return A2(
+							$elm$bytes$Bytes$Decode$map,
+							$elm$bytes$Bytes$Decode$Loop,
+							A3($author$project$Acadia$Bytes$Decode$listHelp, size, revs, decoder));
+					}
+				},
+				$elm$bytes$Bytes$Decode$unsignedInt32($elm$bytes$Bytes$LE));
+		});
+};
+var $author$project$Backend$getItems = function (v0) {
+	return A2(
+		$author$project$Acadia$Transaction$Transaction,
+		$author$project$Acadia$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(0)),
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(5)),
+					$author$project$Backend$e_ARG_4(v0)
+				])),
+		$author$project$Acadia$Bytes$Decode$list(
+			A2(
+				$author$project$Acadia$Bytes$Decode$andThen,
+				function (id) {
+					return A2(
+						$author$project$Acadia$Bytes$Decode$andThen,
+						function (name) {
+							return A2(
+								$author$project$Acadia$Bytes$Decode$andThen,
+								function (unitType) {
+									return A2(
+										$author$project$Acadia$Bytes$Decode$andThen,
+										function (unitStyle) {
+											return A2(
+												$author$project$Acadia$Bytes$Decode$andThen,
+												function (owningOrganization) {
+													return A2(
+														$author$project$Acadia$Bytes$Decode$andThen,
+														function (createdOn) {
+															return A2(
+																$author$project$Acadia$Bytes$Decode$andThen,
+																function (createdBy) {
+																	return A2(
+																		$author$project$Acadia$Bytes$Decode$andThen,
+																		function (lastModifiedOn) {
+																			return A2(
+																				$author$project$Acadia$Bytes$Decode$andThen,
+																				function (lastModifiedBy) {
+																					return A2(
+																						$author$project$Acadia$Bytes$Decode$andThen,
+																						function (deletedOn) {
+																							return A2(
+																								$author$project$Acadia$Bytes$Decode$andThen,
+																								function (deletedBy) {
+																									return $author$project$Acadia$Bytes$Decode$succeed(
+																										{createdBy: createdBy, createdOn: createdOn, deletedBy: deletedBy, deletedOn: deletedOn, id: id, lastModifiedBy: lastModifiedBy, lastModifiedOn: lastModifiedOn, name: name, owningOrganization: owningOrganization, unitStyle: unitStyle, unitType: unitType});
+																								},
+																								$author$project$Backend$d_ARG_8);
+																						},
+																						$author$project$Backend$d_ARG_7);
+																				},
+																				$author$project$Backend$d_ARG_6);
+																		},
+																		$author$project$Backend$d_ARG_5);
+																},
+																$author$project$Backend$d_ARG_6);
+														},
+														$author$project$Backend$d_ARG_5);
+												},
+												$author$project$Backend$d_ARG_4);
+										},
+										$author$project$Backend$d_ARG_3);
+								},
+								$author$project$Backend$d_ARG_2);
+						},
+						$author$project$Backend$d_ARG_1);
+				},
+				$author$project$Backend$d_ARG_0)));
+};
+var $elm$core$List$map = F2(
+	function (f, xs) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, acc) {
+					return A2(
+						$elm$core$List$cons,
+						f(x),
+						acc);
+				}),
+			_List_Nil,
+			xs);
+	});
+var $author$project$Serialize$listEncode = F2(
+	function (encoder_, list_) {
+		return $elm$bytes$Bytes$Encode$sequence(
+			A2(
+				$elm$core$List$cons,
+				A2(
+					$elm$bytes$Bytes$Encode$unsignedInt32,
+					$author$project$Serialize$endian,
+					$elm$core$List$length(list_)),
+				A2($elm$core$List$map, encoder_, list_)));
+	});
+var $author$project$Serialize$listStep = F2(
+	function (decoder_, _v0) {
+		var n = _v0.a;
+		var xs = _v0.b;
+		return (n <= 0) ? $elm$bytes$Bytes$Decode$succeed(
+			$elm$bytes$Bytes$Decode$Done(
+				$elm$core$List$reverse(xs))) : A2(
+			$elm$bytes$Bytes$Decode$map,
+			function (x) {
+				return $elm$bytes$Bytes$Decode$Loop(
+					_Utils_Tuple2(
+						n - 1,
+						A2($elm$core$List$cons, x, xs)));
+			},
+			decoder_);
+	});
+var $author$project$Serialize$list = function (codec) {
+	return A2(
+		$author$project$Serialize$build,
+		$author$project$Serialize$listEncode(
+			$author$project$Serialize$toBytesEncoder(codec)),
+		A2(
+			$elm$bytes$Bytes$Decode$andThen,
+			function (length) {
+				return A2(
+					$elm$bytes$Bytes$Decode$loop,
+					_Utils_Tuple2(length, _List_Nil),
+					$author$project$Serialize$listStep(
+						$author$project$Serialize$toBytesDecoder(codec)));
+			},
+			$elm$bytes$Bytes$Decode$unsignedInt32($author$project$Serialize$endian)));
+};
+var $author$project$Acadia$Serialize$getItemsResponse = $author$project$Serialize$list($author$project$Acadia$Serialize$item);
 var $author$project$Acadia$UInt32$decodeLE = A2(
 	$elm$bytes$Bytes$Decode$map,
 	$author$project$Acadia$UInt32$UInt32,
@@ -6658,22 +7012,6 @@ var $author$project$Backend$d_ARG_9 = A2(
 		return (!(!$author$project$Acadia$Int32$toInt(n))) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0);
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
-var $author$project$Backend$e_ARG_3 = function (v) {
-	var v_organizationID = v.organizationID;
-	var v_id = v.id;
-	var o0 = $author$project$Acadia$UInt32$fromInt(32);
-	var _v0 = v_organizationID;
-	var v_organizationID_0 = _v0.a;
-	var _v1 = v_id;
-	var v_id_0 = _v1.a;
-	return $author$project$Acadia$Bytes$Encode$sequence(
-		_List_fromArray(
-			[
-				$author$project$Acadia$Bytes$Encode$uint32BE(o0),
-				$author$project$Acadia$Bytes$Encode$uuid(v_id_0),
-				$author$project$Acadia$Bytes$Encode$uuid(v_organizationID_0)
-			]));
-};
 var $author$project$Backend$softDeleteItem = function (v0) {
 	return A2(
 		$author$project$Acadia$Transaction$Transaction,
@@ -6689,6 +7027,83 @@ var $author$project$Backend$softDeleteItem = function (v0) {
 		$author$project$Backend$d_ARG_9);
 };
 var $author$project$Acadia$Serialize$softDeleteItemResponse = $author$project$Serialize$unit;
+var $author$project$Backend$e_ARG_5 = function (v) {
+	var v_unitType = v.unitType;
+	var v_unitStyle = v.unitStyle;
+	var v_organizationID = v.organizationID;
+	var v_name = v.name;
+	var v_id = v.id;
+	var o0 = $author$project$Acadia$UInt32$fromInt(34);
+	var o1 = $author$project$Acadia$UInt32$fromInt(
+		$author$project$Acadia$UInt32$toInt(o0) + $author$project$Acadia$UInt32$toInt(
+			$author$project$Acadia$Bytes$Encode$getSizeString(v_name)));
+	var e0 = $author$project$Acadia$Bytes$Encode$string(v_name);
+	var _v0 = v_organizationID;
+	var v_organizationID_0 = _v0.a;
+	var _v1 = v_id;
+	var v_id_0 = _v1.a;
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(o1),
+				$author$project$Acadia$Bytes$Encode$uuid(v_id_0),
+				$author$project$Backend$e_ENUM_0(v_unitType),
+				$author$project$Backend$e_ENUM_1(v_unitStyle),
+				$author$project$Acadia$Bytes$Encode$uuid(v_organizationID_0),
+				e0
+			]));
+};
+var $author$project$Backend$updateItem = function (v0) {
+	return A2(
+		$author$project$Acadia$Transaction$Transaction,
+		$author$project$Acadia$Bytes$Encode$sequence(
+			_List_fromArray(
+				[
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(0)),
+					$author$project$Acadia$Bytes$Encode$uint32BE(
+					$author$project$Acadia$UInt32$fromInt(6)),
+					$author$project$Backend$e_ARG_5(v0)
+				])),
+		$author$project$Backend$d_ARG_9);
+};
+var $author$project$Backend$UpdateItemInput = F5(
+	function (id, name, unitType, unitStyle, organizationID) {
+		return {id: id, name: name, organizationID: organizationID, unitStyle: unitStyle, unitType: unitType};
+	});
+var $author$project$Acadia$Serialize$updateItemInput = $author$project$Serialize$finishRecord(
+	A3(
+		$author$project$Serialize$field,
+		function ($) {
+			return $.organizationID;
+		},
+		$author$project$Acadia$Serialize$organizationID,
+		A3(
+			$author$project$Serialize$field,
+			function ($) {
+				return $.unitStyle;
+			},
+			$author$project$Acadia$Serialize$unitStyle,
+			A3(
+				$author$project$Serialize$field,
+				function ($) {
+					return $.unitType;
+				},
+				$author$project$Acadia$Serialize$unitType,
+				A3(
+					$author$project$Serialize$field,
+					function ($) {
+						return $.name;
+					},
+					$author$project$Serialize$string,
+					A3(
+						$author$project$Serialize$field,
+						function ($) {
+							return $.id;
+						},
+						$author$project$Acadia$Serialize$itemID,
+						$author$project$Serialize$record($author$project$Backend$UpdateItemInput)))))));
+var $author$project$Acadia$Serialize$updateItemResponse = $author$project$Serialize$unit;
 var $elm$core$Basics$modBy = _Basics_modBy;
 var $elm$core$Bitwise$shiftRightBy = _Bitwise_shiftRightBy;
 var $elm$core$String$repeatHelp = F3(
@@ -6972,7 +7387,7 @@ var $author$project$Server$withRequestBody = F3(
 var $author$project$Server$requestHandler = F2(
 	function (request, path) {
 		var _v0 = _Utils_Tuple2(request.method, path);
-		_v0$7:
+		_v0$10:
 		while (true) {
 			switch (_v0.a.$) {
 				case 'Post':
@@ -7047,7 +7462,7 @@ var $author$project$Server$requestHandler = F2(
 								},
 								request,
 								$author$project$Acadia$Serialize$createOrganizationInput);
-						default:
+						case 'ApiItems':
 							var _v11 = _v0.a;
 							var _v12 = _v0.b;
 							return A3(
@@ -7061,11 +7476,61 @@ var $author$project$Server$requestHandler = F2(
 								},
 								request,
 								$author$project$Acadia$Serialize$addItemInput);
+						default:
+							break _v0$10;
+					}
+				case 'Get':
+					switch (_v0.b.$) {
+						case 'ApiItems':
+							var _v13 = _v0.a;
+							var _v14 = _v0.b;
+							return A3(
+								$author$project$Server$withRequestBody,
+								function (input) {
+									return A3(
+										$author$project$Server$acadiaRequest,
+										request.headers,
+										$author$project$Acadia$Serialize$getItemsResponse,
+										$author$project$Backend$getItems(input));
+								},
+								request,
+								$author$project$Acadia$Serialize$organizationID);
+						case 'ApiItemsId_':
+							var _v15 = _v0.a;
+							return A3(
+								$author$project$Server$withRequestBody,
+								function (input) {
+									return A3(
+										$author$project$Server$acadiaRequest,
+										request.headers,
+										$author$project$Acadia$Serialize$getItemResponse,
+										$author$project$Backend$getItem(input));
+								},
+								request,
+								$author$project$Acadia$Serialize$getItemInput);
+						default:
+							break _v0$10;
+					}
+				case 'Put':
+					if (_v0.b.$ === 'ApiItemsId_') {
+						var _v16 = _v0.a;
+						return A3(
+							$author$project$Server$withRequestBody,
+							function (input) {
+								return A3(
+									$author$project$Server$acadiaRequest,
+									request.headers,
+									$author$project$Acadia$Serialize$updateItemResponse,
+									$author$project$Backend$updateItem(input));
+							},
+							request,
+							$author$project$Acadia$Serialize$updateItemInput);
+					} else {
+						break _v0$10;
 					}
 				case 'Delete':
-					if (_v0.b.$ === 'ApiItems') {
-						var _v13 = _v0.a;
-						var _v14 = _v0.b;
+					if (_v0.b.$ === 'ApiItemsId_') {
+						var _v17 = _v0.a;
 						return A3(
 							$author$project$Server$withRequestBody,
 							function (input) {
@@ -7078,10 +7543,10 @@ var $author$project$Server$requestHandler = F2(
 							request,
 							$author$project$Acadia$Serialize$deleteItemInput);
 					} else {
-						break _v0$7;
+						break _v0$10;
 					}
 				default:
-					break _v0$7;
+					break _v0$10;
 			}
 		}
 		return $author$project$Server$acadiaFailureResponse(
@@ -7168,7 +7633,15 @@ var $elm$core$Platform$worker = _Platform_worker;
 var $author$project$Server$main = $elm$core$Platform$worker(
 	{init: $author$project$Server$init, subscriptions: $author$project$Server$subscriptions, update: $author$project$Server$update});
 /*
+/*
+/*
 _Platform_export({'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}});}(this));
 */
+*/
+*/
+export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
+  
+export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
+  
 export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
   

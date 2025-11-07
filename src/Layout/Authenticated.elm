@@ -30,24 +30,46 @@ type alias Model =
     ()
 
 
-init : Shared.Model -> Route params -> ( Model, Effect Msg )
-init sharedModel route =
-    ( ()
-    , case sharedModel.currentUser of
-        Authentication.Authenticated _ ->
-            case sharedModel.currentOrganization of
-                Just _ ->
-                    Effect.none
+init :
+    { route : Route params
+    , sharedModel : Shared.Model
+    , toMsg : Msg -> pageMsg
+    , initUnauthenticated : Model -> pageModel
+    , initAuthenticated : AuthContext -> Model -> Effect pageMsg -> ( pageModel, Effect pageMsg )
+    }
+    -> ( pageModel, Effect pageMsg )
+init props =
+    case props.sharedModel.currentUser of
+        Authentication.Authenticated user ->
+            case props.sharedModel.currentOrganization of
+                Just organization ->
+                    let
+                        ( pageModel, pageEffect ) =
+                            props.initAuthenticated
+                                { currentUser = user
+                                , currentOrganization = organization
+                                }
+                                ()
+                                Effect.none
+                    in
+                    ( pageModel
+                    , pageEffect
+                    )
 
                 Nothing ->
-                    Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString route.url) }
+                    ( props.initUnauthenticated ()
+                    , Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString props.route.url) }
+                    )
 
         Authentication.Authenticating ->
-            Effect.none
+            ( props.initUnauthenticated ()
+            , Effect.none
+            )
 
         Authentication.Unauthenticated ->
-            Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString route.url) }
-    )
+            ( props.initUnauthenticated ()
+            , Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString props.route.url) }
+            )
 
 
 
