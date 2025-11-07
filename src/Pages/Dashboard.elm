@@ -1,5 +1,14 @@
-module Pages.Dashboard exposing (Context, Food, Model, Msg(..), init, subscriptions, update, view)
+module Pages.Dashboard exposing
+    ( Context
+    , Model
+    , Msg(..)
+    , init
+    , subscriptions
+    , update
+    , view
+    )
 
+import Backend
 import Browser
 import Effect exposing (Effect)
 import Html
@@ -22,12 +31,8 @@ type alias Context =
 
 type alias Model =
     { layout : Layout.Authenticated.Model
-    , foods : Response (List Food)
+    , items : Response (List Backend.Item)
     }
-
-
-type alias Food =
-    String
 
 
 init : Context -> ( Model, Effect Msg )
@@ -37,7 +42,7 @@ init { shared, route } =
             Layout.Authenticated.init shared route
     in
     ( { layout = layout
-      , foods = Response.Loading
+      , items = Response.Loading
       }
     , Effect.batch
         [ Effect.map LayoutMessage layoutEffect

@@ -24,6 +24,7 @@ type EndpointPath
     | ApiAuthLogout
     | ApiAuthSelf
     | ApiOrganizations
+    | ApiItemsGet
 
 
 toString : EndpointPath -> String
@@ -44,6 +45,9 @@ toString endpoint =
         ApiOrganizations ->
             "/api/organizations"
 
+        ApiItemsGet ->
+            "/api/items"
+
 
 fromString : String -> Maybe EndpointPath
 fromString str =
@@ -62,6 +66,9 @@ fromString str =
 
         "/api/organizations" ->
             Just ApiOrganizations
+
+        "/api/items" ->
+            Just ApiItemsGet
 
         _ ->
             Nothing

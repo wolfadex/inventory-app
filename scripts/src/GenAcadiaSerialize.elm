@@ -1,4 +1,4 @@
-module GenAcadiaApi exposing (run)
+module GenAcadiaSerialize exposing (run)
 
 import BackendTask
 import BackendTask.File

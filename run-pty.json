@@ -12,7 +12,7 @@
     "command": ["just", "server-build-dev"]
   },
   {
-    "command": ["just", "acadia-api-gen"]
+    "command": ["just", "acadia-serialize-gen"]
   },
   {
     "command": ["just", "server-serve"]

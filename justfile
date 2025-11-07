@@ -9,9 +9,9 @@ acadia-serve:
 acadia-build:
     acadia make --generate-elm-endpoints=gen
 
-acadia-api-gen:
-    nodemon -w gen/Backend.elm --exec "elm-pages run scripts/src/GenAcadiaApi.elm && elm-format gen/Acadia/Api.elm --yes"
-    # elm-pages run scripts/src/GenAcadiaApi.elm && elm-format gen/Acadia/Api.elm --yes
+acadia-serialize-gen:
+    nodemon -w gen/Backend.elm --exec "elm-pages run scripts/src/GenAcadiaSerialize.elm && elm-format gen/Acadia/Serialize.elm --yes"
+    # elm-pages run scripts/src/GenAcadiaSerialize.elm && elm-format gen/Acadia/Serialize.elm --yes
 
 css-dev:
     css-in-elm watch assets/style.css src/Css.elm

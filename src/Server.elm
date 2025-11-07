@@ -65,10 +65,10 @@ init requestJson =
                         acadiaFailureResponse { status = Http.Status.NotFound, error = Http.Extended.Generic "Not Found" }
 
                     Just Endpoints.ApiAuthSelf ->
-                        acadiaRequest request.headers (AuthSelfResponse Acadia.Serialize.getUserSelfResponse) Backend.getUserSelf
+                        acadiaRequest request.headers Acadia.Serialize.getUserSelfResponse Backend.getUserSelf
 
                     Just Endpoints.ApiAuthLogout ->
-                        acadiaRequest request.headers (AuthLogoutResponse Acadia.Serialize.logoutResponse) Backend.logout
+                        acadiaRequest request.headers Acadia.Serialize.logoutResponse Backend.logout
 
                     Just Endpoints.ApiAuthLogin ->
                         case Serialize.decodeFromString Acadia.Serialize.authInfo request.body of
@@ -76,7 +76,7 @@ init requestJson =
                                 acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
 
                             Just loginInfo ->
-                                acadiaRequest request.headers (LoginResponse Acadia.Serialize.loginResponse) (Backend.login loginInfo)
+                                acadiaRequest request.headers Acadia.Serialize.loginResponse (Backend.login loginInfo)
 
                     Just Endpoints.ApiAuthSignup ->
                         case Serialize.decodeFromString Acadia.Serialize.signUpInfo request.body of
@@ -94,7 +94,7 @@ init requestJson =
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                                 else
-                                    acadiaRequest request.headers (LoginResponse Acadia.Serialize.signupResponse) (Backend.signup signupInfo)
+                                    acadiaRequest request.headers Acadia.Serialize.signupResponse (Backend.signup signupInfo)
 
                     Just Endpoints.ApiOrganizations ->
                         case Serialize.decodeFromString Acadia.Serialize.createOrganizationInput request.body of
@@ -106,8 +106,27 @@ init requestJson =
                                     acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                                 else
-                                    acadiaRequest request.headers (OrganizationCreateResponse Acadia.Serialize.createOrganizationResponse) (Backend.createOrganization newOrg)
+                                    acadiaRequest request.headers Acadia.Serialize.createOrganizationResponse (Backend.createOrganization newOrg)
+
+                    Just Endpoints.ApiItemsGet ->
+                        withRequestBody
+                            (\orgnizationID ->
+                                acadiaRequest request.headers
+                                    Acadia.Serialize.getItemsResponse
+                                    (Backend.getItems orgnizationID)
+                            )
+                            request
+                            Acadia.Serialize.organizationID
     )
+
+
+withRequestBody fn request inputCodec =
+    case Serialize.decodeFromString inputCodec request.body of
+        Nothing ->
+            acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Generic "Server error" }
+
+        Just input ->
+            fn input
 
 
 acadiaFailureResponse : { status : Http.Status.Status, error : Http.Extended.Error } -> Cmd msg
@@ -119,8 +138,8 @@ acadiaFailureResponse config =
         }
 
 
-acadiaRequest : Headers -> (Result Http.Error ( Headers, a ) -> msg) -> Acadia.Transaction.Transaction a -> Cmd msg
-acadiaRequest headers toMsg (Acadia.Transaction.Transaction enc dec) =
+acadiaRequest : Headers -> Serialize.Codec a -> Acadia.Transaction.Transaction a -> Cmd Msg
+acadiaRequest headers responseCodec (Acadia.Transaction.Transaction enc dec) =
     Http.request
         { url = "http://localhost:9000/_endpoints"
         , method = "POST"
@@ -140,7 +159,7 @@ acadiaRequest headers toMsg (Acadia.Transaction.Transaction enc dec) =
                     )
                     headers
         , body = Http.bytesBody "application/octet-stream" (Bytes.Encode.encode enc)
-        , expect = Http.expectBytesResponse toMsg (bytesResponseWithHeaders dec)
+        , expect = Http.expectBytesResponse RespondToClient (bytesResponseWithHeaders (Bytes.Decode.map (Serialize.encodeToString responseCodec) dec))
         , timeout = Nothing
         , tracker = Nothing
         }
@@ -176,33 +195,35 @@ subscriptions _ =
 
 
 type Msg
-    = LoginResponse (Serialize.Codec ()) (Result Http.Error ( Headers, () ))
-    | AuthLogoutResponse (Serialize.Codec ()) (Result Http.Error ( Headers, () ))
-    | AuthSelfResponse (Serialize.Codec ( Backend.User, Maybe Backend.Organization )) (Result Http.Error ( Headers, ( Backend.User, Maybe Backend.Organization ) ))
-    | OrganizationCreateResponse (Serialize.Codec Backend.Organization) (Result Http.Error ( Headers, Backend.Organization ))
+    = RespondToClient (Result Http.Error ( Headers, String ))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        LoginResponse codec result ->
-            ( model
-            , acadiaResponse codec result
-            )
+        RespondToClient (Err _) ->
+            ( model, respond { status = Http.Status.BadRequest, body = "Database error", headers = [] } )
 
-        AuthLogoutResponse codec result ->
+        RespondToClient (Ok ( headers, body )) ->
             ( model
-            , acadiaResponse codec result
-            )
+            , respond
+                { status = Http.Status.StatusOk
+                , body = body
+                , headers =
+                    List.filterMap
+                        (\( key, value ) ->
+                            case String.toLower key of
+                                "content-length" ->
+                                    Nothing
 
-        AuthSelfResponse codec result ->
-            ( model
-            , acadiaResponse codec result
-            )
+                                "set-cookie" ->
+                                    Just ( key, setPathOnCookie value )
 
-        OrganizationCreateResponse codec result ->
-            ( model
-            , acadiaResponse codec result
+                                _ ->
+                                    Just ( key, value )
+                        )
+                        headers
+                }
             )
 
 

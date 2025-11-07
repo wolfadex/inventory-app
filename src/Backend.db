@@ -46,7 +46,7 @@ import Uuid exposing (Uuid)
 type alias Item =
     { id : ItemID
     , name : String
-    , quantity : Float32
+    -- , quantity : Float32
     , unitType : UnitType
     , unitStyle : UnitStyle
     , owningOrganization : OrganizationID
@@ -90,7 +90,7 @@ items :=
 type alias AddItemInput =
     { organizationID: OrganizationID
     , name : String
-    , quantity : Float32
+    -- , quantity : Float32
     , unitStyle : UnitStyle
     , unitType : UnitType
     }
@@ -107,7 +107,7 @@ addItem cookies input =
     insert items ( input.organizationID, role.item )
         { id = id
         , name = input.name
-        , quantity = input.quantity
+        -- , quantity = input.quantity
         , unitType = input.unitType
         , unitStyle = input.unitStyle
         , owningOrganization = input.organizationID
@@ -124,9 +124,7 @@ getItems : Cookies -> OrganizationID -> Transaction (Rows Item)
 getItems cookies organizationID =
     let
         user := requireUser cookies
-
-        role :=
-            requireRole ( user.id, organizationID )
+        role := requireRole ( user.id, organizationID )
     in
     access items ( organizationID, role.item )
         |> selectAll
@@ -135,7 +133,7 @@ getItems cookies organizationID =
 type alias UpdateItemInput =
     { id : ItemID
     , name : String
-    , quantity : Float32
+    -- , quantity : Float32
     , unitType : UnitType
     , unitStyle : UnitStyle
     , organizationID : OrganizationID
@@ -154,7 +152,7 @@ updateItem cookies input =
         (\item ->
             { item
                 | name = input.name
-                , quantity = input.quantity
+                -- , quantity = input.quantity
                 , unitType = input.unitType
                 , unitStyle = input.unitStyle
                 , lastModifiedOn = now
