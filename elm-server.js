@@ -1,5 +1,5 @@
-// -- // -- // -- // -- (function(scope){
-// -- // -- // -- // -- 'use strict';
+// -- (function(scope){
+// -- 'use strict';
 
 function F(arity, fun, wrapper) {
   wrapper.a = arity;
@@ -2637,9 +2637,6 @@ function _Platform_setupIncomingPort(name, sendToApp)
 
 
 /*
-/*
-/*
-/*
 function _Platform_export_UNUSED(exports)
 {
 	scope['Elm']
@@ -2648,13 +2645,7 @@ function _Platform_export_UNUSED(exports)
 }
 
 */
-*/
-*/
-*/
 
-/*
-/*
-/*
 /*
 function _Platform_mergeExportsProd(obj, exports)
 {
@@ -2668,14 +2659,8 @@ function _Platform_mergeExportsProd(obj, exports)
 	}
 }
 */
-*/
-*/
-*/
 
 
-/*
-/*
-/*
 /*
 function _Platform_export(exports)
 {
@@ -2685,13 +2670,7 @@ function _Platform_export(exports)
 }
 
 */
-*/
-*/
-*/
 
-/*
-/*
-/*
 /*
 function _Platform_mergeExportsDebug(moduleName, obj, exports)
 {
@@ -2704,9 +2683,6 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 			: (obj[name] = exports[name]);
 	}
 }
-*/
-*/
-*/
 */
 
 
@@ -7476,7 +7452,12 @@ var $author$project$Server$requestHandler = F2(
 							return A3(
 								$author$project$Server$withRequestBody,
 								function (input) {
-									return A3(
+									return ($elm$core$String$length(input.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+										{
+											error: $author$project$Http$Extended$Field(
+												{message: 'Too short', name: 'name'}),
+											status: $author$project$Http$Status$BadRequest
+										}) : A3(
 										$author$project$Server$acadiaRequest,
 										request.headers,
 										$author$project$Acadia$Serialize$addItemResponse,
@@ -7525,7 +7506,12 @@ var $author$project$Server$requestHandler = F2(
 						return A3(
 							$author$project$Server$withRequestBody,
 							function (input) {
-								return A3(
+								return ($elm$core$String$length(input.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+									{
+										error: $author$project$Http$Extended$Field(
+											{message: 'Too short', name: 'name'}),
+										status: $author$project$Http$Status$BadRequest
+									}) : A3(
 									$author$project$Server$acadiaRequest,
 									request.headers,
 									$author$project$Acadia$Serialize$updateItemResponse,
@@ -7641,19 +7627,7 @@ var $elm$core$Platform$worker = _Platform_worker;
 var $author$project$Server$main = $elm$core$Platform$worker(
 	{init: $author$project$Server$init, subscriptions: $author$project$Server$subscriptions, update: $author$project$Server$update});
 /*
-/*
-/*
-/*
 _Platform_export({'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}});}(this));
 */
-*/
-*/
-*/
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
-export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
-  
 export const Elm = {'Server':{'init':$author$project$Server$main($elm$json$Json$Decode$value)(0)}};
   

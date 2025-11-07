@@ -15,6 +15,7 @@ import Html
 import Layout.Authenticated
 import Response exposing (Response)
 import Route exposing (Route)
+import Route.Path
 import Shared
 import Subscription exposing (Subscription)
 
@@ -91,15 +92,16 @@ update { shared, route } msg model =
 
 
 view : Context -> Model -> Browser.Document Msg
-view { shared } model =
+view { shared, route } model =
     Layout.Authenticated.view
         { model = model.layout
         , sharedModel = shared
+        , route = route
         , toMsg = LayoutMessage
         , title = "Dashboard"
         , body =
             \{ currentUser } ->
                 [ Html.text currentUser.primaryEmail
-                , Html.p [] [ Html.text "Lorem ipsum" ]
+                , Html.a [ Route.Path.href Route.Path.Items ] [ Html.text "Items" ]
                 ]
         }

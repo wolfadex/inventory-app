@@ -115,7 +115,7 @@ requestHandler request path =
         ( Http.Method.Post, Endpoints.ApiItems ) ->
             withRequestBody
                 (\input ->
-                    if String.length name < 1 then
+                    if String.length input.name < 1 then
                         acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                     else
@@ -149,7 +149,7 @@ requestHandler request path =
         ( Http.Method.Put, Endpoints.ApiItemsId_ _ ) ->
             withRequestBody
                 (\input ->
-                    if String.length name < 1 then
+                    if String.length input.name < 1 then
                         acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                     else

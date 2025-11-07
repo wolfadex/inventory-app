@@ -26,6 +26,10 @@ header {
     align-items: center;
 }
 
+a[aria-current="page"] {
+    font-style: italic;
+}
+
 article:has(form) {
     border: 1px solid rgba(0, 0, 0, 0);
 }
@@ -82,5 +86,14 @@ form[aria-invalid="true"] small {
 
     main {
         overflow: auto;
+        display: grid;
     }
+
+    .statusCard {
+        justify-self: center;
+        margin-top: 4rem;
+    }
+}
+
+.statusCard {
 }

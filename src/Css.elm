@@ -1,4 +1,4 @@
-module Css exposing (dropdown, pageCentered, pageMarketing, pageFull)
+module Css exposing (dropdown, pageCentered, pageMarketing, pageFull, statusCard)
 
 import Html
 import Html.Attributes
@@ -22,3 +22,8 @@ pageMarketing =
 pageFull : Html.Attribute msg
 pageFull =
     Html.Attributes.class "pageFull"
+
+
+statusCard : Html.Attribute msg
+statusCard =
+    Html.Attributes.class "statusCard"

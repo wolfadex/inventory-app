@@ -158,6 +158,7 @@ updateWithAuth config =
 
 view :
     { model : Model
+    , route : Route params
     , sharedModel : Shared.Model
     , toMsg : Msg -> pageMsg
     , title : String
@@ -172,6 +173,7 @@ view props =
                 case props.sharedModel.currentOrganization of
                     Just organization ->
                         viewAuthenticataed
+                            props.route
                             { currentUser = user, currentOrganization = organization }
                             (props.body { currentUser = user, currentOrganization = organization })
 
@@ -190,8 +192,8 @@ view props =
     }
 
 
-viewAuthenticataed : { currentUser : Backend.User, currentOrganization : Backend.Organization } -> List (Html msg) -> List (Html msg)
-viewAuthenticataed context body =
+viewAuthenticataed : Route params -> { currentUser : Backend.User, currentOrganization : Backend.Organization } -> List (Html msg) -> List (Html msg)
+viewAuthenticataed route context body =
     [ Html.div [ Css.pageFull ]
         [ Html.header []
             [ Html.nav []
@@ -206,13 +208,7 @@ viewAuthenticataed context body =
                         ]
                     ]
                 , Html.ul []
-                    [ Html.li []
-                        [ Html.a
-                            [ Route.Path.href Route.Path.Dashboard
-                            , Html.Attributes.class "secondary"
-                            ]
-                            [ Html.text "Example nav link" ]
-                        ]
+                    [ viewNavLink route Route.Path.Items "Items"
                     , Html.li []
                         [ Html.details
                             [ Html.Attributes.class "dropdown" ]
@@ -233,3 +229,19 @@ viewAuthenticataed context body =
         , Html.main_ [] body
         ]
     ]
+
+
+viewNavLink : Route params -> Route.Path.Path -> String -> Html msg
+viewNavLink route path label =
+    Html.li []
+        [ Html.a
+            [ Route.Path.href path
+            , Html.Attributes.class "secondary"
+            , if path == route.path then
+                Html.Attributes.attribute "aria-current" "page"
+
+              else
+                Html.Attributes.class ""
+            ]
+            [ Html.text label ]
+        ]
