@@ -85,7 +85,7 @@ run =
                             ( [], Set.empty )
                         |> Tuple.first
                         |> combineResults
-                        |> Result.map (Elm.file [ "Acadia", "Api" ])
+                        |> Result.map (Elm.file [ "Acadia", "Serialize" ])
                         |> Result.mapError FatalError.fromString
                         |> BackendTask.fromResult
                 )
@@ -1055,7 +1055,7 @@ customTypeToCodec ( decs, knownNames ) type_ =
 
 codecifyName : String -> String
 codecifyName name =
-    lowerFirstChar name ++ "Codec"
+    lowerFirstChar name
 
 
 lowerFirstChar : String -> String

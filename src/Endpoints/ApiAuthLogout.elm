@@ -1,6 +1,6 @@
 module Endpoints.ApiAuthLogout exposing (post)
 
-import Acadia.Api
+import Acadia.Serialize
 import Effect exposing (Effect)
 import Endpoints
 import Http.Extended
@@ -15,7 +15,7 @@ post toMsg =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthLogout
             , request = Serialize.toBytesEncoder Serialize.unit ()
-            , response = Serialize.toBytesDecoder Acadia.Api.logoutResponseCodec
+            , response = Serialize.toBytesDecoder Acadia.Serialize.logoutResponse
             }
         , onResponse = toMsg
         }

@@ -19,6 +19,12 @@ database module Backend exposing
     , AddItemInput
     , endpoint addItem
     , endpoint getItems
+    , UpdateItemInput
+    , endpoint updateItem
+    , DeleteInput
+    , endpoint softDeleteItem
+    , endpoint softUndeleteItem
+    , endpoint hardDeleteItem
     )
 
 import Cookies exposing (Cookies)
@@ -49,7 +55,7 @@ type alias Item =
     , lastModifiedOn : Time.Posix
     , lastModifiedBy : UserID
     , deletedOn : Maybe Time.Posix
-    , detetedBy : Maybe UserID
+    , deletedBy : Maybe UserID
     }
 
 
@@ -81,9 +87,6 @@ items :=
         }
 
 
-
--- ADD FOOD
-
 type alias AddItemInput =
     { organizationID: OrganizationID
     , name : String
@@ -113,12 +116,8 @@ addItem cookies input =
         , lastModifiedOn = now
         , lastModifiedBy = user.id
         , deletedOn = Nothing
-        , detetedBy = Nothing
+        , deletedBy = Nothing
         }
-
-
-
--- GET FOODS
 
 
 getItems : Cookies -> OrganizationID -> Transaction (Rows Item)
@@ -130,8 +129,78 @@ getItems cookies organizationID =
             requireRole ( user.id, organizationID )
     in
     access items ( organizationID, role.item )
-        -- |> filter (\i -> i.owningOranization = organizationID)
         |> selectAll
+
+
+type alias UpdateItemInput =
+    { id : ItemID
+    , name : String
+    , quantity : Float32
+    , unitType : UnitType
+    , unitStyle : UnitStyle
+    , organizationID : OrganizationID
+    }
+
+
+updateItem : Cookies -> UpdateItemInput -> Transaction ()
+updateItem cookies input =
+    let
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+        now := Time.now
+    in
+    update items ( input.organizationID, role.item )
+        (\item -> item.id == input.id)
+        (\item ->
+            { item
+                | name = input.name
+                , quantity = input.quantity
+                , unitType = input.unitType
+                , unitStyle = input.unitStyle
+                , lastModifiedOn = now
+                , lastModifiedBy = user.id
+            }
+        )
+
+
+type alias DeleteInput =
+    { id : ItemID
+    , organizationID : OrganizationID
+    }
+
+
+softDeleteItem : Cookies -> DeleteInput -> Transaction ()
+softDeleteItem cookies input =
+    let
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+        now := Time.now
+    in
+    update items ( input.organizationID, role.item )
+        (\item -> item.id == input.id)
+        (withDeleted user.id now)
+
+
+softUndeleteItem : Cookies -> DeleteInput -> Transaction ()
+softUndeleteItem cookies input =
+    let
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+        now := Time.now
+    in
+    update items ( input.organizationID, role.item )
+        (\item -> item.id == input.id)
+        (withUndeleted user.id now)
+
+
+hardDeleteItem : Cookies -> DeleteInput -> Transaction ()
+hardDeleteItem cookies input =
+    let
+        user := requireUser cookies
+        role := requireRole ( user.id, input.organizationID )
+    in
+    remove items ( input.organizationID, role.item )
+        (\item -> item.id == input.id)
 
 --------------------------------------------------------------------------------
 -- COMMON ----------------------------------------------------------------------
@@ -148,44 +217,32 @@ type alias Traceable a =
     }
 
 
-withModified : UserID -> Traceable a -> Transaction (Traceable a)
-withModified userID traceable =
-    let
-        now := Time.now
-    in
-    succeed
-        { traceable
-            | lastModifiedOn = now
-            , lastModifiedBy = userID
-        }
+withModified : UserID -> Time.Posix -> Traceable a -> Traceable a
+withModified userID now traceable =
+    { traceable
+        | lastModifiedOn = now
+        , lastModifiedBy = userID
+    }
 
 
-withDeleted : UserID -> Traceable a -> Transaction (Traceable a)
-withDeleted userID traceable =
-    let
-        now := Time.now
-    in
-    succeed
-        { traceable
-            | lastModifiedOn = now
-            , lastModifiedBy = userID
-            , deletedOn = Just now
-            , deletedBy = Just userID
-        }
+withDeleted : UserID -> Time.Posix -> Traceable a -> Traceable a
+withDeleted userID now traceable =
+    { traceable
+        | lastModifiedOn = now
+        , lastModifiedBy = userID
+        , deletedOn = Just now
+        , deletedBy = Just userID
+    }
 
 
-withUndeleted : UserID -> Traceable a -> Transaction (Traceable a)
-withUndeleted userID traceable =
-    let
-        now := Time.now
-    in
-    succeed
-        { traceable
-            | lastModifiedOn = now
-            , lastModifiedBy = userID
-            , deletedOn = Nothing
-            , deletedBy = Nothing
-        }
+withUndeleted : UserID -> Time.Posix -> Traceable a -> Traceable a
+withUndeleted userID now traceable =
+    { traceable
+        | lastModifiedOn = now
+        , lastModifiedBy = userID
+        , deletedOn = Nothing
+        , deletedBy = Nothing
+    }
 
 
 --------------------------------------------------------------------------------
@@ -278,7 +335,7 @@ type alias Organization =
     , lastModifiedOn : Time.Posix
     , lastModifiedBy : UserID
     , deletedOn : Maybe Time.Posix
-    , detetedBy : Maybe UserID
+    , deletedBy : Maybe UserID
     }
 
 
@@ -308,7 +365,7 @@ type alias OrganizationUsers =
     , lastModifiedOn : Time.Posix
     , lastModifiedBy : UserID
     , deletedOn : Maybe Time.Posix
-    , detetedBy : Maybe UserID
+    , deletedBy : Maybe UserID
     }
 
 
@@ -348,7 +405,7 @@ createOrganization cookies newOrgData =
                 , lastModifiedOn = now
                 , lastModifiedBy = user.id
                 , deletedOn = Nothing
-                , detetedBy = Nothing
+                , deletedBy = Nothing
                 }
 
         roleId := Uuid.uuid |> Transaction.map RoleID
@@ -367,7 +424,7 @@ createOrganization cookies newOrgData =
                 , lastModifiedOn = now
                 , lastModifiedBy = user.id
                 , deletedOn = Nothing
-                , detetedBy = Nothing
+                , deletedBy = Nothing
                 }
     in
     access organizations (readOnlyPermission)
@@ -391,7 +448,7 @@ type alias UserRow =
     , lastModifiedOn : Time.Posix
     , lastModifiedBy : UserID
     , deletedOn : Maybe Time.Posix
-    , detetedBy : Maybe UserID
+    , deletedBy : Maybe UserID
     }
 
 
@@ -416,7 +473,7 @@ type alias User =
     , lastModifiedOn : Time.Posix
     , lastModifiedBy : UserID
     , deletedOn : Maybe Time.Posix
-    , detetedBy : Maybe UserID
+    , deletedBy : Maybe UserID
     }
 
 userToUserRow : UserRow -> User
@@ -430,7 +487,7 @@ userToUserRow user =
     , lastModifiedOn = user.lastModifiedOn
     , lastModifiedBy = user.lastModifiedBy
     , deletedOn = user.deletedOn
-    , detetedBy = user.detetedBy
+    , deletedBy = user.deletedBy
     }
 
 
@@ -559,7 +616,7 @@ signup _ authData =
                         , lastModifiedOn = now
                         , lastModifiedBy = userID
                         , deletedOn = Nothing
-                        , detetedBy = Nothing
+                        , deletedBy = Nothing
                         }
 
                 () :=
@@ -581,7 +638,7 @@ signup _ authData =
                         , lastModifiedOn = now
                         , lastModifiedBy = userID
                         , deletedOn = Nothing
-                        , detetedBy = Nothing
+                        , deletedBy = Nothing
                         }
 
                 roleId := Uuid.uuid |> Transaction.map RoleID
@@ -600,7 +657,7 @@ signup _ authData =
                         , lastModifiedOn = now
                         , lastModifiedBy = userID
                         , deletedOn = Nothing
-                        , detetedBy = Nothing
+                        , deletedBy = Nothing
                         }
             in
             succeed (toCookie uuid)

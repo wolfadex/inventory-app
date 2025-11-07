@@ -1,6 +1,6 @@
 module Endpoints.ApiAuthLogin exposing (post)
 
-import Acadia.Api
+import Acadia.Serialize
 import Backend
 import Effect exposing (Effect)
 import Endpoints
@@ -15,8 +15,8 @@ post toMsg authInfo =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthLogin
-            , request = Serialize.toBytesEncoder Acadia.Api.authInfoCodec authInfo
-            , response = Serialize.toBytesDecoder Acadia.Api.loginResponseCodec
+            , request = Serialize.toBytesEncoder Acadia.Serialize.authInfo authInfo
+            , response = Serialize.toBytesDecoder Acadia.Serialize.loginResponse
             }
         , onResponse = toMsg
         }

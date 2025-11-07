@@ -1,57 +1,70 @@
 module Serialize exposing
     ( Codec
-    , CustomTypeCodec
-    , RecordCodec
-    , VariantEncoder
-    , array
-    , bool
-    , byte
-    , bytes
-    , customType
-    , decodeFromBytes
-    , decodeFromString
-    , dict
-    , encodeSimple
-    , encodeToBytes
-    , encodeToString
-    , enum
-    , field
-    , finishCustomType
-    , finishRecord
-    , float32
-    , float64
-    , int16
-    , int32
-    , int64
-    , int8
-    , lazy
-    , list
-    , map
-    , maybe
-    , record
-    , result
-    , set
-    , string
+    , decodeFromBytes, encodeToBytes
+    , decodeFromString, encodeToString, encodeSimple
+    , toBytesDecoder, toBytesEncoder
+    , int
+    , int8, int16, int32, int64
+    , uint8, uint16, uint32, uint64
+    , float
+    , float32, float64
+    , bool, string
+    , list, array, set, dict
+    , byte, bytes
     , time
-    , toBytesDecoder
-    , toBytesEncoder
-    , tuple
-    , uint16
-    , uint32
-    , uint64
-    , uint8
-    , unit
     , uuid
-    , variant0
-    , variant1
-    , variant2
-    , variant3
-    , variant4
-    , variant5
-    , variant6
-    , variant7
-    , variant8
+    , enum
+    , tuple
+    , unit
+    , customType
+    , variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8
+    , finishCustomType
+    , CustomTypeCodec, VariantEncoder
+    , record, field, finishRecord
+    , RecordCodec
+    , maybe, result
+    , map
+    , lazy
     )
+
+{-|
+
+@docs Codec
+
+@docs decodeFromBytes, encodeToBytes
+@docs decodeFromString, encodeToString, encodeSimple
+@docs toBytesDecoder, toBytesEncoder
+
+@docs int
+@docs int8, int16, int32, int64
+@docs uint8, uint16, uint32, uint64
+@docs float
+@docs float32, float64
+@docs bool, string
+@docs list, array, set, dict
+@docs byte, bytes
+
+@docs time
+@docs uuid
+
+@docs enum
+@docs tuple
+@docs unit
+
+@docs customType
+@docs variant0, variant1, variant2, variant3, variant4, variant5, variant6, variant7, variant8
+@docs finishCustomType
+@docs CustomTypeCodec, VariantEncoder
+
+@docs record, field, finishRecord
+@docs RecordCodec
+
+@docs maybe, result
+
+@docs map
+@docs lazy
+
+-}
 
 import Acadia.Float32
 import Acadia.Float64
@@ -292,6 +305,13 @@ bool =
         )
 
 
+int : Codec Int
+int =
+    build
+        (toFloat >> BE.float64 endian)
+        (BD.float64 endian |> BD.map round)
+
+
 int8 : Codec Acadia.Int8.Int8
 int8 =
     build
@@ -346,6 +366,13 @@ uint64 =
     build
         Acadia.UInt64.encodeBE
         Acadia.UInt64.decodeBE
+
+
+float : Codec Float
+float =
+    build
+        (BE.float64 endian)
+        (BD.float64 endian)
 
 
 float32 : Codec Acadia.Float32.Float32

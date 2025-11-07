@@ -1,6 +1,6 @@
 module Endpoints.ApiAuthSignup exposing (post)
 
-import Acadia.Api
+import Acadia.Serialize
 import Backend
 import Effect exposing (Effect)
 import Endpoints
@@ -15,8 +15,8 @@ post toMsg signupInfo =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthSignup
-            , request = Serialize.toBytesEncoder Acadia.Api.signUpInfoCodec signupInfo
-            , response = Serialize.toBytesDecoder Acadia.Api.signupResponseCodec
+            , request = Serialize.toBytesEncoder Acadia.Serialize.signUpInfo signupInfo
+            , response = Serialize.toBytesDecoder Acadia.Serialize.signupResponse
             }
         , onResponse = toMsg
         }
