@@ -61,7 +61,7 @@ onAuthenticationChange msg =
     ElmLand.Subscription.custom (OnAuthenticationChanged msg)
 
 
-onAuthenticationRefreshRequested : (Maybe Route.Path.Path -> msg) -> Subscription msg
+onAuthenticationRefreshRequested : (Maybe String -> msg) -> Subscription msg
 onAuthenticationRefreshRequested toMsg =
     ElmLand.Subscription.custom (OnAuthenticationRefreshRequested toMsg)
 
@@ -70,7 +70,7 @@ onAuthenticationRefreshRequested toMsg =
 -}
 type Event
     = AuthenticationChanged
-    | RefreshAuthentication (Maybe Route.Path.Path)
+    | RefreshAuthentication (Maybe String)
     | UrlChanged Url
 
 
@@ -79,7 +79,7 @@ standard ones provided by the `ElmLand.Subscription` module
 -}
 type CustomSubscription msg
     = OnAuthenticationChanged msg
-    | OnAuthenticationRefreshRequested (Maybe Route.Path.Path -> msg)
+    | OnAuthenticationRefreshRequested (Maybe String -> msg)
 
 
 

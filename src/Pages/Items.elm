@@ -22,7 +22,9 @@ import Layout.Authenticated
 import Response exposing (Response)
 import Route exposing (Route)
 import Shared
+import Submit exposing (Submit)
 import Subscription exposing (Subscription)
+import Ui.Form
 
 
 
@@ -42,6 +44,7 @@ type alias Params =
 type alias Model =
     { layout : Layout.Authenticated.Model
     , items : Response Http.Extended.Error (List Backend.Item)
+    , addItemSubmit : Submit () Http.Extended.Error
     }
 
 
@@ -55,11 +58,13 @@ init { shared, route } =
             \layout ->
                 { layout = layout
                 , items = Response.Failure (Http.Extended.Generic "")
+                , addItemSubmit = Submit.Fresh
                 }
         , initAuthenticated =
             \{ currentUser, currentOrganization } layout layoutEffect ->
                 ( { layout = layout
                   , items = Response.Loading
+                  , addItemSubmit = Submit.Fresh
                   }
                 , Effect.batch
                     [ layoutEffect
@@ -86,6 +91,7 @@ subscriptions _ model =
 type Msg
     = LayoutMessage Layout.Authenticated.Msg
     | ItemsLoaded (Result Http.Extended.Error (List Backend.Item))
+    | UserSubmittedAddItemForm
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -125,6 +131,9 @@ update { shared, route } msg model =
                         )
                 }
 
+        UserSubmittedAddItemForm ->
+            ( model, Effect.none )
+
 
 view : Context -> Model -> Browser.Document Msg
 view { shared, route } model =
@@ -136,18 +145,47 @@ view { shared, route } model =
         , title = "Dashboard"
         , body =
             \{ currentUser } ->
-                case model.items of
+                [ Html.section []
+                    [ Html.article []
+                        [ Ui.Form.view
+                            { name = "add-item"
+                            , title = "Add item"
+                            , onSubmit = UserSubmittedAddItemForm
+                            , submit = model.addItemSubmit
+                            , submitLabel = "Add"
+                            , additionalButtons = []
+                            , fields =
+                                [-- Ui.TextInput.email
+                                 --     { name = "email"
+                                 --     , label = "Email"
+                                 --     , value = model.email
+                                 --     , onInput = UserChangedEmail
+                                 --     , submit = model.submit
+                                 --     }
+                                 --     []
+                                 -- , Ui.TextInput.password
+                                 --     { name = "password"
+                                 --     , label = "Password"
+                                 --     , value = model.password
+                                 --     , onInput = UserChangedPassword
+                                 --     , submit = model.submit
+                                 --     }
+                                 --     []
+                                ]
+                            }
+                        ]
+                    ]
+                , case model.items of
                     Response.Loading ->
-                        [ Html.article
+                        Html.article
                             [ Html.Attributes.attribute "aria-busy" "true"
                             , Css.statusCard
                             ]
                             [ Html.text "Gathering your things..."
                             ]
-                        ]
 
                     Response.Failure err ->
-                        [ Html.article [ Css.statusCard ]
+                        Html.article [ Css.statusCard ]
                             [ case err of
                                 Http.Extended.Generic error ->
                                     Html.text error
@@ -155,14 +193,9 @@ view { shared, route } model =
                                 Http.Extended.Field { message } ->
                                     Html.text message
                             ]
-                        ]
 
                     Response.Success items ->
-                        [ Html.section []
-                            [ Html.article []
-                                []
-                            ]
-                        , Html.section []
+                        Html.section []
                             [ case items of
                                 [] ->
                                     Html.text "Nothing here yet"
@@ -172,7 +205,7 @@ view { shared, route } model =
                                         []
                                         (List.map viewItem items)
                             ]
-                        ]
+                ]
         }
 
 

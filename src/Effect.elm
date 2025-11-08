@@ -3,7 +3,7 @@ module Effect exposing
     , none, batch, map
     , broadcast
     , CustomEffect(..)
-    , navigateTo
+    , routeTo, pushUrl
     , endpoint
     -- , get
     )
@@ -16,7 +16,7 @@ module Effect exposing
 
 @docs CustomEffect
 
-@docs navigateTo
+@docs routeTo, pushUrl
 @docs endpoint
 
 -}
@@ -96,10 +96,15 @@ endpoint props =
 -- Internal Navigation
 
 
-navigateTo : { path : Route.Path.Path, query : Dict String String } -> Effect msg
-navigateTo { path, query } =
+routeTo : { path : Route.Path.Path, query : Dict String String } -> Effect msg
+routeTo { path, query } =
     ElmLand.Effect.pushUrl
         (Route.toString { path = path, query = query, fragment = Nothing })
+
+
+pushUrl : String -> Effect msg
+pushUrl =
+    ElmLand.Effect.pushUrl
 
 
 

@@ -57,7 +57,7 @@ init { shared } =
       }
     , case shared.currentUser of
         Authentication.Unauthenticated ->
-            Effect.navigateTo { path = Route.Path.Login, query = Dict.empty }
+            Effect.routeTo { path = Route.Path.Login, query = Dict.empty }
 
         Authentication.Authenticating ->
             Effect.none
@@ -91,7 +91,7 @@ update { shared } msg model =
                     Effect.none
 
                 Authentication.Unauthenticated ->
-                    Effect.navigateTo { path = Route.Path.Login, query = Dict.empty }
+                    Effect.routeTo { path = Route.Path.Login, query = Dict.empty }
             )
 
         UserChangedName name ->

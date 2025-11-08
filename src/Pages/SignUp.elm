@@ -132,7 +132,7 @@ update { shared } msg model =
 
                 Authentication.Authenticated _ ->
                     ( model
-                    , Effect.navigateTo { path = Route.Path.Dashboard, query = Dict.empty }
+                    , Effect.routeTo { path = Route.Path.Dashboard, query = Dict.empty }
                     )
 
 

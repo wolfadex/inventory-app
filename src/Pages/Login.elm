@@ -45,7 +45,7 @@ type alias Context =
 
 
 type alias Model =
-    { pathAfterAuth : Route.Path.Path
+    { pathAfterAuth : String
     , email : String
     , password : String
     , submit : Submit String Http.Extended.Error
@@ -55,12 +55,11 @@ type alias Model =
 init : Context -> ( Model, Effect Msg )
 init { shared, route } =
     let
-        pathAfterAuth : Route.Path.Path
+        pathAfterAuth : String
         pathAfterAuth =
             route.query
                 |> Dict.get "returnto"
-                |> Maybe.map Route.Path.fromString
-                |> Maybe.withDefault Route.Path.Dashboard
+                |> Maybe.withDefault (Route.Path.toString Route.Path.Dashboard)
     in
     ( { pathAfterAuth = pathAfterAuth
       , email = ""
@@ -77,10 +76,10 @@ init { shared, route } =
         Authentication.Authenticated _ ->
             case shared.currentOrganization of
                 Just _ ->
-                    Effect.navigateTo { path = pathAfterAuth, query = Dict.empty }
+                    Effect.pushUrl pathAfterAuth
 
                 Nothing ->
-                    Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.empty }
+                    Effect.routeTo { path = Route.Path.OrganizationInit, query = Dict.empty }
     )
 
 
@@ -148,10 +147,10 @@ update { shared } msg model =
                     ( model
                     , case shared.currentOrganization of
                         Just _ ->
-                            Effect.navigateTo { path = model.pathAfterAuth, query = Dict.empty }
+                            Effect.pushUrl model.pathAfterAuth
 
                         Nothing ->
-                            Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.empty }
+                            Effect.routeTo { path = Route.Path.OrganizationInit, query = Dict.empty }
                     )
 
 

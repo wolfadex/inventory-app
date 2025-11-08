@@ -47,8 +47,8 @@ init _ _ =
 
 type Msg
     = GotCurrentUserAndOrg (Result Http.Extended.Error ( Backend.User, Maybe Backend.Organization ))
-    | AuthRefreshRequested (Maybe Route.Path.Path)
-    | RefreshedAuth (Maybe Route.Path.Path) (Result Http.Extended.Error ( Backend.User, Maybe Backend.Organization ))
+    | AuthRefreshRequested (Maybe String)
+    | RefreshedAuth (Maybe String) (Result Http.Extended.Error ( Backend.User, Maybe Backend.Organization ))
 
 
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
@@ -82,7 +82,7 @@ update _ msg model =
                     Effect.broadcast Subscription.AuthenticationChanged
 
                 Just path ->
-                    Effect.navigateTo { path = path, query = Dict.empty }
+                    Effect.pushUrl path
             )
 
         RefreshedAuth _ (Err _) ->

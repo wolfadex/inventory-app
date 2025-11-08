@@ -65,7 +65,7 @@ update _ msg model =
             ( model
             , Effect.batch
                 [ Effect.broadcast (Subscription.RefreshAuthentication Nothing)
-                , Effect.navigateTo { path = Route.Path.HOME_, query = Dict.empty }
+                , Effect.routeTo { path = Route.Path.HOME_, query = Dict.empty }
                 ]
             )
 

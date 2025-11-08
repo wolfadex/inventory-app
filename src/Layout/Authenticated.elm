@@ -67,7 +67,7 @@ init props =
 
                 Nothing ->
                     ( props.initUnauthenticated ()
-                    , Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString props.route.url) }
+                    , Effect.routeTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString props.route.url) }
                     )
 
         Authentication.Authenticating ->
@@ -77,7 +77,7 @@ init props =
 
         Authentication.Unauthenticated ->
             ( props.initUnauthenticated ()
-            , Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString props.route.url) }
+            , Effect.routeTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString props.route.url) }
             )
 
 
@@ -118,13 +118,13 @@ update ({ model } as config) =
                             Effect.none
 
                         Nothing ->
-                            Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) }
+                            Effect.routeTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) }
 
                 Authentication.Authenticating ->
                     Effect.none
 
                 Authentication.Unauthenticated ->
-                    Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) }
+                    Effect.routeTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) }
             )
 
 
@@ -143,13 +143,13 @@ updateWithAuth config =
                     config.update { currentUser = user, currentOrganization = organization }
 
                 Nothing ->
-                    ( config.pageModel, Effect.navigateTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
+                    ( config.pageModel, Effect.routeTo { path = Route.Path.OrganizationInit, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
 
         Authentication.Authenticating ->
             ( config.pageModel, Effect.none )
 
         Authentication.Unauthenticated ->
-            ( config.pageModel, Effect.navigateTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
+            ( config.pageModel, Effect.routeTo { path = Route.Path.Login, query = Dict.singleton "returnto" (Url.toString config.route.url) } )
 
 
 
