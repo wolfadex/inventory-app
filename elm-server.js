@@ -7019,6 +7019,7 @@ var $author$project$Acadia$Serialize$getUserSelfResponse = A2(
 	$author$project$Acadia$Serialize$user,
 	$author$project$Serialize$maybe($author$project$Acadia$Serialize$organization));
 var $elm$core$String$length = _String_length;
+var $elm$core$Debug$log = _Debug_log;
 var $author$project$Acadia$UInt32$encodeLE = function (_v0) {
 	var n = _v0.a;
 	return A2($elm$bytes$Bytes$Encode$unsignedInt32, $elm$bytes$Bytes$LE, n);
@@ -7612,7 +7613,8 @@ var $author$project$Server$requestHandler = F2(
 							return A3(
 								$author$project$Server$withRequestBody,
 								function (input) {
-									return ($elm$core$String$length(input.name) < 1) ? $author$project$Server$acadiaFailureResponse(
+									return ($elm$core$String$length(
+										A2($elm$core$Debug$log, 'inp', input).name) < 1) ? $author$project$Server$acadiaFailureResponse(
 										{
 											error: $author$project$Http$Extended$Field(
 												{message: 'Too short', name: 'name'}),
@@ -7734,14 +7736,16 @@ var $author$project$Server$setPathOnCookie = function (cookie) {
 var $author$project$Server$update = F2(
 	function (msg, model) {
 		if (msg.a.$ === 'Err') {
+			var err = msg.a.a;
+			var _v1 = A2($elm$core$Debug$log, 'errrr', err);
 			return _Utils_Tuple2(
 				model,
 				$author$project$Server$respond(
 					{body: 'Database error', headers: _List_Nil, status: $author$project$Http$Status$BadRequest}));
 		} else {
-			var _v1 = msg.a.a;
-			var headers = _v1.a;
-			var body = _v1.b;
+			var _v2 = msg.a.a;
+			var headers = _v2.a;
+			var body = _v2.b;
 			return _Utils_Tuple2(
 				model,
 				$author$project$Server$respond(
@@ -7749,11 +7753,11 @@ var $author$project$Server$update = F2(
 						body: body,
 						headers: A2(
 							$elm$core$List$filterMap,
-							function (_v2) {
-								var key = _v2.a;
-								var value = _v2.b;
-								var _v3 = $elm$core$String$toLower(key);
-								switch (_v3) {
+							function (_v3) {
+								var key = _v3.a;
+								var value = _v3.b;
+								var _v4 = $elm$core$String$toLower(key);
+								switch (_v4) {
 									case 'content-length':
 										return $elm$core$Maybe$Nothing;
 									case 'set-cookie':

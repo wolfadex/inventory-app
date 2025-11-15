@@ -25,6 +25,7 @@ import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
 import Ui.Form
+import Ui.TextInput
 
 
 
@@ -45,6 +46,7 @@ type alias Model =
     { layout : Layout.Authenticated.Model
     , items : Response Http.Extended.Error (List Backend.Item)
     , addItemSubmit : Submit () Http.Extended.Error
+    , addItemName : String
     }
 
 
@@ -59,12 +61,14 @@ init { shared, route } =
                 { layout = layout
                 , items = Response.Failure (Http.Extended.Generic "")
                 , addItemSubmit = Submit.Fresh
+                , addItemName = ""
                 }
         , initAuthenticated =
             \{ currentUser, currentOrganization } layout layoutEffect ->
                 ( { layout = layout
                   , items = Response.Loading
                   , addItemSubmit = Submit.Fresh
+                  , addItemName = ""
                   }
                 , Effect.batch
                     [ layoutEffect
@@ -91,7 +95,9 @@ subscriptions _ model =
 type Msg
     = LayoutMessage Layout.Authenticated.Msg
     | ItemsLoaded (Result Http.Extended.Error (List Backend.Item))
+    | UserChangedAddItemName String
     | UserSubmittedAddItemForm
+    | ItemCreated (Result Http.Extended.Error Backend.Item)
 
 
 update : Context -> Msg -> Model -> ( Model, Effect Msg )
@@ -132,7 +138,50 @@ update { shared, route } msg model =
                 }
 
         UserSubmittedAddItemForm ->
-            ( model, Effect.none )
+            Layout.Authenticated.updateWithAuth
+                { pageModel = model
+                , sharedModel = shared
+                , route = route
+                , update =
+                    \{ currentOrganization } ->
+                        ( { model | addItemSubmit = Submit.Submitting }
+                        , Endpoints.Api.OrganizationId_.Items.post ItemCreated
+                            { organizationID = currentOrganization.id
+                            , name = model.addItemName
+                            , unitStyle = Backend.Count
+                            , unitType = Backend.Imperial
+                            }
+                        )
+                }
+
+        UserChangedAddItemName name ->
+            ( { model | addItemName = name }
+            , Effect.none
+            )
+
+        ItemCreated (Err err) ->
+            ( { model | addItemSubmit = Submit.Failed (Debug.log "err" err) }
+            , Effect.none
+            )
+
+        ItemCreated (Ok item) ->
+            ( { model
+                | addItemSubmit = Submit.Fresh
+                , addItemName = ""
+                , items =
+                    Response.Success <|
+                        case model.items of
+                            Response.Success items ->
+                                item :: items
+
+                            Response.Failure _ ->
+                                [ item ]
+
+                            Response.Loading ->
+                                [ item ]
+              }
+            , Effect.none
+            )
 
 
 view : Context -> Model -> Browser.Document Msg
@@ -155,22 +204,14 @@ view { shared, route } model =
                             , submitLabel = "Add"
                             , additionalButtons = []
                             , fields =
-                                [-- Ui.TextInput.email
-                                 --     { name = "email"
-                                 --     , label = "Email"
-                                 --     , value = model.email
-                                 --     , onInput = UserChangedEmail
-                                 --     , submit = model.submit
-                                 --     }
-                                 --     []
-                                 -- , Ui.TextInput.password
-                                 --     { name = "password"
-                                 --     , label = "Password"
-                                 --     , value = model.password
-                                 --     , onInput = UserChangedPassword
-                                 --     , submit = model.submit
-                                 --     }
-                                 --     []
+                                [ Ui.TextInput.basic
+                                    { name = "name"
+                                    , label = "Name"
+                                    , value = model.addItemName
+                                    , onInput = UserChangedAddItemName
+                                    , submit = model.addItemSubmit
+                                    }
+                                    []
                                 ]
                             }
                         ]

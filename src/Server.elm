@@ -115,7 +115,7 @@ requestHandler request path =
         ( Http.Method.Post, Endpoints.ApiOrganizationId_Items { organizationID } ) ->
             withRequestBody
                 (\input ->
-                    if String.length input.name < 1 then
+                    if String.length (Debug.log "inp" input).name < 1 then
                         acadiaFailureResponse { status = Http.Status.BadRequest, error = Http.Extended.Field { name = "name", message = "Too short" } }
 
                     else
@@ -246,7 +246,11 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        RespondToClient (Err _) ->
+        RespondToClient (Err err) ->
+            let
+                _ =
+                    Debug.log "errrr" err
+            in
             ( model, respond { status = Http.Status.BadRequest, body = "Database error", headers = [] } )
 
         RespondToClient (Ok ( headers, body )) ->
