@@ -16,6 +16,10 @@ database module Backend exposing
     , Item
     , UnitType(..)
     , UnitStyle(..)
+    , ImperialVolumeUnit(..)
+    , MetricVolumeUnit(..)
+    , ImperialMassUnit(..)
+    , MetricMassUnit(..)
     , AddItemInput
     , endpoint addItem
     , endpoint getItems
@@ -51,6 +55,10 @@ type alias Item =
     -- , quantity : Float32
     , unitType : UnitType
     , unitStyle : UnitStyle
+    , imperialVolumeUnit : ImperialVolumeUnit
+    , metricVolumeUnit : MetricVolumeUnit
+    , imperialMassUnit : ImperialMassUnit
+    , metricMassUnit : MetricMassUnit
     , owningOrganization : OrganizationID
     , createdOn : Time.Posix
     , createdBy : UserID
@@ -70,6 +78,28 @@ type UnitStyle
     = Volume
     | Mass
     | Count
+
+type ImperialVolumeUnit
+    = Gallon
+    | Quart
+    | Pint
+    | Cup
+    | FluidOunce
+    | Tablespoon
+    | Teaspoon
+
+type ImperialMassUnit
+    = Pound
+    | Ounce
+
+
+type MetricVolumeUnit
+    = Liter
+    | Milliliter
+
+type MetricMassUnit
+    = Kilogram
+    | Gram
 
 
 type ItemID = ItemID Uuid
@@ -93,8 +123,12 @@ type alias AddItemInput =
     { organizationID: OrganizationID
     , name : String
     -- , quantity : Float32
-    , unitStyle : UnitStyle
     , unitType : UnitType
+    , unitStyle : UnitStyle
+    , imperialVolumeUnit : ImperialVolumeUnit
+    , metricVolumeUnit : MetricVolumeUnit
+    , imperialMassUnit : ImperialMassUnit
+    , metricMassUnit : MetricMassUnit
     }
 
 
@@ -113,6 +147,10 @@ addItem cookies input =
                 -- , quantity = input.quantity
                 , unitType = input.unitType
                 , unitStyle = input.unitStyle
+                , imperialVolumeUnit = input.imperialVolumeUnit
+                , metricVolumeUnit = input.metricVolumeUnit
+                , imperialMassUnit = input.imperialMassUnit
+                , metricMassUnit = input.metricMassUnit
                 , owningOrganization = input.organizationID
                 , createdOn = now
                 , createdBy = user.id

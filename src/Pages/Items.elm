@@ -53,6 +53,10 @@ type alias Model =
     , addItemQuantity : String
     , addItemUnitStyle : Backend.UnitStyle
     , addItemUnitType : Backend.UnitType
+    , addItemImperialVolumeUnit : Backend.ImperialVolumeUnit
+    , addItemMetricVolumeUnit : Backend.MetricVolumeUnit
+    , addItemImperialMassUnit : Backend.ImperialMassUnit
+    , addItemMetricMassUnit : Backend.MetricMassUnit
     }
 
 
@@ -71,6 +75,10 @@ init { shared, route } =
                 , addItemQuantity = "0"
                 , addItemUnitStyle = Backend.Count
                 , addItemUnitType = Backend.Imperial
+                , addItemImperialVolumeUnit = Backend.Cup
+                , addItemMetricVolumeUnit = Backend.Liter
+                , addItemImperialMassUnit = Backend.Pound
+                , addItemMetricMassUnit = Backend.Kilogram
                 }
         , initAuthenticated =
             \{ currentUser, currentOrganization } layout layoutEffect ->
@@ -81,6 +89,10 @@ init { shared, route } =
                   , addItemQuantity = "0"
                   , addItemUnitStyle = Backend.Count
                   , addItemUnitType = Backend.Imperial
+                  , addItemImperialVolumeUnit = Backend.Cup
+                  , addItemMetricVolumeUnit = Backend.Liter
+                  , addItemImperialMassUnit = Backend.Pound
+                  , addItemMetricMassUnit = Backend.Kilogram
                   }
                 , Effect.batch
                     [ layoutEffect
@@ -111,6 +123,10 @@ type Msg
     | UserChangedAddItemQuantity String
     | UserChanedAddItemUnitStyle Backend.UnitStyle
     | UserSelectedUnitType Backend.UnitType
+    | UserSelectedImperialVolumeUnit Backend.ImperialVolumeUnit
+    | UserSelectedMetricVolumeUnit Backend.MetricVolumeUnit
+    | UserSelectedImperialMassUnit Backend.ImperialMassUnit
+    | UserSelectedMetricMassUnit Backend.MetricMassUnit
     | UserSubmittedAddItemForm
     | ItemCreated (Result Http.Extended.Error Backend.Item)
 
@@ -182,6 +198,10 @@ update { shared, route } msg model =
                                     -- , quantity = quantity
                                     , unitStyle = model.addItemUnitStyle
                                     , unitType = model.addItemUnitType
+                                    , imperialVolumeUnit = model.addItemImperialVolumeUnit
+                                    , metricVolumeUnit = model.addItemMetricVolumeUnit
+                                    , imperialMassUnit = model.addItemImperialMassUnit
+                                    , metricMassUnit = model.addItemMetricMassUnit
                                     }
                                 )
                 }
@@ -203,6 +223,26 @@ update { shared, route } msg model =
 
         UserSelectedUnitType unitType ->
             ( { model | addItemUnitType = unitType }
+            , Effect.none
+            )
+
+        UserSelectedImperialVolumeUnit unit ->
+            ( { model | addItemImperialVolumeUnit = unit }
+            , Effect.none
+            )
+
+        UserSelectedMetricVolumeUnit unit ->
+            ( { model | addItemMetricVolumeUnit = unit }
+            , Effect.none
+            )
+
+        UserSelectedImperialMassUnit unit ->
+            ( { model | addItemImperialMassUnit = unit }
+            , Effect.none
+            )
+
+        UserSelectedMetricMassUnit unit ->
+            ( { model | addItemMetricMassUnit = unit }
             , Effect.none
             )
 
@@ -270,6 +310,75 @@ view { shared, route } model =
                                         , submit = model.addItemSubmit
                                         }
                                         []
+                                    , let
+                                        unitSelect { value, valueToString, options, onSelect } =
+                                            Ui.Select.view
+                                                { name = "units"
+                                                , value = Just value
+                                                , toStringValue = valueToString
+                                                , options = options
+                                                , onSelect = Maybe.withDefault value >> onSelect
+                                                , label = "Unit style"
+                                                , submit = model.addItemSubmit
+                                                }
+                                                []
+                                      in
+                                      case model.addItemUnitStyle of
+                                        Backend.Count ->
+                                            Html.text ""
+
+                                        Backend.Volume ->
+                                            case model.addItemUnitType of
+                                                Backend.Imperial ->
+                                                    unitSelect
+                                                        { value = model.addItemImperialVolumeUnit
+                                                        , valueToString = imperialVolumeUnitToString
+                                                        , options =
+                                                            [ { value = Backend.Gallon, label = "gal" }
+                                                            , { value = Backend.Quart, label = "qt" }
+                                                            , { value = Backend.Pint, label = "pt" }
+                                                            , { value = Backend.Cup, label = "cup" }
+                                                            , { value = Backend.FluidOunce, label = "fl oz" }
+                                                            , { value = Backend.Tablespoon, label = "Tbsp" }
+                                                            , { value = Backend.Teaspoon, label = "tsp" }
+                                                            ]
+                                                        , onSelect = UserSelectedImperialVolumeUnit
+                                                        }
+
+                                                Backend.Metric ->
+                                                    unitSelect
+                                                        { value = model.addItemMetricVolumeUnit
+                                                        , valueToString = metricVolumeUnitToString
+                                                        , options =
+                                                            [ { value = Backend.Liter, label = "l" }
+                                                            , { value = Backend.Milliliter, label = "ml" }
+                                                            ]
+                                                        , onSelect = UserSelectedMetricVolumeUnit
+                                                        }
+
+                                        Backend.Mass ->
+                                            case model.addItemUnitType of
+                                                Backend.Imperial ->
+                                                    unitSelect
+                                                        { value = model.addItemImperialMassUnit
+                                                        , valueToString = imperialMassUnitToString
+                                                        , options =
+                                                            [ { value = Backend.Pound, label = "lb" }
+                                                            , { value = Backend.Ounce, label = "oz" }
+                                                            ]
+                                                        , onSelect = UserSelectedImperialMassUnit
+                                                        }
+
+                                                Backend.Metric ->
+                                                    unitSelect
+                                                        { value = model.addItemMetricMassUnit
+                                                        , valueToString = metricMassUnitToString
+                                                        , options =
+                                                            [ { value = Backend.Kilogram, label = "kg" }
+                                                            , { value = Backend.Gram, label = "g" }
+                                                            ]
+                                                        , onSelect = UserSelectedMetricMassUnit
+                                                        }
                                     , Ui.Select.view
                                         { name = "unitStyle"
                                         , value = Just model.addItemUnitStyle
@@ -368,3 +477,58 @@ unitStyleToString unitStyle =
 
         Backend.Count ->
             "Count"
+
+
+imperialVolumeUnitToString : Backend.ImperialVolumeUnit -> String
+imperialVolumeUnitToString unit =
+    case unit of
+        Backend.Gallon ->
+            "gal"
+
+        Backend.Quart ->
+            "qt"
+
+        Backend.Pint ->
+            "pt"
+
+        Backend.Cup ->
+            "cup"
+
+        Backend.FluidOunce ->
+            "fl oz"
+
+        Backend.Tablespoon ->
+            "Tbsp"
+
+        Backend.Teaspoon ->
+            "tsp"
+
+
+imperialMassUnitToString : Backend.ImperialMassUnit -> String
+imperialMassUnitToString unit =
+    case unit of
+        Backend.Pound ->
+            "lb"
+
+        Backend.Ounce ->
+            "oz"
+
+
+metricVolumeUnitToString : Backend.MetricVolumeUnit -> String
+metricVolumeUnitToString unit =
+    case unit of
+        Backend.Liter ->
+            "l"
+
+        Backend.Milliliter ->
+            "ml"
+
+
+metricMassUnitToString : Backend.MetricMassUnit -> String
+metricMassUnitToString unit =
+    case unit of
+        Backend.Kilogram ->
+            "kg"
+
+        Backend.Gram ->
+            "g"
