@@ -97,3 +97,12 @@ form[aria-invalid="true"] small {
 
 .statusCard {
 }
+
+.addForm {
+}
+
+section.addForm:has(> article > form) {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}

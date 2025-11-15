@@ -25,6 +25,8 @@ import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
 import Ui.Form
+import Ui.NumberInput
+import Ui.Select
 import Ui.TextInput
 
 
@@ -47,6 +49,8 @@ type alias Model =
     , items : Response Http.Extended.Error (List Backend.Item)
     , addItemSubmit : Submit () Http.Extended.Error
     , addItemName : String
+    , addItemQuantity : String
+    , addItemUnitStyle : Backend.UnitStyle
     }
 
 
@@ -62,6 +66,8 @@ init { shared, route } =
                 , items = Response.Failure (Http.Extended.Generic "")
                 , addItemSubmit = Submit.Fresh
                 , addItemName = ""
+                , addItemQuantity = "0"
+                , addItemUnitStyle = Backend.Count
                 }
         , initAuthenticated =
             \{ currentUser, currentOrganization } layout layoutEffect ->
@@ -69,6 +75,8 @@ init { shared, route } =
                   , items = Response.Loading
                   , addItemSubmit = Submit.Fresh
                   , addItemName = ""
+                  , addItemQuantity = "0"
+                  , addItemUnitStyle = Backend.Count
                   }
                 , Effect.batch
                     [ layoutEffect
@@ -96,6 +104,8 @@ type Msg
     = LayoutMessage Layout.Authenticated.Msg
     | ItemsLoaded (Result Http.Extended.Error (List Backend.Item))
     | UserChangedAddItemName String
+    | UserChangedAddItemQuantity String
+    | UserChanedAddItemUnitStyle Backend.UnitStyle
     | UserSubmittedAddItemForm
     | ItemCreated (Result Http.Extended.Error Backend.Item)
 
@@ -148,7 +158,7 @@ update { shared, route } msg model =
                         , Endpoints.Api.OrganizationId_.Items.post ItemCreated
                             { organizationID = currentOrganization.id
                             , name = model.addItemName
-                            , unitStyle = Backend.Count
+                            , unitStyle = model.addItemUnitStyle
                             , unitType = Backend.Imperial
                             }
                         )
@@ -156,6 +166,16 @@ update { shared, route } msg model =
 
         UserChangedAddItemName name ->
             ( { model | addItemName = name }
+            , Effect.none
+            )
+
+        UserChangedAddItemQuantity quantity ->
+            ( { model | addItemQuantity = quantity }
+            , Effect.none
+            )
+
+        UserChanedAddItemUnitStyle unitStyle ->
+            ( { model | addItemUnitStyle = unitStyle }
             , Effect.none
             )
 
@@ -194,7 +214,7 @@ view { shared, route } model =
         , title = "Dashboard"
         , body =
             \{ currentUser } ->
-                [ Html.section []
+                [ Html.section [ Css.addForm ]
                     [ Html.article []
                         [ Ui.Form.view
                             { name = "add-item"
@@ -212,6 +232,32 @@ view { shared, route } model =
                                     , submit = model.addItemSubmit
                                     }
                                     []
+                                , Html.div [ Html.Attributes.class "grid" ]
+                                    [ Ui.NumberInput.float
+                                        { name = "qauntity"
+                                        , label = "Quantity"
+                                        , min = 0
+                                        , max = 1000
+                                        , value = model.addItemQuantity
+                                        , onInput = UserChangedAddItemQuantity
+                                        , submit = model.addItemSubmit
+                                        }
+                                        []
+                                    , Ui.Select.view
+                                        { name = "unitStyle"
+                                        , value = Just model.addItemUnitStyle
+                                        , toStringValue = unitStyleToString
+                                        , options =
+                                            [ { value = Backend.Volume, label = "Volume" }
+                                            , { value = Backend.Mass, label = "Weight" }
+                                            , { value = Backend.Count, label = "Count" }
+                                            ]
+                                        , onSelect = Maybe.withDefault model.addItemUnitStyle >> UserChanedAddItemUnitStyle
+                                        , label = "Unit style"
+                                        , submit = model.addItemSubmit
+                                        }
+                                        []
+                                    ]
                                 ]
                             }
                         ]
@@ -256,3 +302,16 @@ viewItem item =
         []
         [ Html.text item.name
         ]
+
+
+unitStyleToString : Backend.UnitStyle -> String
+unitStyleToString unitStyle =
+    case unitStyle of
+        Backend.Volume ->
+            "Volume"
+
+        Backend.Mass ->
+            "Weight"
+
+        Backend.Count ->
+            "Count"
