@@ -463,6 +463,27 @@ viewItem item =
     Html.li
         []
         [ Html.text item.name
+        , Html.text ": _qty_ "
+        , Html.text <|
+            case item.unitStyle of
+                Backend.Count ->
+                    ""
+
+                Backend.Volume ->
+                    case item.unitType of
+                        Backend.Imperial ->
+                            imperialVolumeUnitToString item.imperialVolumeUnit
+
+                        Backend.Metric ->
+                            metricVolumeUnitToString item.metricVolumeUnit
+
+                Backend.Mass ->
+                    case item.unitType of
+                        Backend.Imperial ->
+                            imperialMassUnitToString item.imperialMassUnit
+
+                        Backend.Metric ->
+                            metricMassUnitToString item.metricMassUnit
         ]
 
 
