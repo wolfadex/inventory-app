@@ -24,6 +24,7 @@ import Route exposing (Route)
 import Shared
 import Submit exposing (Submit)
 import Subscription exposing (Subscription)
+import Ui.Button
 import Ui.Form
 import Ui.NumberInput
 import Ui.Select
@@ -51,6 +52,7 @@ type alias Model =
     , addItemName : String
     , addItemQuantity : String
     , addItemUnitStyle : Backend.UnitStyle
+    , addItemUnitType : Backend.UnitType
     }
 
 
@@ -68,6 +70,7 @@ init { shared, route } =
                 , addItemName = ""
                 , addItemQuantity = "0"
                 , addItemUnitStyle = Backend.Count
+                , addItemUnitType = Backend.Imperial
                 }
         , initAuthenticated =
             \{ currentUser, currentOrganization } layout layoutEffect ->
@@ -77,6 +80,7 @@ init { shared, route } =
                   , addItemName = ""
                   , addItemQuantity = "0"
                   , addItemUnitStyle = Backend.Count
+                  , addItemUnitType = Backend.Imperial
                   }
                 , Effect.batch
                     [ layoutEffect
@@ -106,6 +110,7 @@ type Msg
     | UserChangedAddItemName String
     | UserChangedAddItemQuantity String
     | UserChanedAddItemUnitStyle Backend.UnitStyle
+    | UserSelectedUnitType Backend.UnitType
     | UserSubmittedAddItemForm
     | ItemCreated (Result Http.Extended.Error Backend.Item)
 
@@ -154,14 +159,31 @@ update { shared, route } msg model =
                 , route = route
                 , update =
                     \{ currentOrganization } ->
-                        ( { model | addItemSubmit = Submit.Submitting }
-                        , Endpoints.Api.OrganizationId_.Items.post ItemCreated
-                            { organizationID = currentOrganization.id
-                            , name = model.addItemName
-                            , unitStyle = model.addItemUnitStyle
-                            , unitType = Backend.Imperial
-                            }
-                        )
+                        case String.toFloat model.addItemQuantity of
+                            Nothing ->
+                                ( { model
+                                    | addItemSubmit =
+                                        Submit.Failed
+                                            (Http.Extended.Field
+                                                { name = "quantity"
+                                                , message = "Invalid quantity"
+                                                }
+                                            )
+                                  }
+                                , Effect.none
+                                )
+
+                            Just quantity ->
+                                ( { model | addItemSubmit = Submit.Submitting }
+                                , Endpoints.Api.OrganizationId_.Items.post ItemCreated
+                                    { organizationID = currentOrganization.id
+                                    , name = model.addItemName
+
+                                    -- , quantity = quantity
+                                    , unitStyle = model.addItemUnitStyle
+                                    , unitType = model.addItemUnitType
+                                    }
+                                )
                 }
 
         UserChangedAddItemName name ->
@@ -176,6 +198,11 @@ update { shared, route } msg model =
 
         UserChanedAddItemUnitStyle unitStyle ->
             ( { model | addItemUnitStyle = unitStyle }
+            , Effect.none
+            )
+
+        UserSelectedUnitType unitType ->
+            ( { model | addItemUnitType = unitType }
             , Effect.none
             )
 
@@ -257,6 +284,32 @@ view { shared, route } model =
                                         , submit = model.addItemSubmit
                                         }
                                         []
+                                    ]
+                                , Html.fieldset [ Html.Attributes.attribute "role" "group" ]
+                                    [ Ui.Button.basic
+                                        { label = "Imperial"
+                                        , onClick = UserSelectedUnitType Backend.Imperial
+                                        }
+                                        [ Html.Attributes.class "secondary"
+                                        , Html.Attributes.class <|
+                                            if model.addItemUnitType == Backend.Imperial then
+                                                ""
+
+                                            else
+                                                "outline"
+                                        ]
+                                    , Ui.Button.basic
+                                        { label = "Metric"
+                                        , onClick = UserSelectedUnitType Backend.Metric
+                                        }
+                                        [ Html.Attributes.class "secondary"
+                                        , Html.Attributes.class <|
+                                            if model.addItemUnitType == Backend.Metric then
+                                                ""
+
+                                            else
+                                                "outline"
+                                        ]
                                     ]
                                 ]
                             }
