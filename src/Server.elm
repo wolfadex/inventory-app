@@ -112,7 +112,7 @@ requestHandler request path =
                 request
                 Acadia.Serialize.createOrganizationInput
 
-        ( Http.Method.Post, Endpoints.ApiItems ) ->
+        ( Http.Method.Post, Endpoints.ApiOrganizationId_Items { organizationID } ) ->
             withRequestBody
                 (\input ->
                     if String.length input.name < 1 then
@@ -126,27 +126,17 @@ requestHandler request path =
                 request
                 Acadia.Serialize.addItemInput
 
-        ( Http.Method.Get, Endpoints.ApiItems ) ->
-            withRequestBody
-                (\input ->
-                    acadiaRequest request.headers
-                        Acadia.Serialize.getItemsResponse
-                        (Backend.getItems input)
-                )
-                request
-                Acadia.Serialize.organizationID
+        ( Http.Method.Get, Endpoints.ApiOrganizationId_Items { organizationID } ) ->
+            acadiaRequest request.headers
+                Acadia.Serialize.getItemsResponse
+                (Backend.getItems organizationID)
 
-        ( Http.Method.Get, Endpoints.ApiItemsId_ _ ) ->
-            withRequestBody
-                (\input ->
-                    acadiaRequest request.headers
-                        Acadia.Serialize.getItemResponse
-                        (Backend.getItem input)
-                )
-                request
-                Acadia.Serialize.getItemInput
+        ( Http.Method.Get, Endpoints.ApiOrganizationId_ItemsItemId input ) ->
+            acadiaRequest request.headers
+                Acadia.Serialize.getItemResponse
+                (Backend.getItem input)
 
-        ( Http.Method.Put, Endpoints.ApiItemsId_ _ ) ->
+        ( Http.Method.Put, Endpoints.ApiOrganizationId_ItemsItemId _ ) ->
             withRequestBody
                 (\input ->
                     if String.length input.name < 1 then
@@ -160,7 +150,7 @@ requestHandler request path =
                 request
                 Acadia.Serialize.updateItemInput
 
-        ( Http.Method.Delete, Endpoints.ApiItemsId_ _ ) ->
+        ( Http.Method.Delete, Endpoints.ApiOrganizationId_ItemsItemId _ ) ->
             withRequestBody
                 (\input ->
                     acadiaRequest request.headers

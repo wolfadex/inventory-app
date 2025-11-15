@@ -2,6 +2,7 @@ module Endpoints.ApiAuthSelf exposing (post)
 
 import Acadia.Serialize
 import Backend
+import Dict
 import Effect exposing (Effect)
 import Endpoints
 import Http.Extended
@@ -15,6 +16,7 @@ post toMsg =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthSelf
+            , queryParams = Dict.empty
             , request = Serialize.toBytesEncoder Serialize.unit ()
             , response = Serialize.toBytesDecoder Acadia.Serialize.getUserSelfResponse
             }

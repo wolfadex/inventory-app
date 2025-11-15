@@ -2,6 +2,7 @@ module Endpoints.ApiAuthSignup exposing (post)
 
 import Acadia.Serialize
 import Backend
+import Dict
 import Effect exposing (Effect)
 import Endpoints
 import Http.Extended
@@ -15,6 +16,7 @@ post toMsg signupInfo =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiAuthSignup
+            , queryParams = Dict.empty
             , request = Serialize.toBytesEncoder Acadia.Serialize.signUpInfo signupInfo
             , response = Serialize.toBytesDecoder Acadia.Serialize.signupResponse
             }

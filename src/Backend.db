@@ -137,7 +137,7 @@ getItems cookies organizationID =
 
 
 type alias GetItemInput =
-    { id : ItemID
+    { itemID : ItemID
     , organizationID : OrganizationID
     }
 
@@ -149,7 +149,7 @@ getItem cookies input =
         role := requireRole ( user.id, input.organizationID )
     in
     access items ( input.organizationID, role.item )
-        |> filter (\item -> item.id == input.id)
+        |> filter (\item -> item.id == input.itemID)
         |> select
 
 

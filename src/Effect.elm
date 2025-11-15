@@ -81,6 +81,7 @@ endpoint props =
             { endpoint =
                 { method = props.endpoint.method
                 , path = props.endpoint.path
+                , queryParams = props.endpoint.queryParams
                 , request = props.endpoint.request
                 , response =
                     Bytes.Decode.map
@@ -148,6 +149,7 @@ mapCustomEffect fn customEffect =
                 { endpoint =
                     { method = info.endpoint.method
                     , path = info.endpoint.path
+                    , queryParams = info.endpoint.queryParams
                     , request = info.endpoint.request
                     , response = Bytes.Decode.map fn info.endpoint.response
                     }

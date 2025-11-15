@@ -14,7 +14,7 @@ import Backend
 import Browser
 import Css
 import Effect exposing (Effect)
-import Endpoints.Api.Items
+import Endpoints.Api.OrganizationId_.Items
 import Html exposing (Html)
 import Html.Attributes
 import Http.Extended
@@ -68,7 +68,7 @@ init { shared, route } =
                   }
                 , Effect.batch
                     [ layoutEffect
-                    , Endpoints.Api.Items.get ItemsLoaded currentOrganization.id
+                    , Endpoints.Api.OrganizationId_.Items.get ItemsLoaded currentOrganization.id
                     ]
                 )
         }

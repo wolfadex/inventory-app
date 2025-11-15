@@ -4356,70 +4356,256 @@ var $author$project$Endpoints$ApiAuthLogin = {$: 'ApiAuthLogin'};
 var $author$project$Endpoints$ApiAuthLogout = {$: 'ApiAuthLogout'};
 var $author$project$Endpoints$ApiAuthSelf = {$: 'ApiAuthSelf'};
 var $author$project$Endpoints$ApiAuthSignup = {$: 'ApiAuthSignup'};
-var $author$project$Endpoints$ApiItems = {$: 'ApiItems'};
-var $author$project$Endpoints$ApiItemsId_ = function (a) {
-	return {$: 'ApiItemsId_', a: a};
+var $author$project$Endpoints$ApiOrganizationId_Items = function (a) {
+	return {$: 'ApiOrganizationId_Items', a: a};
+};
+var $author$project$Endpoints$ApiOrganizationId_ItemsItemId = function (a) {
+	return {$: 'ApiOrganizationId_ItemsItemId', a: a};
 };
 var $author$project$Endpoints$ApiOrganizations = {$: 'ApiOrganizations'};
+var $author$project$Backend$ItemID = function (a) {
+	return {$: 'ItemID', a: a};
+};
+var $author$project$Backend$OrganizationID = function (a) {
+	return {$: 'OrganizationID', a: a};
+};
+var $author$project$Acadia$Uuid$Uuid = F4(
+	function (a, b, c, d) {
+		return {$: 'Uuid', a: a, b: b, c: c, d: d};
+	});
+var $elm$core$Char$isHexDigit = function (_char) {
+	var code = $elm$core$Char$toCode(_char);
+	return ((48 <= code) && (code <= 57)) || (((65 <= code) && (code <= 70)) || ((97 <= code) && (code <= 102)));
+};
+var $elm$core$String$foldr = _String_foldr;
+var $elm$core$String$toList = function (string) {
+	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
+};
+var $author$project$Acadia$Uuid$toUInt4 = F2(
+	function (c, shift) {
+		return (((_Utils_cmp(
+			_Utils_chr('A'),
+			c) < 1) && (_Utils_cmp(
+			c,
+			_Utils_chr('F')) < 1)) ? ($elm$core$Char$toCode(c) - 55) : (((_Utils_cmp(
+			_Utils_chr('a'),
+			c) < 1) && (_Utils_cmp(
+			c,
+			_Utils_chr('f')) < 1)) ? ($elm$core$Char$toCode(c) - 87) : ($elm$core$Char$toCode(c) - 48))) << shift;
+	});
+var $author$project$Acadia$Uuid$toUInt32 = F8(
+	function (w_, w, x_, x, y_, y, z_, z) {
+		return ((A2($author$project$Acadia$Uuid$toUInt4, w_, 28) | A2($author$project$Acadia$Uuid$toUInt4, w, 24)) | (A2($author$project$Acadia$Uuid$toUInt4, x_, 20) | A2($author$project$Acadia$Uuid$toUInt4, x, 16))) | ((A2($author$project$Acadia$Uuid$toUInt4, y_, 12) | A2($author$project$Acadia$Uuid$toUInt4, y, 8)) | (A2($author$project$Acadia$Uuid$toUInt4, z_, 4) | A2($author$project$Acadia$Uuid$toUInt4, z, 0)));
+	});
+var $author$project$Acadia$Uuid$fromHex = function (string) {
+	if (A2(
+		$elm$core$String$all,
+		function (c) {
+			return $elm$core$Char$isHexDigit(c) || _Utils_eq(
+				c,
+				_Utils_chr('-'));
+		},
+		string)) {
+		var _v0 = $elm$core$String$toList(string);
+		if ((((((((((((((((((((((((((((((((((((((((_v0.b && _v0.b.b) && _v0.b.b.b) && _v0.b.b.b.b) && _v0.b.b.b.b.b) && _v0.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b) && ('-' === _v0.b.b.b.b.b.b.b.b.a.valueOf())) && _v0.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && ('-' === _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.a.valueOf())) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && ('-' === _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.a.valueOf())) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && ('-' === _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.a.valueOf())) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && _v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b) && (!_v0.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b.b)) {
+			var a_ = _v0.a;
+			var _v1 = _v0.b;
+			var a = _v1.a;
+			var _v2 = _v1.b;
+			var b_ = _v2.a;
+			var _v3 = _v2.b;
+			var b = _v3.a;
+			var _v4 = _v3.b;
+			var c_ = _v4.a;
+			var _v5 = _v4.b;
+			var c = _v5.a;
+			var _v6 = _v5.b;
+			var d_ = _v6.a;
+			var _v7 = _v6.b;
+			var d = _v7.a;
+			var _v8 = _v7.b;
+			var _v9 = _v8.b;
+			var e_ = _v9.a;
+			var _v10 = _v9.b;
+			var e = _v10.a;
+			var _v11 = _v10.b;
+			var f_ = _v11.a;
+			var _v12 = _v11.b;
+			var f = _v12.a;
+			var _v13 = _v12.b;
+			var _v14 = _v13.b;
+			var g_ = _v14.a;
+			var _v15 = _v14.b;
+			var g = _v15.a;
+			var _v16 = _v15.b;
+			var h_ = _v16.a;
+			var _v17 = _v16.b;
+			var h = _v17.a;
+			var _v18 = _v17.b;
+			var _v19 = _v18.b;
+			var i_ = _v19.a;
+			var _v20 = _v19.b;
+			var i = _v20.a;
+			var _v21 = _v20.b;
+			var j_ = _v21.a;
+			var _v22 = _v21.b;
+			var j = _v22.a;
+			var _v23 = _v22.b;
+			var _v24 = _v23.b;
+			var k_ = _v24.a;
+			var _v25 = _v24.b;
+			var k = _v25.a;
+			var _v26 = _v25.b;
+			var l_ = _v26.a;
+			var _v27 = _v26.b;
+			var l = _v27.a;
+			var _v28 = _v27.b;
+			var m_ = _v28.a;
+			var _v29 = _v28.b;
+			var m = _v29.a;
+			var _v30 = _v29.b;
+			var n_ = _v30.a;
+			var _v31 = _v30.b;
+			var n = _v31.a;
+			var _v32 = _v31.b;
+			var o_ = _v32.a;
+			var _v33 = _v32.b;
+			var o = _v33.a;
+			var _v34 = _v33.b;
+			var p_ = _v34.a;
+			var _v35 = _v34.b;
+			var p = _v35.a;
+			return $elm$core$Maybe$Just(
+				A4(
+					$author$project$Acadia$Uuid$Uuid,
+					A8($author$project$Acadia$Uuid$toUInt32, a_, a, b_, b, c_, c, d_, d),
+					A8($author$project$Acadia$Uuid$toUInt32, e_, e, f_, f, g_, g, h_, h),
+					A8($author$project$Acadia$Uuid$toUInt32, i_, i, j_, j, k_, k, l_, l),
+					A8($author$project$Acadia$Uuid$toUInt32, m_, m, n_, n, o_, o, p_, p)));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$Maybe$map = F2(
+	function (f, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return $elm$core$Maybe$Just(
+				f(value));
+		} else {
+			return $elm$core$Maybe$Nothing;
+		}
+	});
+var $elm$core$Maybe$map2 = F3(
+	function (func, ma, mb) {
+		if (ma.$ === 'Nothing') {
+			return $elm$core$Maybe$Nothing;
+		} else {
+			var a = ma.a;
+			if (mb.$ === 'Nothing') {
+				return $elm$core$Maybe$Nothing;
+			} else {
+				var b = mb.a;
+				return $elm$core$Maybe$Just(
+					A2(func, a, b));
+			}
+		}
+	});
 var $author$project$Endpoints$fromString = function (str) {
 	var _v0 = A2($elm$core$String$split, '/', str);
 	_v0$7:
 	while (true) {
 		if ((((_v0.b && (_v0.a === '')) && _v0.b.b) && (_v0.b.a === 'api')) && _v0.b.b.b) {
 			if (!_v0.b.b.b.b) {
-				switch (_v0.b.b.a) {
-					case 'organizations':
-						var _v13 = _v0.b;
-						var _v14 = _v13.b;
-						return $elm$core$Maybe$Just($author$project$Endpoints$ApiOrganizations);
-					case 'items':
-						var _v15 = _v0.b;
-						var _v16 = _v15.b;
-						return $elm$core$Maybe$Just($author$project$Endpoints$ApiItems);
-					default:
-						break _v0$7;
+				if (_v0.b.b.a === 'organizations') {
+					var _v13 = _v0.b;
+					var _v14 = _v13.b;
+					return $elm$core$Maybe$Just($author$project$Endpoints$ApiOrganizations);
+				} else {
+					break _v0$7;
 				}
 			} else {
 				if (!_v0.b.b.b.b.b) {
-					switch (_v0.b.b.a) {
-						case 'auth':
-							switch (_v0.b.b.b.a) {
-								case 'login':
-									var _v1 = _v0.b;
-									var _v2 = _v1.b;
-									var _v3 = _v2.b;
-									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogin);
-								case 'signup':
-									var _v4 = _v0.b;
-									var _v5 = _v4.b;
-									var _v6 = _v5.b;
-									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSignup);
-								case 'logout':
-									var _v7 = _v0.b;
-									var _v8 = _v7.b;
-									var _v9 = _v8.b;
-									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogout);
-								case 'self':
-									var _v10 = _v0.b;
-									var _v11 = _v10.b;
-									var _v12 = _v11.b;
-									return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSelf);
-								default:
-									break _v0$7;
+					switch (_v0.b.b.b.a) {
+						case 'login':
+							if (_v0.b.b.a === 'auth') {
+								var _v1 = _v0.b;
+								var _v2 = _v1.b;
+								var _v3 = _v2.b;
+								return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogin);
+							} else {
+								break _v0$7;
+							}
+						case 'signup':
+							if (_v0.b.b.a === 'auth') {
+								var _v4 = _v0.b;
+								var _v5 = _v4.b;
+								var _v6 = _v5.b;
+								return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSignup);
+							} else {
+								break _v0$7;
+							}
+						case 'logout':
+							if (_v0.b.b.a === 'auth') {
+								var _v7 = _v0.b;
+								var _v8 = _v7.b;
+								var _v9 = _v8.b;
+								return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthLogout);
+							} else {
+								break _v0$7;
+							}
+						case 'self':
+							if (_v0.b.b.a === 'auth') {
+								var _v10 = _v0.b;
+								var _v11 = _v10.b;
+								var _v12 = _v11.b;
+								return $elm$core$Maybe$Just($author$project$Endpoints$ApiAuthSelf);
+							} else {
+								break _v0$7;
 							}
 						case 'items':
-							var _v17 = _v0.b;
-							var _v18 = _v17.b;
-							var _v19 = _v18.b;
-							var id = _v19.a;
-							return $elm$core$Maybe$Just(
-								$author$project$Endpoints$ApiItemsId_(
-									{id: id}));
+							var _v15 = _v0.b;
+							var _v16 = _v15.b;
+							var orgID = _v16.a;
+							var _v17 = _v16.b;
+							return A2(
+								$elm$core$Maybe$map,
+								function (organizationID) {
+									return $author$project$Endpoints$ApiOrganizationId_Items(
+										{
+											organizationID: $author$project$Backend$OrganizationID(organizationID)
+										});
+								},
+								$author$project$Acadia$Uuid$fromHex(orgID));
 						default:
 							break _v0$7;
 					}
 				} else {
-					break _v0$7;
+					if ((_v0.b.b.b.a === 'items') && (!_v0.b.b.b.b.b.b)) {
+						var _v18 = _v0.b;
+						var _v19 = _v18.b;
+						var orgID = _v19.a;
+						var _v20 = _v19.b;
+						var _v21 = _v20.b;
+						var iID = _v21.a;
+						return A3(
+							$elm$core$Maybe$map2,
+							F2(
+								function (organizationID, itemID) {
+									return $author$project$Endpoints$ApiOrganizationId_ItemsItemId(
+										{
+											itemID: $author$project$Backend$ItemID(itemID),
+											organizationID: $author$project$Backend$OrganizationID(organizationID)
+										});
+								}),
+							$author$project$Acadia$Uuid$fromHex(orgID),
+							$author$project$Acadia$Uuid$fromHex(iID));
+					} else {
+						break _v0$7;
+					}
 				}
 			}
 		} else {
@@ -5411,9 +5597,6 @@ var $author$project$Acadia$Transaction$Transaction = F2(
 		return {$: 'Transaction', a: a, b: b};
 	});
 var $author$project$Acadia$Bytes$Decode$andThen = $elm$bytes$Bytes$Decode$andThen;
-var $author$project$Backend$ItemID = function (a) {
-	return {$: 'ItemID', a: a};
-};
 var $author$project$Acadia$Bytes$Decode$fail = $elm$bytes$Bytes$Decode$fail;
 var $author$project$Acadia$Int32$Int32 = function (a) {
 	return {$: 'Int32', a: a};
@@ -5434,10 +5617,6 @@ var $author$project$Acadia$Int32$toInt = function (_v0) {
 	var n = _v0.a;
 	return n;
 };
-var $author$project$Acadia$Uuid$Uuid = F4(
-	function (a, b, c, d) {
-		return {$: 'Uuid', a: a, b: b, c: c, d: d};
-	});
 var $elm$bytes$Bytes$Decode$map4 = F5(
 	function (func, _v0, _v1, _v2, _v3) {
 		var decodeA = _v0.a;
@@ -5562,9 +5741,6 @@ var $author$project$Backend$d_ARG_3 = A2(
 		return ($author$project$Acadia$Int32$toInt(n) !== 1) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Backend$d_ENUM_1;
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
-var $author$project$Backend$OrganizationID = function (a) {
-	return {$: 'OrganizationID', a: a};
-};
 var $author$project$Backend$d_ARG_4 = A2(
 	$author$project$Acadia$Bytes$Decode$map,
 	function (v) {
@@ -6086,7 +6262,7 @@ var $author$project$Acadia$Serialize$authInfo = $author$project$Serialize$finish
 			},
 			$author$project$Serialize$string,
 			$author$project$Serialize$record($author$project$Backend$AuthInfo))));
-var $author$project$Backend$e_ARG_6 = function (v) {
+var $author$project$Backend$e_ARG_7 = function (v) {
 	var v_name = v.name;
 	var o0 = $author$project$Acadia$UInt32$fromInt(0);
 	var o1 = $author$project$Acadia$UInt32$fromInt(
@@ -6110,7 +6286,7 @@ var $author$project$Backend$createOrganization = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(11)),
-					$author$project$Backend$e_ARG_6(v0)
+					$author$project$Backend$e_ARG_7(v0)
 				])),
 		A2(
 			$author$project$Acadia$Bytes$Decode$andThen,
@@ -6252,17 +6428,17 @@ var $author$project$Acadia$Serialize$deleteItemInput = $author$project$Serialize
 			$author$project$Serialize$record($author$project$Backend$DeleteItemInput))));
 var $author$project$Backend$e_ARG_3 = function (v) {
 	var v_organizationID = v.organizationID;
-	var v_id = v.id;
+	var v_itemID = v.itemID;
 	var o0 = $author$project$Acadia$UInt32$fromInt(32);
 	var _v0 = v_organizationID;
 	var v_organizationID_0 = _v0.a;
-	var _v1 = v_id;
-	var v_id_0 = _v1.a;
+	var _v1 = v_itemID;
+	var v_itemID_0 = _v1.a;
 	return $author$project$Acadia$Bytes$Encode$sequence(
 		_List_fromArray(
 			[
 				$author$project$Acadia$Bytes$Encode$uint32BE(o0),
-				$author$project$Acadia$Bytes$Encode$uuid(v_id_0),
+				$author$project$Acadia$Bytes$Encode$uuid(v_itemID_0),
 				$author$project$Acadia$Bytes$Encode$uuid(v_organizationID_0)
 			]));
 };
@@ -6336,24 +6512,6 @@ var $author$project$Backend$getItem = function (v0) {
 			},
 			$author$project$Backend$d_ARG_0));
 };
-var $author$project$Backend$GetItemInput = F2(
-	function (id, organizationID) {
-		return {id: id, organizationID: organizationID};
-	});
-var $author$project$Acadia$Serialize$getItemInput = $author$project$Serialize$finishRecord(
-	A3(
-		$author$project$Serialize$field,
-		function ($) {
-			return $.organizationID;
-		},
-		$author$project$Acadia$Serialize$organizationID,
-		A3(
-			$author$project$Serialize$field,
-			function ($) {
-				return $.id;
-			},
-			$author$project$Acadia$Serialize$itemID,
-			$author$project$Serialize$record($author$project$Backend$GetItemInput))));
 var $author$project$Acadia$Serialize$getItemResponse = $author$project$Acadia$Serialize$item;
 var $author$project$Backend$e_ARG_4 = function (_v0) {
 	var u = _v0.a;
@@ -6996,6 +7154,22 @@ var $author$project$Backend$d_ARG_9 = A2(
 		return (!(!$author$project$Acadia$Int32$toInt(n))) ? $author$project$Acadia$Bytes$Decode$fail : $author$project$Acadia$Bytes$Decode$succeed(_Utils_Tuple0);
 	},
 	$author$project$Acadia$Bytes$Decode$int32BE);
+var $author$project$Backend$e_ARG_6 = function (v) {
+	var v_organizationID = v.organizationID;
+	var v_id = v.id;
+	var o0 = $author$project$Acadia$UInt32$fromInt(32);
+	var _v0 = v_organizationID;
+	var v_organizationID_0 = _v0.a;
+	var _v1 = v_id;
+	var v_id_0 = _v1.a;
+	return $author$project$Acadia$Bytes$Encode$sequence(
+		_List_fromArray(
+			[
+				$author$project$Acadia$Bytes$Encode$uint32BE(o0),
+				$author$project$Acadia$Bytes$Encode$uuid(v_id_0),
+				$author$project$Acadia$Bytes$Encode$uuid(v_organizationID_0)
+			]));
+};
 var $author$project$Backend$softDeleteItem = function (v0) {
 	return A2(
 		$author$project$Acadia$Transaction$Transaction,
@@ -7006,7 +7180,7 @@ var $author$project$Backend$softDeleteItem = function (v0) {
 					$author$project$Acadia$UInt32$fromInt(0)),
 					$author$project$Acadia$Bytes$Encode$uint32BE(
 					$author$project$Acadia$UInt32$fromInt(9)),
-					$author$project$Backend$e_ARG_3(v0)
+					$author$project$Backend$e_ARG_6(v0)
 				])),
 		$author$project$Backend$d_ARG_9);
 };
@@ -7203,10 +7377,6 @@ var $elm$core$String$left = F2(
 	function (n, string) {
 		return (n < 1) ? '' : A3($elm$core$String$slice, 0, n, string);
 	});
-var $elm$core$String$foldr = _String_foldr;
-var $elm$core$String$toList = function (string) {
-	return A3($elm$core$String$foldr, $elm$core$List$cons, _List_Nil, string);
-};
 var $danfishgold$base64_bytes$Encode$encodeChunks = F2(
 	function (input, accum) {
 		encodeChunks:
@@ -7286,16 +7456,6 @@ var $danfishgold$base64_bytes$Encode$encodeChunks = F2(
 					}
 				}
 			}
-			return $elm$core$Maybe$Nothing;
-		}
-	});
-var $elm$core$Maybe$map = F2(
-	function (f, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return $elm$core$Maybe$Just(
-				f(value));
-		} else {
 			return $elm$core$Maybe$Nothing;
 		}
 	});
@@ -7446,9 +7606,9 @@ var $author$project$Server$requestHandler = F2(
 								},
 								request,
 								$author$project$Acadia$Serialize$createOrganizationInput);
-						case 'ApiItems':
+						case 'ApiOrganizationId_Items':
 							var _v11 = _v0.a;
-							var _v12 = _v0.b;
+							var organizationID = _v0.b.a.organizationID;
 							return A3(
 								$author$project$Server$withRequestBody,
 								function (input) {
@@ -7470,39 +7630,28 @@ var $author$project$Server$requestHandler = F2(
 					}
 				case 'Get':
 					switch (_v0.b.$) {
-						case 'ApiItems':
+						case 'ApiOrganizationId_Items':
+							var _v12 = _v0.a;
+							var organizationID = _v0.b.a.organizationID;
+							return A3(
+								$author$project$Server$acadiaRequest,
+								request.headers,
+								$author$project$Acadia$Serialize$getItemsResponse,
+								$author$project$Backend$getItems(organizationID));
+						case 'ApiOrganizationId_ItemsItemId':
 							var _v13 = _v0.a;
-							var _v14 = _v0.b;
+							var input = _v0.b.a;
 							return A3(
-								$author$project$Server$withRequestBody,
-								function (input) {
-									return A3(
-										$author$project$Server$acadiaRequest,
-										request.headers,
-										$author$project$Acadia$Serialize$getItemsResponse,
-										$author$project$Backend$getItems(input));
-								},
-								request,
-								$author$project$Acadia$Serialize$organizationID);
-						case 'ApiItemsId_':
-							var _v15 = _v0.a;
-							return A3(
-								$author$project$Server$withRequestBody,
-								function (input) {
-									return A3(
-										$author$project$Server$acadiaRequest,
-										request.headers,
-										$author$project$Acadia$Serialize$getItemResponse,
-										$author$project$Backend$getItem(input));
-								},
-								request,
-								$author$project$Acadia$Serialize$getItemInput);
+								$author$project$Server$acadiaRequest,
+								request.headers,
+								$author$project$Acadia$Serialize$getItemResponse,
+								$author$project$Backend$getItem(input));
 						default:
 							break _v0$10;
 					}
 				case 'Put':
-					if (_v0.b.$ === 'ApiItemsId_') {
-						var _v16 = _v0.a;
+					if (_v0.b.$ === 'ApiOrganizationId_ItemsItemId') {
+						var _v14 = _v0.a;
 						return A3(
 							$author$project$Server$withRequestBody,
 							function (input) {
@@ -7523,8 +7672,8 @@ var $author$project$Server$requestHandler = F2(
 						break _v0$10;
 					}
 				case 'Delete':
-					if (_v0.b.$ === 'ApiItemsId_') {
-						var _v17 = _v0.a;
+					if (_v0.b.$ === 'ApiOrganizationId_ItemsItemId') {
+						var _v15 = _v0.a;
 						return A3(
 							$author$project$Server$withRequestBody,
 							function (input) {

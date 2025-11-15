@@ -4,8 +4,6 @@ import Browser.Navigation exposing (Key)
 import Bytes.Decode
 import Bytes.Encode
 import Effect
-import ElmLand.Effect
-import ElmLand.Http
 import ElmLand.Program exposing (Msg, Program)
 import ElmLand.Subscription
 import Endpoints

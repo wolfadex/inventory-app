@@ -2,6 +2,7 @@ module Endpoints.ApiOrganizations exposing (post)
 
 import Acadia.Serialize
 import Backend
+import Dict
 import Effect exposing (Effect)
 import Endpoints
 import Http.Extended
@@ -15,6 +16,7 @@ post toMsg newOrgInfo =
         { endpoint =
             { method = Http.Method.Post
             , path = Endpoints.ApiOrganizations
+            , queryParams = Dict.empty
             , request = Serialize.toBytesEncoder Acadia.Serialize.createOrganizationInput newOrgInfo
             , response = Serialize.toBytesDecoder Acadia.Serialize.organization
             }

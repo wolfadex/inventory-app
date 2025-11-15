@@ -13,7 +13,7 @@ import Acadia.Uuid
 import Backend
 import Browser
 import Effect exposing (Effect)
-import Endpoints.Api.Items.Id_
+import Endpoints.Api.OrganizationId_.Items.ItemId_
 import Html
 import Http.Extended
 import Layout.Authenticated
@@ -85,7 +85,7 @@ init { shared, route } =
                             Effect.none
 
                         Ok id ->
-                            Endpoints.Api.Items.Id_.get ItemLoaded { id = id, organizationID = currentOrganization.id }
+                            Endpoints.Api.OrganizationId_.Items.ItemId_.get ItemLoaded { itemID = id, organizationID = currentOrganization.id }
                     ]
                 )
         }

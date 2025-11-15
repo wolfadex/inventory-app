@@ -23,7 +23,8 @@ server-build-dev:
     nodemon -w src/Server.elm --exec "elm-esm make src/Server.elm --output=./elm-server.js"
 
 server-serve:
-    node --watch server.js
+    # node --watch server.js
+    nodemon -w server.js -w elm-server.js -w XMLHttpRequest-poly.js --exec "node server.js"
 
 elm-review-dev:
     elm-review --watch --fix

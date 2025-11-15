@@ -5,15 +5,18 @@ module Endpoints exposing
     , toString
     )
 
+import Acadia.Uuid
 import Backend
 import Bytes.Decode
 import Bytes.Encode
+import Dict exposing (Dict)
 import Http.Method exposing (Method)
 
 
 type alias Endpoint responseValue =
     { method : Method
     , path : EndpointPath
+    , queryParams : Dict String String
     , request : Bytes.Encode.Encoder
     , response : Bytes.Decode.Decoder responseValue
     }
@@ -25,8 +28,8 @@ type EndpointPath
     | ApiAuthLogout
     | ApiAuthSelf
     | ApiOrganizations
-    | ApiItems
-    | ApiItemsId_ { id : String }
+    | ApiOrganizationId_Items { organizationID : Backend.OrganizationID }
+    | ApiOrganizationId_ItemsItemId { organizationID : Backend.OrganizationID, itemID : Backend.ItemID }
 
 
 toString : EndpointPath -> String
@@ -47,11 +50,22 @@ toString endpoint =
         ApiOrganizations ->
             "/api/organizations"
 
-        ApiItems ->
-            "/api/items"
+        ApiOrganizationId_Items { organizationID } ->
+            let
+                (Backend.OrganizationID orgID) =
+                    organizationID
+            in
+            "/api/" ++ Acadia.Uuid.toHex orgID ++ "/items"
 
-        ApiItemsId_ { id } ->
-            "/api/items/" ++ id
+        ApiOrganizationId_ItemsItemId { organizationID, itemID } ->
+            let
+                (Backend.OrganizationID orgID) =
+                    organizationID
+
+                (Backend.ItemID iID) =
+                    itemID
+            in
+            "/api/" ++ Acadia.Uuid.toHex orgID ++ "/items/" ++ Acadia.Uuid.toHex iID
 
 
 fromString : String -> Maybe EndpointPath
@@ -72,11 +86,16 @@ fromString str =
         [ "", "api", "organizations" ] ->
             Just ApiOrganizations
 
-        [ "", "api", "items" ] ->
-            Just ApiItems
+        [ "", "api", orgID, "items" ] ->
+            Maybe.map
+                (\organizationID -> ApiOrganizationId_Items { organizationID = Backend.OrganizationID organizationID })
+                (Acadia.Uuid.fromHex orgID)
 
-        [ "", "api", "items", id ] ->
-            Just (ApiItemsId_ { id = id })
+        [ "", "api", orgID, "items", iID ] ->
+            Maybe.map2
+                (\organizationID itemID -> ApiOrganizationId_ItemsItemId { organizationID = Backend.OrganizationID organizationID, itemID = Backend.ItemID itemID })
+                (Acadia.Uuid.fromHex orgID)
+                (Acadia.Uuid.fromHex iID)
 
         _ ->
             Nothing

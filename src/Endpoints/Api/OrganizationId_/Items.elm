@@ -1,10 +1,11 @@
-module Endpoints.Api.Items exposing
+module Endpoints.Api.OrganizationId_.Items exposing
     ( get
     , post
     )
 
 import Acadia.Serialize
 import Backend
+import Dict
 import Effect exposing (Effect)
 import Endpoints
 import Http.Extended
@@ -17,7 +18,8 @@ post toMsg input =
     Effect.endpoint
         { endpoint =
             { method = Http.Method.Post
-            , path = Endpoints.ApiItems
+            , path = Endpoints.ApiOrganizationId_Items { organizationID = input.organizationID }
+            , queryParams = Dict.empty
             , request = Serialize.toBytesEncoder Acadia.Serialize.addItemInput input
             , response = Serialize.toBytesDecoder Acadia.Serialize.addItemResponse
             }
@@ -30,7 +32,8 @@ get toMsg input =
     Effect.endpoint
         { endpoint =
             { method = Http.Method.Get
-            , path = Endpoints.ApiItems
+            , path = Endpoints.ApiOrganizationId_Items { organizationID = input }
+            , queryParams = Dict.singleton "orgid" (Serialize.encodeToString Acadia.Serialize.organizationID input)
             , request = Serialize.toBytesEncoder Acadia.Serialize.organizationID input
             , response = Serialize.toBytesDecoder Acadia.Serialize.getItemsResponse
             }
