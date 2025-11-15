@@ -1,8 +1,4 @@
-module Ui.TextInput exposing
-    ( basic
-    , email
-    , password
-    )
+module Ui.Switch exposing (view)
 
 import Html exposing (Html)
 import Html.Attributes
@@ -11,65 +7,27 @@ import Http.Extended
 import Submit exposing (Submit)
 
 
-basic :
+view :
     { name : String
-    , value : String
-    , onInput : String -> msg
+    , value : Bool
+    , onCheck : Bool -> msg
     , label : String
-    , submit : Submit output Http.Extended.Error
+    , submit : Submit a Http.Extended.Error
     }
     -> List (Html.Attribute msg)
     -> Html msg
-basic config attributes =
-    common config attributes
-
-
-email :
-    { name : String
-    , value : String
-    , onInput : String -> msg
-    , label : String
-    , submit : Submit output Http.Extended.Error
-    }
-    -> List (Html.Attribute msg)
-    -> Html msg
-email config attributes =
-    common config (Html.Attributes.type_ "email" :: attributes)
-
-
-password :
-    { name : String
-    , value : String
-    , onInput : String -> msg
-    , label : String
-    , submit : Submit output Http.Extended.Error
-    }
-    -> List (Html.Attribute msg)
-    -> Html msg
-password config attributes =
-    common config (Html.Attributes.type_ "password" :: attributes)
-
-
-common :
-    { name : String
-    , value : String
-    , onInput : String -> msg
-    , label : String
-    , submit : Submit output Http.Extended.Error
-    }
-    -> List (Html.Attribute msg)
-    -> Html msg
-common config attributes =
+view config attributes =
     let
         describeByName : String
         describeByName =
-            "text-input-" ++ config.name
+            "switch-input-" ++ config.name
     in
     Html.label []
-        [ Html.text config.label
-        , Html.input
-            ([ Html.Attributes.value config.value
-             , Html.Events.onInput config.onInput
+        [ Html.input
+            ([ Html.Attributes.type_ "checkbox"
+             , Html.Attributes.attribute "role" "switch"
+             , Html.Attributes.checked config.value
+             , Html.Events.onCheck config.onCheck
              , Html.Attributes.attribute "aria-describedby" describeByName
              , case config.submit of
                 Submit.Submitting ->
@@ -88,6 +46,7 @@ common config attributes =
                 ++ attributes
             )
             []
+        , Html.text config.label
         , case config.submit of
             Submit.Failed (Http.Extended.Field error) ->
                 if error.name == config.name then
